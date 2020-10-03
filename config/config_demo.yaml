@@ -1,0 +1,51 @@
+# use new or old data
+NEW_DATA: True
+
+# use data augmentation
+DATA_AUGMENTATION: True
+
+# label format: 'one-per-item' (19-dimensional), 'three-per-item' (55-dimensiona), or 'one' (only complete score)
+LABEL_FORMAT: one-per-item
+
+# show debug prints
+DEBUG: True
+
+# redo loading and preprocessing of labels from disk
+REDO_PREPROCESSING_LABELS: False
+
+# redo loading and preprocessing of images from disk
+REDO_PREPROCESSING_IMAGES: False
+
+# True for Regressor, False for Classifier
+REGRESSOR_MODE: True
+
+# load only a few images for preprocessing, faster to test
+LOAD_ONLY_FEW: False
+
+# use binning: 'none' to use original scores, 'discrete' to use fixed integer binning, 'continuous' for continuous binning
+BINNING: 'none'
+
+# validate on binning, even if binning wasn't used for training
+VAL_BINNING: False
+
+# specify number of convolutional layers [2..4]
+CONV_LAYERS: 4
+
+# dropout
+DROPOUT: 0.8
+
+# define how many images you want to use, provide 0 if all
+CONVERGENCE: 0
+
+# model to be restored
+MODEL_PATH: '/Users/jheitz/Dropbox/Splitted Data/FINAL/model/20181207_21-35-59_ALL_test/model_fold-1.ckpt'
+
+DEST_PATH: '../webserver/demoimages/'
+DIRECTORY_TO_WATCH: '../test_images/'
+
+# test can be False (normal cross-val on train/val) or True (train on all training data, test on test data)
+TEST: True
+
+# classification encoding: 'one-hot' (0,0,1,0,0), 'weighted' (0.05,0.1,0.7,0.1,0.05), 'ordinal' (1, 1, 1, 0, 0)
+CLASSIFICATION_ENCODER: 'one-hot'
+

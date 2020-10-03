@@ -1,0 +1,71 @@
+
+
+/* ==========================================================================
+   Author's custom styles
+   ========================================================================== */
+
+
+
+header{
+    padding:20px 0;
+    margin-bottom:30px;
+    box-shadow:0 0 10px #ddd;
+}
+.eth-logo{
+    height:40px;
+}
+
+
+.blueimp-gallery > .slides > .slide > .slide-content{
+    max-height:80%;
+}
+
+.tile{
+    width:33%;
+}
+.tile a{
+    display:block;
+}
+.tile img{
+    max-width:100%;
+}
+
+.images-list, .leaderboard-list-wrapper, .leaderboard-new{
+    display:none;
+}
+
+table, tbody, tr{
+    width:100%;
+    display:block;
+}
+
+tr{
+    animation-name: tr_color;
+    animation-duration: 4s;
+}
+
+td:nth-child(2){
+    width:90%;
+}
+
+
+
+
+@keyframes tr_color {
+    from {background-color: #ee9c9c;}
+    to {background-color: transparent;}
+}
+
+
+
+
+h1, h2{
+    font-family: Lato;
+    font-weight:300;
+}
+h2{
+    margin-bottom:40px;
+}
+
+
+
