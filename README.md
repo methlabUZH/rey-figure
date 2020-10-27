@@ -44,3 +44,15 @@ You can also sequentially train multiple times with different config files using
 To do this, create multiple `.yaml` files in the directory `config` and specify the run parameters. 
 Then run `nohup python train_many.py --local 0 --GPU GPU --runname RUNNAME &`.
 The run name of the individual runs will be the concatenation of `RUNNAME` and the name of the config file.
+
+## Minimal working example to run locally 
+1. Download data from [here](https://polybox.ethz.ch/index.php/apps/files/?dir=/Shared/rey_figure_data/Data/ReyFigures/uploadFinal&fileid=2076554047). 
+If the link does not work, go to polybox -> rey_figure_data -> Data -> ReyFigures and download the uploadFinal folder. 
+2. Place the downloaded files in the rey-figure project cloned from git. Specifically, in the 
+`new_data/Data_train folder. 
+3. Download the corresponding Data07112018.csv file which contains the labels for the data from  [here](https://polybox.ethz.ch/index.php/apps/files/?dir=/Shared/rey_figure_data/Data/UserRatingData&fileid=2076554026).
+Again if the link does not work, please go to rey_figure_data -> Data -> UserRatingData and download the file from there. 
+4. Place the .csv file in the new_data/` folder. 
+5. Go to the route of the rey-figure project and type either `conda env create -f environment.yml` or `conda env create -f environment_from_history.yml`.
+This will install al the required packages you need to train a model. The latter one should be usable across platforms. 
+6. Go to the `src/` folder and execute `python train.py --config filepath --local 0 --GPU GPU --runname RUNNAME`
