@@ -1,0 +1,15 @@
+name: masterthesis
+channels:
+  - defaults
+dependencies:
+  - python=3.6
+  - numpy
+  - scikit-learn
+  - yaml
+  - pyyaml
+  - scikit-image
+  - pandas
+  - opencv
+  - tensorflow=1.15
+  - imutils
+prefix: /Users/felixasanger/anaconda3/envs/masterthesis
