@@ -13,7 +13,7 @@ import warnings
 from skimage import filters
 
 
-from config import DATA_AUGMENTATION, DEBUG
+from rocf_scoring.config import DATA_AUGMENTATION
 
 if DATA_AUGMENTATION:
     CANVAS_SIZE = (464, 600)  # height, width

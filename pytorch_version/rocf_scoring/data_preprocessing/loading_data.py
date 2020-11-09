@@ -10,13 +10,9 @@ from rocf_scoring.helpers.helpers import create_directory
 
 from sklearn.utils import shuffle
 import time
-import math
 from collections import defaultdict
-from config import DATA_DIR, DEBUG, DATA_AUGMENTATION, LOAD_ONLY_FEW, REDO_PREPROCESSING_LABELS, \
-    REDO_PREPROCESSING_IMAGES, LABEL_FORMAT, MODEL_PATH, INTERMEDIATES, CONVERGENCE, TEST
-
-import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
+from rocf_scoring.config import DATA_DIR, DEBUG, DATA_AUGMENTATION, LOAD_ONLY_FEW, REDO_PREPROCESSING_LABELS, \
+    REDO_PREPROCESSING_IMAGES, LABEL_FORMAT, MODEL_PATH, INTERMEDIATES, CONVERGENCE, TEST, NUMBER_LOAD_ONLY_FEW
 
 # from helpers import File, create_directory, imgs_to_file
 
@@ -210,7 +206,7 @@ def load_raw_data(set = "train"):
         print("{} figures in {} data have no valid assessment, left with {} good figures".format(len(raw_figures)-len(figures), set, len(figures)))
 
     if LOAD_ONLY_FEW:
-        figures = figures[0:50]
+        figures = figures[0:NUMBER_LOAD_ONLY_FEW]
 
     # get list of labels
     if LABEL_FORMAT == 'one-per-item':

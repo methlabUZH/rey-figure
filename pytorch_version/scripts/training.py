@@ -1,12 +1,108 @@
 import torch
-import torch.nn as nn
 from torch.utils.data import DataLoader
-import torch.nn.functional as F
-from rocf_scoring.models.model import CNN
-from config import RESUME_CHECKPOINT, PATH_CHECKPOINT
-import tqdm
-import time
+from rocf_scoring.config import (RESUME_CHECKPOINT, PATH_CHECKPOINT, SAVE_MODEL_CHECKPOINTS, RUN_NAME, TRAINING_RESULTS_DIR,
+                                 TRAINED_MODELS)
+from rocf_scoring.data_preprocessing.loading_data import load_raw_data
+from sklearn.model_selection import train_test_split
 import numpy as np
+import os
+import pandas as pd
+from rocf_scoring.features.dataset import ROCFDataset
+from datetime import datetime
+import csv
+from sklearn.metrics import accuracy_score
+
+def monitor_training_results(results_dir, monitor_dict, mode=None):
+
+    if mode == "train":
+        path = os.path.join(results_dir, "train_results.csv")
+
+    if mode == "test":
+        path = os.path.join(results_dir, "test_results.csv")
+
+    elif mode == None:
+        assert "Did not specify mode"
+
+    list_of_elem = (item for key,item in monitor_dict.items())
+
+    with open(path, 'a', newline='\n') as f:
+        writer = csv.writer(f)
+        writer.writerow(list_of_elem)
+
+
+
+def get_dataloaders():
+
+    figures, labels, files = load_raw_data()
+    figures_train, figures_test, labels_train, labels_test, files_train, files_test = train_test_split(figures,
+                                                                                                       labels,
+                                                                                                       files,
+                                                                                                       test_size=0.2)
+
+
+    train_dataset = ROCFDataset(figures_train, labels_train, files_train)
+    test_dataset = ROCFDataset(figures_test, labels_test, files_test)
+
+    train_loader = DataLoader(train_dataset,
+                                   batch_size=16, shuffle=True,
+                                   num_workers=1)
+    test_loader = DataLoader(test_dataset,
+                                  batch_size=16, shuffle=False,
+                                  num_workers=1)
+
+    return train_loader, test_loader
+
+
+def directory_setup():
+    """
+    Sets up directories used to save models, checkpoints and training results
+    :return:
+    """
+
+    # run name for model saving
+    run_name = datetime.now().strftime("%Y%m%d_%H-%M-%S")
+    if len(RUN_NAME) > 0:
+        run_name = run_name + "_" + RUN_NAME
+
+    # create directory for training results
+    train_results_dir = os.path.join(TRAINING_RESULTS_DIR, run_name)
+    if not os.path.exists(train_results_dir):
+        os.makedirs(train_results_dir)
+
+    # create directory to save trained model
+    save_model_dir_final = os.path.join(TRAINED_MODELS, run_name, "final")
+    if not os.path.exists(save_model_dir_final):
+        os.makedirs(save_model_dir_final)
+
+    # create directory to save model checkpoints
+    if SAVE_MODEL_CHECKPOINTS:
+        save_model_dir_checkpoints = os.path.join(TRAINED_MODELS, run_name, "checkpoints")
+        if not os.path.exists(save_model_dir_checkpoints):
+            os.makedirs(save_model_dir_checkpoints)
+    else:
+        save_model_dir_checkpoints = None
+
+    return run_name, train_results_dir, save_model_dir_final, save_model_dir_checkpoints
+
+
+def initialize_training_csv(results_dir):
+    """
+    NOT used at the moment!!!
+    :param results_dir:
+    :return:
+    """
+    columns = "epoch,n_iter,loss,pred,groundtruth"
+    #columns = "epoch,n_iter,loss"
+
+    train_results_path = os.path.join(results_dir, "train_results.csv")
+    test_results_path = os.path.join(results_dir, "test_results.csv")
+
+    with open(train_results_path, 'w', newline='\n') as fd:
+        fd.write(columns)
+
+    with open(test_results_path, 'w', newline='\n') as fd:
+        fd.write(columns)
+
 
 def train(model, criterion, optimizer, train_dataloader, test_dataloader, opt=None):
 
@@ -18,42 +114,24 @@ def train(model, criterion, optimizer, train_dataloader, test_dataloader, opt=No
     # load checkpoint if needed/ wanted
     start_n_iter = 0
     start_epoch = 0
-    # if RESUME_CHECKPOINT:
-    #     ckpt = load_checkpoint(PATH_CHECKPOINT)  # custom method for loading last checkpoint
-    #     net.load_state_dict(ckpt['net'])
-    #     start_epoch = ckpt['epoch']
-    #     start_n_iter = ckpt['n_iter']
-    #     optim.load_state_dict(ckpt['optim'])
-    #     print("last checkpoint restored")
+
+    if RESUME_CHECKPOINT:
+        ckpt = torch.load(PATH_CHECKPOINT)  # custom method for loading last checkpoint
+        model.load_state_dict(ckpt['model_state_dict'])
+        start_epoch = ckpt['epoch']
+        optimizer.load_state_dict(ckpt['optimizer_state_dict'])
+        print("last checkpoint restored")
+        print("start epoch: ", start_epoch)
 
 
     # TODO: read about summary writer
     # typically we use tensorboardX to keep track of experiments
     # writer = SummaryWriter(...)
 
-    # now we start the main loop
     n_iter = start_n_iter
-
-    predictions_train = {}
-    losses_train = {}
-    groundtruths_train = {}
-    predictions_test = {}
-    losses_test = {}
-    groundtruths_test = {}
-
-
     for epoch in range(start_epoch, opt["EPOCHS"]):
         # set models to train mode
         model.train()
-
-        # use prefetch_generator and tqdm for iterating through data
-        # pbar = tqdm(enumerate(BackgroundGenerator(train_data_loader, ...)),
-        #             total=len(train_data_loader))
-        # start_time = time.time()
-
-        losses_epoch = np.asarray([])
-        outputs_epoch = np.asarray([])
-        groundtruths_epoche = np.asarray([])
 
         # for loop going through dataset
         for data in train_dataloader:
@@ -64,76 +142,76 @@ def train(model, criterion, optimizer, train_dataloader, test_dataloader, opt=No
             #     img = img.cuda()
             #     label = label.cuda()
 
-
-            # It's very good practice to keep track of preparation time and computation time using tqdm to find any issues in your dataloader
-
             # forward and backward pass
             optimizer.zero_grad()
             outputs = model(imgs.float())
+
             loss = criterion(outputs, np.argmax(one_hot_label, axis=1))
             loss.backward()
             optimizer.step()
 
-
             # keeping track of losses outputs and groundtruths per epoch
             loss_np = loss.detach().numpy()
-            outputs_np = outputs.detach().numpy()
+            outputs_np = np.argmax(outputs.detach().numpy(), axis=1)
             ground_truths_np = np.argmax(one_hot_label, axis=1)
-            losses_epoch = np.append(losses_epoch, loss_np)
-            outputs_epoch = np.append(outputs_epoch, outputs_np)
-            groundtruths_epoche = np.append(groundtruths_epoche, ground_truths_np)
 
-            # udpate tensorboardX
-            # writer.add_scalar(..., n_iter)
+            acc = accuracy_score(ground_truths_np, outputs_np)
 
-            # compute computation time and *compute_efficiency*
+            monitor = {
+                "epoch" : epoch,
+                "n_iter" : n_iter,
+                "loss" : loss_np,
+                "acc" : acc,
+            }
+            monitor_training_results(opt["TRAINING_RESULTS_DIR"], monitor, mode="train")
 
-            # pbar.set_description("Compute efficiency: {:.2f}, epoch: {}/{}:".format(
-            #     process_time / (process_time + prepare_time), epoch, opt.epochs))
+            n_iter += 1
 
-        print("losses per epoche: ", losses_epoch)
+        # save model checkpoint every 5 epochs
+        if SAVE_MODEL_CHECKPOINTS:
+            if epoch % 5 == 0:
+                path = os.path.join(opt["CHECKPOINTS_DIR"], f"epoch_{epoch}")
+                if not os.path.exists(path):
+                    os.makedirs(path)
+                path = os.path.join(path, "checkpoint.tar")
+                torch.save({
+                    'epoch': epoch,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'loss': loss,
+                }, path)
 
-        # keeping track of losses outputs and groundtruths per epoch
-        predictions_train[epoch] = outputs_epoch
-        losses_train[epoch] = losses_epoch
-        groundtruths_train[epoch] = groundtruths_epoche
 
+        # do a test pass every x epochs
+        n_iter_test = max ( (epoch - 1) * len(train_dataloader), 0)
 
-        # maybe do a test pass every x epochs
         if epoch % 3 == 0:
             print("epoch val: ", epoch)
             with torch.no_grad():
                 # bring models to evaluation mode
                 model.eval()
-                ...
-                # do some tests
-                # pbar = tqdm(enumerate(BackgroundGenerator(test_data_loader, ...)),
-                #             total=len(test_data_loader))
-
-                losses_epoch = np.asarray([])
-                outputs_epoch = np.asarray([])
-                groundtruths_epoche = np.asarray([])
 
                 for data in test_dataloader:
                     # data preparation
                     imgs, labels, one_hot_label = data
                     outputs = model(imgs.float())
                     loss = criterion(outputs, np.argmax(one_hot_label, axis=1))
-                    print("val loss: ", loss)
 
                     loss_np = loss.detach().numpy()
-                    outputs_np = outputs.detach().numpy()
+                    outputs_np = np.argmax(outputs.detach().numpy(), axis=1)
                     ground_truths_np = np.argmax(one_hot_label, axis=1)
-                    losses_epoch = np.append(losses_epoch, loss_np)
-                    outputs_epoch = np.append(outputs_epoch, outputs_np)
-                    groundtruths_epoche = np.append(groundtruths_epoche, ground_truths_np)
 
+                    acc = accuracy_score(ground_truths_np, outputs_np)
 
-            predictions_test[epoch] = outputs_epoch
-            losses_test[epoch] = losses_epoch
-            groundtruths_test[epoch] = groundtruths_epoche
+                    monitor = {
+                        "epoch": epoch,
+                        "n_iter": n_iter_test,
+                        "loss": loss_np,
+                        "acc": acc,
+                    }
 
-            # save checkpoint if needed
+                    monitor_training_results(opt["TRAINING_RESULTS_DIR"], monitor, mode="test")
 
+                    n_iter_test += 1
 
     print("Finished Training!!!")

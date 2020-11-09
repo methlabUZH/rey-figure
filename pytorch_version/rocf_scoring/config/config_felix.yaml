@@ -25,6 +25,9 @@ REGRESSOR_MODE: False
 # load only a few images for preprocessing, faster to test
 LOAD_ONLY_FEW: True
 
+# how many images should be loaded when LOAD_ONLY_FEW
+NUMBER_LOAD_ONLY_FEW: 100
+
 # use binning: 'none' to use original scores, 'discrete' to use fixed integer binning, 'continuous' for continuous binning
 BINNING: 'discrete'
 
@@ -53,4 +56,11 @@ DROPOUT_MC_RATE: 0.1
 RESUME_CHECKPOINT: False
 
 # Path to checkpoint
-PATH_CHECKPOINT: None
+PATH_CHECKPOINT: "/Users/felixasanger/Desktop/pytorch_rey-figure/rocf_scoring/trained_models/20201107_12-18-13_felix_test/checkpoints/epoch_5/checkpoint.tar"
+
+# Save model checkpoints every EVERY_N_EPOCHS
+EVERY_N_EPOCHS: 5
+
+# Save model checkpoints:
+SAVE_MODEL_CHECKPOINTS: False
+

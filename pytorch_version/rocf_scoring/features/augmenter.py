@@ -1,14 +1,12 @@
-import numpy as np
 from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 from cv2 import imwrite, imread
 import csv
-import os
 from imutils import rotate_bound
 from skimage import transform, filters
 from rocf_scoring.helpers.helpers import *
 import time
-from config import DATA_DIR, DEBUG
+from rocf_scoring.config import DATA_DIR, DEBUG
 from rocf_scoring.data_preprocessing.preprocess import preprocess_basic, cutdown, resize_padded, CANVAS_SIZE, augmented_CANVAS_SIZE, normalization
 
 

@@ -2,6 +2,11 @@ import math
 import os
 import shutil
 import numpy as np
+import pandas as pd
+from rocf_scoring.data_preprocessing.preprocess import preprocess
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score
+
 class File:
     """
     A image file, used to match predicted labels with original images
@@ -76,3 +81,43 @@ def check_if_in_range(value, upper_bound, lower_bound):
     if lower_bound <= value < upper_bound:
         return True
     return False
+
+
+def visualize_training(results_dir):
+    col_names = ["epoch", "n_iter", "loss", "acc"]
+
+    train_res_path = os.path.join(results_dir, "train_results.csv")
+    test_res_path = os.path.join(results_dir, "test_results.csv")
+
+    train_res_df = pd.read_csv(train_res_path, names=col_names)
+    test_res_df = pd.read_csv(test_res_path, names=col_names)
+
+
+    # construct loss graph
+    plt.plot(train_res_df["n_iter"], train_res_df["loss"], label='train loss')
+    plt.plot(test_res_df["n_iter"], test_res_df["loss"], label='test loss')
+
+    plt.ylabel('loss')
+    plt.xlabel('iteration')
+    plt.legend()
+
+    save_path=os.path.join(results_dir, "loss_plot.png")
+    plt.savefig(save_path)
+    plt.show()
+
+
+    plt.plot(train_res_df["n_iter"], train_res_df["acc"], label='train acc')
+    plt.plot(test_res_df["n_iter"], test_res_df["acc"], label='test acc')
+    plt.ylabel('accuracy')
+    plt.xlabel('iteration')
+    plt.legend()
+
+    save_path = os.path.join(results_dir, "acc_plot.png")
+    plt.savefig(save_path)
+    plt.show()
+
+
+
+if __name__ == "__main__":
+    results_dir = "/Users/felixasanger/Desktop/pytorch_rey-figure/rocf_scoring/training_results/20201109_12-06-01_test_felix"
+    visualize_training(results_dir)

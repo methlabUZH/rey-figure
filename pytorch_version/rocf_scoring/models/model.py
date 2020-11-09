@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from config import CONV_LAYERS, DROPOUT_MC_RATE, DROPOUT_MC
+from rocf_scoring.config import CONV_LAYERS, DROPOUT_MC_RATE, DROPOUT_MC
 from rocf_scoring.data_preprocessing.loading_data import preprocess_dataset
 from rocf_scoring.data_preprocessing.preprocess import BIN_LOCATIONS
 import numpy as np
