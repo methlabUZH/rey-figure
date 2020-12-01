@@ -9,7 +9,8 @@ import shutil
 
 
 import preprocess
-from dataloader import DATA, datasets
+from dataloader import DATA
+
 
 def visualize_labels(dataset):
     n, bins, patches = plt.hist(x=dataset.labels, rwidth=0.85, bins=36)

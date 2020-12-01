@@ -25,7 +25,7 @@ class CNN:
         self.batch_size = batch_size
         self.dropout_ratio = dropout_ratio
         self.train_ids = None
-        self.show_weight_summaries = False # tensorboard summaries also for filters and biases
+        self.show_weight_summaries = False  # tensorboard summaries also for filters and biases
         self.build_model()
 
     def prepareX(self, X):
@@ -45,7 +45,8 @@ class CNN:
                 y = weighted_classes_encoding(y)
             elif CLASSIFICATION_ENCODER == 'ordinal':
                 y = ordinal_classification_encoding(y)
-            else: raise ValueError("invalid CLASSIFICATION_ENCODER")
+            else:
+                raise ValueError("invalid CLASSIFICATION_ENCODER")
             return y
 
         # regressor
@@ -56,45 +57,46 @@ class CNN:
                 y = np.reshape(y, [np.shape(y)[0], 19])  # reshape to (?, 19)
             elif LABEL_FORMAT == 'three-per-item':
                 y = np.reshape(y, [np.shape(y)[0], 55])  # reshape to (?, 55)
-            else: raise ValueError("invalid LABEL_FORMAT")
+            else:
+                raise ValueError("invalid LABEL_FORMAT")
 
             if BINNING == 'discrete':
                 if LABEL_FORMAT == 'one':
                     y = bin_numbers(y)
                 elif LABEL_FORMAT == 'one-per-item':
-                    y[:,18] = bin_numbers(y[:,18])
+                    y[:, 18] = bin_numbers(y[:, 18])
                 elif LABEL_FORMAT == 'three-per-item':
-                    y[:,54] = bin_numbers(y[:,54])
-                else: raise ValueError("invalid LABEL_FORMAT")
+                    y[:, 54] = bin_numbers(y[:, 54])
+                else:
+                    raise ValueError("invalid LABEL_FORMAT")
 
             elif BINNING == 'continuous':
                 if LABEL_FORMAT == 'one':
                     y = bin_numbers_continuous(y)
                 elif LABEL_FORMAT == 'one-per-item':
-                    y[:,18] = bin_numbers_continuous(y[:,18])
+                    y[:, 18] = bin_numbers_continuous(y[:, 18])
                 elif LABEL_FORMAT == 'three-per-item':
-                    y[:,54] = bin_numbers_continuous(y[:,54])
-                else: raise ValueError("invalid LABEL_FORMAT")
+                    y[:, 54] = bin_numbers_continuous(y[:, 54])
+                else:
+                    raise ValueError("invalid LABEL_FORMAT")
 
             else:
                 if BINNING != "none": raise ValueError("invalid BINNING")
 
         return y
 
-
-    def prepare_data(self, X, y = None):
+    def prepare_data(self, X, y=None):
         # binning_mode is either 'discrete' or 'continuous'
         X_prep = self.prepareX(X)
-        if(y is None):
+        if (y is None):
             return X_prep
         y_prep = self.prepareY(y)
         return X_prep, y_prep
 
-
     def build_main_model(self):
         input_size = tf.shape(self.input)[0]
 
-        input = tf.expand_dims(self.input,3)
+        input = tf.expand_dims(self.input, 3)
 
         with tf.variable_scope('conv1') as scope:
             filters = tf.get_variable("filter", [5, 5, 1, 32], tf.float32)
@@ -151,7 +153,7 @@ class CNN:
                                    strides=[1, 2, 2, 1], padding='SAME', name='pool3')
 
         if CONV_LAYERS == 3:
-                reshaped = tf.reshape(pool3, [input_size, 15 * 19 * 64])
+            reshaped = tf.reshape(pool3, [input_size, 15 * 19 * 64])
 
         elif CONV_LAYERS == 4:
             # conv4
@@ -172,7 +174,8 @@ class CNN:
 
             reshaped = tf.reshape(pool4, [input_size, 8 * 10 * 64])
 
-        dense = tf.layers.dense(reshaped, 1024, activation=tf.nn.leaky_relu, name="dense", bias_initializer=tf.glorot_uniform_initializer())
+        dense = tf.layers.dense(reshaped, 1024, activation=tf.nn.leaky_relu, name="dense",
+                                bias_initializer=tf.glorot_uniform_initializer())
 
         self.intermediate = dense
 
@@ -207,12 +210,12 @@ class CNN:
                 loss = tf.losses.mean_squared_error(self.labels, prediction)
                 accuracy, _ = tf.metrics.accuracy(labels_bin, prediction_bin)
             else:
-                prediction = tf.layers.dense(dense_dropped, len(BIN_LOCATIONS), activation=tf.nn.leaky_relu, name="prediction")
+                prediction = tf.layers.dense(dense_dropped, len(BIN_LOCATIONS), activation=tf.nn.leaky_relu,
+                                             name="prediction")
                 prediction_bin = tf.argmax(prediction, axis=1)
                 labels_bin = tf.argmax(self.labels, axis=1)
                 loss = tf.losses.softmax_cross_entropy(self.labels, prediction)
                 accuracy, _ = tf.metrics.accuracy(labels_bin, prediction_bin)
-
 
         # collect summaries in main model
         main_model_summaries = tf.summary.merge_all()
@@ -243,11 +246,11 @@ class CNN:
         summary_loss = tf.summary.scalar('loss', loss)
         if REGRESSOR_MODE:
             if LABEL_FORMAT == 'one-per-item':
-                summary_prediction = tf.summary.histogram('prediction', self.prediction[:,18])
-                mean, var = tf.nn.moments(self.prediction[:,18], axes=[0], name="mean_var")
+                summary_prediction = tf.summary.histogram('prediction', self.prediction[:, 18])
+                mean, var = tf.nn.moments(self.prediction[:, 18], axes=[0], name="mean_var")
             elif LABEL_FORMAT == 'three-per-item':
-                summary_prediction = tf.summary.histogram('prediction', self.prediction[:,54])
-                mean, var = tf.nn.moments(self.prediction[:,54], axes=[0], name="mean_var")
+                summary_prediction = tf.summary.histogram('prediction', self.prediction[:, 54])
+                mean, var = tf.nn.moments(self.prediction[:, 54], axes=[0], name="mean_var")
             else:
                 summary_prediction = tf.summary.histogram('prediction', self.prediction)
                 mean, var = tf.nn.moments(self.prediction, axes=[0], name="mean_var")
@@ -263,7 +266,7 @@ class CNN:
                                                    10000, 0.1, staircase=True)
 
         optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, name="optimizer")
-        self.training_step = optimizer.minimize(loss = loss, global_step = self.global_step)
+        self.training_step = optimizer.minimize(loss=loss, global_step=self.global_step)
 
         if not LOCAL:
             config = tf.ConfigProto()
@@ -282,16 +285,18 @@ class CNN:
         if REGRESSOR_MODE:
             self.all_summaries_predict = tf.summary.merge([summary_prediction, summary_pred_mean, summary_pred_var])
         else:
-            self.all_summaries_predict = tf.summary.merge([summary_prediction, summary_accuracy, summary_pred_mean,summary_pred_var])
+            self.all_summaries_predict = tf.summary.merge(
+                [summary_prediction, summary_accuracy, summary_pred_mean, summary_pred_var])
 
         self._session.graph.finalize()
 
         # writer for tensorboard visualization
-        self.train_writer = tf.summary.FileWriter(os.path.join('../summaries', self.run_name, str(self.fold), "train"), self._session.graph)
-        self.validation_writer = tf.summary.FileWriter(os.path.join('../summaries', self.run_name, str(self.fold), "val"))
+        self.train_writer = tf.summary.FileWriter(os.path.join('../summaries', self.run_name, str(self.fold), "train"),
+                                                  self._session.graph)
+        self.validation_writer = tf.summary.FileWriter(
+            os.path.join('../summaries', self.run_name, str(self.fold), "val"))
 
-
-    def predict(self, X, summary_writer = False, summary_step = False):
+    def predict(self, X, summary_writer=False, summary_step=False):
         X = np.copy(X)
         X = self.prepare_data(X)
 
@@ -305,9 +310,9 @@ class CNN:
 
             if DATA_AUGMENTATION and not TEST:
                 # use if data augmentation
-                int_batch = np.empty([curr_batch.shape[0],116,150])
+                int_batch = np.empty([curr_batch.shape[0], 116, 150])
                 for i in range(curr_batch.shape[0]):
-                    int_batch[i,:,:] = curr_batch[i,0,:,:]
+                    int_batch[i, :, :] = curr_batch[i, 0, :, :]
                 curr_batch = int_batch
 
             if summary_writer and summary_step and first_batch:
@@ -318,7 +323,7 @@ class CNN:
                 first_batch = False
             else:
                 curr_result = self._session.run(self.prediction,
-                                                         {self.input: curr_batch, self.is_training: False})
+                                                {self.input: curr_batch, self.is_training: False})
 
             results.append(curr_result)
 
@@ -328,7 +333,7 @@ class CNN:
     def fit(self, X, y, trainingsteps=3, globalstep=0, reset_ids=False):
         y = np.copy(y)
         X = np.copy(X)
-        X, y = self.prepare_data(X,y)
+        X, y = self.prepare_data(X, y)
 
         if (reset_ids or (self.train_ids is None)):
             self.train_ids = BatchIds(X.shape[0])
@@ -345,12 +350,12 @@ class CNN:
                 curr_data = int_batch
 
             summary, _ = self._session.run([self.all_summaries, self.training_step],
-                              {
-                                  self.input: curr_data,
-                                  self.labels: curr_labels,
-                                  self.is_training: True
-                              })
-            self.train_writer.add_summary(summary, globalstep*trainingsteps+i)
+                                           {
+                                               self.input: curr_data,
+                                               self.labels: curr_labels,
+                                               self.is_training: True
+                                           })
+            self.train_writer.add_summary(summary, globalstep * trainingsteps + i)
 
     def get_intermediate(self, X):
         X = np.copy(X)
@@ -359,7 +364,7 @@ class CNN:
         intermediates = []
 
         curr_intermediate = self._session.run(self.intermediate,
-                                                {self.input: X, self.is_training: False})
+                                              {self.input: X, self.is_training: False})
 
         intermediates.append(curr_intermediate)
 
@@ -367,20 +372,21 @@ class CNN:
 
         return intermediates
 
-    def validate(self, X, y, summary_writer = None, summary_step = None, files=None, log_results = False, log_results_filename=None):
+    def validate(self, X, y, summary_writer=None, summary_step=None, files=None, log_results=False,
+                 log_results_filename=None):
         y = np.copy(y)
         X = np.copy(X)
         y = self.prepareY(y)
-        prediction = self.predict(X, summary_writer = summary_writer, summary_step = summary_step)
-        extra_information = np.copy(prediction) # not used for validation, but for logging results
+        prediction = self.predict(X, summary_writer=summary_writer, summary_step=summary_step)
+        extra_information = np.copy(prediction)  # not used for validation, but for logging results
 
         if REGRESSOR_MODE:
             if LABEL_FORMAT == 'one-per-item':
-                prediction = prediction[:,18]
-                y = y[:,18]
+                prediction = prediction[:, 18]
+                y = y[:, 18]
             elif LABEL_FORMAT == 'three-per-item':
-                prediction = prediction[:,54]
-                y = y[:,54]
+                prediction = prediction[:, 54]
+                y = y[:, 54]
             if BINNING != 'none':
                 # convert to integer bins to ensure fair comparison between methods
                 y = postprocess_binned_labels(y)
@@ -403,7 +409,7 @@ class CNN:
             print("Validation prediction statistic")
             print(stats.describe(prediction))
 
-        if(log_results):
+        if (log_results):
             log_validation_predictions(y, prediction, files, log_results_filename, extra_information)
             write_validation_errors(y, prediction, files, self.run_name)
 

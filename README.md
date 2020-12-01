@@ -1,4 +1,28 @@
-# Data Science Lab Pyschology Project
+# Automated Scoring of the ROCF test
+This repo contains code for the automated scoring of the Rey-Osterrieth 
+Complex Figure (ROCF) test. In this test, examinees are asked to reproduce 
+a complicated line drawing, which is then used to make a neuropsychological 
+assessment.
+
+
+## Methodology
+### Regression
+Performance, architecture, advantages and disadvantes, etc.
+
+
+### Classification
+Performance, architecture, advantages and disadvantes, etc.
+
+### Uncertainty Quantification
+TODO
+
+## How to use this code
+Under construction, refactoring.
+
+
+
+# BELOW IS OUTDATED AND MIGHT NOT WORK AS DESCRIBED
+## Data Science Lab Pyschology Project
 
 ### Run on spaceml1
 Login to spaceml from eth network: `ssh user@spaceml1`

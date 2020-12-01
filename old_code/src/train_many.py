@@ -33,7 +33,7 @@ args = arg_parser.parse_args()
 
 
 
-config_dir = "../config"
+config_dir = "old_code/config"
 output_directory = "../output"
 
 # directory to store terminal output to

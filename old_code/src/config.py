@@ -68,7 +68,7 @@ assert REGRESSOR_MODE in [True, False], "Invalid REGRESSOR_MODE"
 
 if LOCAL:
     if NEW_DATA:
-        DATA_DIR = "../new_data/"
+        DATA_DIR = "old_code/new_data/"
         print("Running file locally on new data...")
     else:
         DATA_DIR = "../data/"
