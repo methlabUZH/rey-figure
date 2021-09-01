@@ -1,0 +1,17 @@
+# number of images in a single training batch
+BATCH_SIZE: 2
+
+# number of workers for data loading
+NUM_WORKERS: 8
+
+# training hyper parameters
+OPITMIZER: 'adam'
+INITIAL_LEARNING_RATE: 0.001
+DROPOUT: 0.8
+FINAL_LEARNING_RATE: 0.0001
+NUM_EPOCHS: 1
+
+# cnn model
+MODEL: 'resnet'
+
+

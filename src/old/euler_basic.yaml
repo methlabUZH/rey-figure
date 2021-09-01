@@ -1,0 +1,12 @@
+# number of images in a single training batch
+BATCH_SIZE: 128
+
+# training hyper parameters
+OPITMIZER: 'adam'
+INITIAL_LEARNING_RATE: 0.001
+FINAL_LEARNING_RATE: 0.0001
+NUM_EPOCHS: 100
+
+# cnn model
+MODEL: 'resnet'
+

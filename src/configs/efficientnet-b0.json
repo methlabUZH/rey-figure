@@ -1,0 +1,12 @@
+{
+  "epochs": 300,
+  "learning_rate": 0.1,
+  "lr_decay": 0.99,
+  "lr_schedule": null,
+  "batch_size": 256,
+  "momentum": 0.9,
+  "weight_decay": 5e-4,
+  "dropout": 0.2,
+  "optimizer_name": "adam",
+  "track_running_stats": false
+}
