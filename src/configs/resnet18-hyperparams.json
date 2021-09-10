@@ -1,7 +1,7 @@
 {
-  "epochs": 164,
+  "epochs": 300,
   "learning_rate": 0.01,
-  "lr_decay": 0.999,
+  "lr_decay": 0.99,
   "lr_schedule": null,
   "batch_size": 256,
   "momentum": 0.9,

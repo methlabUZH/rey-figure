@@ -8,7 +8,7 @@ import torch
 from constants import BIN_LOCATIONS
 
 
-def directory_setup(model_name, label_format, results_dir, debug=False):
+def directory_setup(model_name, score_type, dataset, results_dir, debug=False):
     """
     setup dir for training results and model checkpoints
     """
@@ -16,7 +16,7 @@ def directory_setup(model_name, label_format, results_dir, debug=False):
         results_dir = os.path.join(results_dir, 'debugging')
     else:
         timestamp = dt.now().strftime("%Y-%m-%d_%H-%M-%S")
-        results_dir = os.path.join(results_dir, label_format, model_name, timestamp)
+        results_dir = os.path.join(results_dir, f"{score_type}-score", dataset, model_name, timestamp)
 
     if not os.path.exists(results_dir):
         os.makedirs(results_dir)
@@ -111,7 +111,7 @@ class AverageMeter:
 
 class TrainingLogger:
     """
-    Save training process to log file with simple plot function.
+    Save training process to log file
 
     """
 
@@ -156,7 +156,7 @@ class TrainingLogger:
     def append(self, numbers):
         assert len(self.names) == len(numbers), 'Numbers do not match names'
         for index, num in enumerate(numbers):
-            self.file.write("{0:.6f}".format(num))
+            self.file.write("{0:.6f}".format(num) if num is not None else "nan")
             self.file.write('\t')
             self.numbers[self.names[index]].append(num)
         self.file.write('\n')

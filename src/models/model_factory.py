@@ -3,8 +3,10 @@ from .shallow_baseline import *
 from .deep_baseline import *
 from .efficientnet import *
 
+from typing import Union
 
-def get_architecture(arch: str, num_outputs: int, dropout: float, track_running_stats: bool, image_size):
+
+def get_architecture(arch: str, num_outputs: int, dropout: Union[float, None], track_running_stats: bool, image_size):
     if arch == 'shallow-baseline':
         return shallow_baseline(dropout_rate=dropout, n_outputs=num_outputs)
     elif arch == 'deep-baseline':
@@ -19,6 +21,8 @@ def get_architecture(arch: str, num_outputs: int, dropout: float, track_running_
         return resnet101(num_outputs, track_running_stats)
     elif arch == 'resnet152':
         return resnet152(num_outputs, track_running_stats)
+    elif arch == 'resnext29_16x64d':
+        return resnext29_16x64d(num_outputs, track_running_stats)
     elif arch == 'resnext50-32x4d':
         return resnext50_32x4d(num_outputs, track_running_stats)
     elif arch == 'resnext101-32x8d':

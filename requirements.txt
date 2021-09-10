@@ -13,3 +13,4 @@ scikit-image~=0.18.1
 yaml~=0.2.5
 tabulate~=0.8.9
 torchvision~=0.10.0
+filelock~=3.0.12

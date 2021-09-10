@@ -13,7 +13,7 @@ RESNEXT50_CONFIG = os.path.join(ROOT_DIR, 'src/configs/resnext50-32x4d-hyperpara
 EFFICIENTNET_B0 = os.path.join(ROOT_DIR, 'src/configs/efficientnet-b0.json')
 EFFICIENTNET_L2 = os.path.join(ROOT_DIR, 'src/configs/efficientnet-l2.json')
 
-LABEL_FORMATS = ['items', 'items-median-scores', 'items-sum-scores']
+# LABEL_FORMATS = ['items', 'items-median-scores', 'items-sum-scores']
 DEFAULT_CANVAS_SIZE = (116, 150)
 AUGM_CANVAS_SIZE = (464, 600)
 DEFAULT_SEED = 762

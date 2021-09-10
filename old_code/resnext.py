@@ -15,7 +15,7 @@ import torch
 import torch.nn as nn
 import math
 
-__all__ = ['resnext50', 'resnext101', 'resnext152']
+__all__ = ['resnext50_32x4d', 'resnext101_32x4d', 'resnext152_32x4d']
 
 
 class Bottleneck(nn.Module):
@@ -154,25 +154,30 @@ class ResNeXt(nn.Module):
         return x
 
 
-def resnext50(baseWidth, cardinality, n_outputs):
-    """
-    Construct ResNeXt-50.
-    """
-    model = ResNeXt(baseWidth, cardinality, [3, 4, 6, 3], n_outputs)
+def resnext29_32x4d():
+    model = ResNeXt(num_blocks=[3,3,3], cardinality=32, bottleneck_width=4)
     return model
 
 
-def resnext101(baseWidth, cardinality, n_outputs):
+def resnext50_32x4d(basewidth, cardinality, n_outputs):
     """
-    Construct ResNeXt-101.
+    Construct ResNeXt50_32x4d.
     """
-    model = ResNeXt(baseWidth, cardinality, [3, 4, 23, 3], n_outputs)
+    model = ResNeXt(basewidth, cardinality, [3, 4, 6, 3], n_outputs)
     return model
 
 
-def resnext152(baseWidth, cardinality, n_outputs):
+def resnext101_32x4d(basewidth, cardinality, n_outputs):
     """
-    Construct ResNeXt-152.
+    Construct ResNeXt101_32x4d.
     """
-    model = ResNeXt(baseWidth, cardinality, [3, 8, 36, 3], n_outputs)
+    model = ResNeXt(basewidth, cardinality, [3, 4, 23, 3], n_outputs)
+    return model
+
+
+def resnext152_32x4d(basewidth, cardinality, n_outputs):
+    """
+    Construct ResNeXt152_32x4d.
+    """
+    model = ResNeXt(basewidth, cardinality, [3, 8, 36, 3], n_outputs)
     return model

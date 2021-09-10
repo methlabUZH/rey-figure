@@ -4,7 +4,7 @@ import torch.nn as nn
 from typing import Type, Any, Callable, Union, List, Optional
 
 __all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
-           'resnet152', 'resnext50_32x4d', 'resnext101_32x8d',
+           'resnet152', 'resnext29_16x64d', 'resnext50_32x4d', 'resnext101_32x8d',
            'wide_resnet50_2', 'wide_resnet101_2']
 
 TRACK_RUNNING_STATS = False
@@ -171,19 +171,25 @@ class ResNet(nn.Module):
         self.bn1 = norm_layer(self.inplanes, track_running_stats=track_running_stats)
         self.relu = nn.ReLU(inplace=True)
         self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+
         self.layer1 = self._make_layer(block, 64, layers[0], track_running_stats=track_running_stats)
         self.layer2 = self._make_layer(block, 128, layers[1], stride=2, dilate=replace_stride_with_dilation[0],
                                        track_running_stats=track_running_stats)
         self.layer3 = self._make_layer(block, 256, layers[2], stride=2, dilate=replace_stride_with_dilation[1],
                                        track_running_stats=track_running_stats)
-        self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2],
-                                       track_running_stats=track_running_stats)
+        if len(layers) == 3:
+            n_final_planes = 256
+            self.layer4 = nn.Identity()
+        else:
+            n_final_planes = 512
+            self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2],
+                                           track_running_stats=track_running_stats)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(512 * block.expansion, num_outputs)
+        self.fc = nn.Linear(n_final_planes * block.expansion, num_outputs)
 
-        # self.score_layer = nn.Linear(in_features=18, out_features=1, bias=False)
-        # self.score_layer.weight.requires_grad = False
-        # self.score_layer.weight.copy_(torch.ones(size=(18,)))
+        self.score_layer = nn.Linear(in_features=18, out_features=1, bias=False)
+        self.score_layer.weight.requires_grad = False
+        self.score_layer.weight.copy_(torch.ones(size=(18,)))
 
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
@@ -248,9 +254,10 @@ class ResNet(nn.Module):
         x = torch.flatten(x, 1)
         x = self.fc(x)
 
-        # score = self.score_layer(x)
+        score = self.score_layer(x)
+        outputs = torch.cat([x, score], dim=1)
 
-        return x
+        return outputs
 
     def forward(self, x: Tensor) -> Tensor:
         return self._forward_impl(x)
@@ -258,7 +265,8 @@ class ResNet(nn.Module):
 
 def _resnet(block: Type[Union[BasicBlock, Bottleneck]], layers: List[int], num_outputs: int, track_running_stats: bool,
             **kwargs: Any) -> ResNet:
-    return ResNet(block, layers, num_outputs=num_outputs, track_running_stats=track_running_stats, **kwargs)
+    return ResNet(block, layers, num_outputs=num_outputs, track_running_stats=track_running_stats,
+                  zero_init_residual=True, **kwargs)
 
 
 def resnet18(num_outputs: int, track_running_stats: bool) -> ResNet:
@@ -294,6 +302,16 @@ def resnet152(num_outputs: int, track_running_stats: bool) -> ResNet:
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     """
     return _resnet(Bottleneck, [3, 8, 36, 3], num_outputs=num_outputs, track_running_stats=track_running_stats)
+
+
+def resnext29_16x64d(num_outputs: int, track_running_stats: bool, **kwargs: Any) -> ResNet:
+    r"""ResNeXt-29 16x64d model from
+    `"Aggregated Residual Transformation for Deep Neural Networks" <https://arxiv.org/pdf/1611.05431.pdf>`_.
+    """
+    kwargs['groups'] = 16
+    kwargs['width_per_group'] = 64
+    model = _resnet(Bottleneck, [3, 3, 3], num_outputs=num_outputs, track_running_stats=track_running_stats, **kwargs)
+    return model
 
 
 def resnext50_32x4d(num_outputs: int, track_running_stats: bool, **kwargs: Any) -> ResNet:
