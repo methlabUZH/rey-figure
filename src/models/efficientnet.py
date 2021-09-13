@@ -49,7 +49,7 @@ class MBConvBlock(nn.Module):
         [3] https://arxiv.org/abs/1905.02244 (MobileNet v3)
     """
 
-    def __init__(self, block_args, global_params, track_running_stats, image_size=None):
+    def __init__(self, block_args, global_params, image_size=None):
         super().__init__()
         self._block_args = block_args
         self._bn_mom = 1 - global_params.batch_norm_momentum  # pytorch's difference from tensorflow
@@ -63,8 +63,7 @@ class MBConvBlock(nn.Module):
         if self._block_args.expand_ratio != 1:
             Conv2d = get_same_padding_conv2d(image_size=image_size)
             self._expand_conv = Conv2d(in_channels=inp, out_channels=oup, kernel_size=1, bias=False)
-            self._bn0 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps,
-                                       track_running_stats=track_running_stats)
+            self._bn0 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
             # image_size = calculate_output_image_size(image_size, 1) <-- this wouldn't modify image_size
 
         # Depthwise convolution phase
@@ -74,8 +73,7 @@ class MBConvBlock(nn.Module):
         self._depthwise_conv = Conv2d(
             in_channels=oup, out_channels=oup, groups=oup,  # groups makes it depthwise
             kernel_size=k, stride=s, bias=False)
-        self._bn1 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps,
-                                   track_running_stats=track_running_stats)
+        self._bn1 = nn.BatchNorm2d(num_features=oup, momentum=self._bn_mom, eps=self._bn_eps)
         image_size = calculate_output_image_size(image_size, s)
 
         # Squeeze and Excitation layer, if desired
@@ -89,8 +87,7 @@ class MBConvBlock(nn.Module):
         final_oup = self._block_args.output_filters
         Conv2d = get_same_padding_conv2d(image_size=image_size)
         self._project_conv = Conv2d(in_channels=oup, out_channels=final_oup, kernel_size=1, bias=False)
-        self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps,
-                                   track_running_stats=track_running_stats)
+        self._bn2 = nn.BatchNorm2d(num_features=final_oup, momentum=self._bn_mom, eps=self._bn_eps)
         self._swish = MemoryEfficientSwish()
 
     def forward(self, inputs, drop_connect_rate=None):
@@ -158,7 +155,7 @@ class EfficientNet(nn.Module):
 
     """
 
-    def __init__(self, track_running_stats, blocks_args=None, global_params=None):
+    def __init__(self, blocks_args=None, global_params=None):
         super().__init__()
         assert isinstance(blocks_args, list), 'blocks_args should be a list'
         assert len(blocks_args) > 0, 'block args must be greater than 0'
@@ -177,8 +174,7 @@ class EfficientNet(nn.Module):
         in_channels = 3  # rgb
         out_channels = round_filters(32, self._global_params)  # number of output channels
         self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
-        self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps,
-                                   track_running_stats=track_running_stats)
+        self._bn0 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
         image_size = calculate_output_image_size(image_size, 2)
 
         # Build blocks
@@ -193,14 +189,12 @@ class EfficientNet(nn.Module):
             )
 
             # The first block needs to take care of stride and filter size increase.
-            self._blocks.append(MBConvBlock(block_args, self._global_params, track_running_stats=track_running_stats,
-                                            image_size=image_size))
+            self._blocks.append(MBConvBlock(block_args, self._global_params, image_size=image_size))
             image_size = calculate_output_image_size(image_size, block_args.stride)
             if block_args.num_repeat > 1:  # modify block_args to keep same output size
                 block_args = block_args._replace(input_filters=block_args.output_filters, stride=1)  # noqa
             for _ in range(block_args.num_repeat - 1):
-                self._blocks.append(MBConvBlock(block_args, self._global_params, image_size=image_size,
-                                                track_running_stats=track_running_stats))
+                self._blocks.append(MBConvBlock(block_args, self._global_params, image_size=image_size))
                 # image_size = calculate_output_image_size(image_size, block_args.stride)  # stride = 1
 
         # Head
@@ -208,8 +202,7 @@ class EfficientNet(nn.Module):
         out_channels = round_filters(1280, self._global_params)
         Conv2d = get_same_padding_conv2d(image_size=image_size)
         self._conv_head = Conv2d(in_channels, out_channels, kernel_size=1, bias=False)
-        self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps,
-                                   track_running_stats=track_running_stats)
+        self._bn1 = nn.BatchNorm2d(num_features=out_channels, momentum=bn_mom, eps=bn_eps)
 
         # Final linear layer
         self._avg_pooling = nn.AdaptiveAvgPool2d(1)
@@ -311,13 +304,12 @@ class EfficientNet(nn.Module):
         return x
 
     @classmethod
-    def from_name(cls, model_name, in_channels=3, track_running_stats=True, **override_params):
+    def from_name(cls, model_name, in_channels=3, **override_params):
         """Create an efficientnet model according to name.
 
         Args:
             model_name (str): Name for efficientnet.
             in_channels (int): Input data's channel number.
-            track_running_stats (bool): whether to compute moving averages in nn.BatchNorm2D layers
             override_params (other key word params):
                 Params to override model's global_params.
                 Optional key:
@@ -332,7 +324,7 @@ class EfficientNet(nn.Module):
         """
         cls._check_model_name_is_valid(model_name)
         blocks_args, global_params = get_model_params(model_name, override_params)
-        model = cls(track_running_stats=track_running_stats, blocks_args=blocks_args, global_params=global_params)
+        model = cls(blocks_args=blocks_args, global_params=global_params)
         model._change_in_channels(in_channels)
         return model
 
@@ -375,37 +367,33 @@ class EfficientNet(nn.Module):
             self._conv_stem = Conv2d(in_channels, out_channels, kernel_size=3, stride=2, bias=False)
 
 
-def efficientnet_b0(num_outputs, track_running_stats, image_size, dropout):
+def efficientnet_b0(num_outputs, image_size, dropout):
     return EfficientNet.from_name(model_name='efficientnet-b0',
                                   in_channels=1,
-                                  track_running_stats=track_running_stats,
                                   image_size=image_size,
                                   num_classes=num_outputs,
                                   dropout_rate=dropout)
 
 
-def efficientnet_b4(num_outputs, track_running_stats, image_size, dropout):
+def efficientnet_b4(num_outputs, image_size, dropout):
     return EfficientNet.from_name(model_name='efficientnet-b4',
                                   in_channels=1,
-                                  track_running_stats=track_running_stats,
                                   image_size=image_size,
                                   num_classes=num_outputs,
                                   dropout_rate=dropout)
 
 
-def efficientnet_b8(num_outputs, track_running_stats, image_size, dropout):
+def efficientnet_b8(num_outputs, image_size, dropout):
     return EfficientNet.from_name(model_name='efficientnet-b8',
                                   in_channels=1,
-                                  track_running_stats=track_running_stats,
                                   image_size=image_size,
                                   num_classes=num_outputs,
                                   dropout_rate=dropout)
 
 
-def efficientnet_l2(num_outputs, track_running_stats, image_size, dropout):
+def efficientnet_l2(num_outputs, image_size, dropout):
     return EfficientNet.from_name(model_name='efficientnet-l2',
                                   in_channels=1,
-                                  track_running_stats=track_running_stats,
                                   image_size=image_size,
                                   num_classes=num_outputs,
                                   dropout_rate=dropout)

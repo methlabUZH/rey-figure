@@ -1,6 +1,5 @@
 import argparse
 import copy
-
 import pandas as pd
 from filelock import FileLock
 import random
@@ -23,6 +22,11 @@ from src.models.model_factory import get_architecture
 DEBUG = False
 default_data_dir = '/Users/maurice/phd/src/data/psychology/serialized-data/scans-2018-224x224'
 
+"""
+hyperparams:
+    resnet18 / resnext29 with lr=0.01, adam, gamma=0.99, 250 epochs, wd=5e-4, batch_norm, bs=256/128
+"""
+
 # setup arg parser
 parser = argparse.ArgumentParser()
 
@@ -30,22 +34,22 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default=default_data_dir, required=False)
 parser.add_argument('--results-dir', type=str, default=RESULTS_DIR, required=False)
 parser.add_argument('--workers', default=8, type=int)
-parser.add_argument('--val-fraction', default=0.2, type=float)
+parser.add_argument('--val-fraction', default=0.0, type=float)
 
 # architecture
-parser.add_argument('--arch', type=str, default='resnext29_16x64d', required=False)
+parser.add_argument('--arch', type=str, default='resnet18', required=False)
 parser.add_argument('--image-size', nargs='+', type=int, default=[224, 224])
+parser.add_argument('--norm-layer', type=str, default='batch_norm', choices=['batch_norm', 'group_norm'])
 
 # optimization
 parser.add_argument('--epochs', default=250, type=int, help='number of total epochs to run')
 parser.add_argument('--batch-size', default=256, type=int, help='train batch size')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float, help='initial learning rate')
-parser.add_argument('--schedule', type=int, nargs='+', default=[81, 122])
-parser.add_argument('--gamma', type=float, default=0.1, help='learning rate decay factor')
-parser.add_argument('--optimizer', type=str, default='adam')
-parser.add_argument('--lr-decay', type=str, default='exponential', choices=['exponential', 'stepwise'])
+parser.add_argument('--lr', '--learning-rate', default=0.01, type=float, help='initial learning rate')
+parser.add_argument('--gamma', type=float, default=0.99, help='learning rate decay factor')
 parser.add_argument('--wd', '--weight-decay', type=float, default=5e-4)
 parser.add_argument('--dropout', type=float, default=None)
+parser.add_argument('--momentum', type=float, default=0.9)
+parser.add_argument('--resume', default='', type=str, help='path to results-dir')
 
 # misc
 parser.add_argument('--seed', default=7, type=int)
@@ -75,76 +79,82 @@ def main():
     results_dir, checkpoints_dir = directory_setup(model_name=args.arch,
                                                    score_type=args.score_type,
                                                    dataset=dataset_name,
-                                                   results_dir=args.results_dir)
-
-    # logging
-    logger = TrainingLogger(fpath=os.path.join(results_dir, 'log.txt'))
-    logger.set_names(['learning rate', 'train Loss', 'train score-mse', 'train bin-mse', 'valid loss',
-                      'valid score-mse', 'val bin-mse'])
+                                                   results_dir=args.results_dir,
+                                                   resume=args.resume)
 
     # save terminal output to file
     sys.stdout = Logger(print_fp=os.path.join(results_dir, 'out.txt'))
 
-    # train setup
-    print('\n----------------------\n')
-    for k, v in args.__dict__.items():
-        print('{0:20}: {1}'.format(k, v))
+    if DEBUG:
+        print('==> debugging on!')
 
     # read and split labels into train and val
     labels_csv = os.path.join(args.data_root, 'train_labels.csv')
     labels_df = pd.read_csv(labels_csv)
 
-    val_labels = labels_df.sample(frac=args.val_fraction)
-    train_labels = labels_df.drop(val_labels.index)
+    if args.val_fraction > 0.0:
+        val_labels = labels_df.sample(frac=args.val_fraction)
+        train_labels = labels_df.drop(val_labels.index)
+    else:
+        val_labels = pd.read_csv(os.path.join(args.data_root, 'test_labels.csv'))
+        train_labels = labels_df
+        print('==> eval on test set')
 
     train_dataloader = get_dataloader(args.data_root, labels_df=train_labels, batch_size=args.batch_size,
                                       num_workers=args.workers, shuffle=True, score_type=args.score_type)
     val_dataloader = get_dataloader(args.data_root, labels_df=val_labels, batch_size=args.batch_size,
                                     num_workers=args.workers, shuffle=False, score_type=args.score_type)
 
-    print('{0:20}: {1}'.format('num-train', len(train_dataloader.dataset)))
-    print('{0:20}: {1}'.format('num-val', len(val_dataloader.dataset)))
-
     # setup model
-    model = get_architecture(arch=args.arch, num_outputs=18, dropout=args.dropout,
-                             track_running_stats=True, image_size=args.image_size)
+    model = get_architecture(arch=args.arch, num_outputs=18, dropout=args.dropout, norm_layer=args.norm_layer,
+                             image_size=args.image_size)
     if use_cuda:
         model = torch.nn.DataParallel(model).cuda()
 
-    print('{0:20}: {1}'.format('#params', count_parameters(model)))
-
     criterion = torch.nn.MSELoss(reduction="mean")
 
-    # setup optimizer
-    if args.optimizer.lower() == 'sgd':
-        optimizer = optim.SGD(params=model.parameters(), lr=args.lr, momentum=args.momentum, weight_decay=args.wd)
-    elif args.optimizer.lower() == 'adam':
-        optimizer = optim.Adam(params=model.parameters(), lr=args.lr, weight_decay=args.wd)
-    else:
-        raise ValueError('unknown optimizer')
+    # setup optimizer and lr scheduler
+    optimizer = optim.Adam(params=model.parameters(), lr=args.lr, weight_decay=args.wd)
+    lr_scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.gamma)
 
-    # setup lr scheduler
-    if args.lr_decay == 'exponential':
-        lr_scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=args.gamma)
-    elif args.lr_decay == 'stepwise':
-        lr_scheduler = optim.lr_scheduler.MultiStepLR(optimizer, milestones=args.schedule, gamma=args.gamma)
+    if args.resume:
+        print('==> resuming from checkpoint...')
+        checkpoint_file = os.path.join(checkpoints_dir, 'checkpoint.pth.tar')
+        assert os.path.isfile(checkpoint_file), 'Error: no checkpoint found!'
+        checkpoint = torch.load(checkpoint_file)
+        start_epoch = checkpoint['epoch']
+        best_epoch = checkpoint['best_epoch']
+        best_val_loss = checkpoint['best_val_loss']
+        model.load_state_dict(checkpoint['state_dict'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        logger = TrainingLogger(fpath=os.path.join(results_dir, 'log.txt'), resume=True)
     else:
-        raise ValueError('unknown lr decay')
+        start_epoch = 0
+        best_epoch = 0
+        best_val_loss = np.inf
+        logger = TrainingLogger(fpath=os.path.join(results_dir, 'log.txt'), resume=False)
+        logger.set_names(['learning rate', 'train Loss', 'train score-mse', 'train bin-mse', 'valid loss',
+                          'valid score-mse', 'val bin-mse'])
 
     # tensorboard
     writer = SummaryWriter(results_dir)
 
-    if DEBUG:
-        print(' --> debugging on!')
+    # print setup
+    print('\n----------------------\n')
+    for k, v in args.__dict__.items():
+        print('{0:20}: {1}'.format(k, v))
+
+    print('{0:20}: {1}'.format('num-train', len(train_dataloader.dataset)))
+    print('{0:20}: {1}'.format('num-val', len(val_dataloader.dataset)))
+    print('{0:20}: {1}'.format('#params', count_parameters(model)))
 
     print('\n----------------------\n')
     print(f'[{timestamp_human()}] start training')
 
-    best_val_loss, best_val_score_mse, best_val_bin_mse = np.inf, np.inf, np.inf
+    best_val_score_mse, best_val_bin_mse = np.inf, np.inf
     best_train_loss, best_train_score_mse, best_train_bin_mse = np.inf, np.inf, np.inf
-    best_epoch = 0
 
-    for epoch in range(args.epochs):
+    for epoch in range(start_epoch, args.epochs):
 
         # train
         t0 = time.time()
@@ -183,17 +193,13 @@ def main():
             best_train_score_mse = train_score_mse
             best_train_bin_mse = train_bin_mse
 
-        save_checkpoint(training_state={'epoch': epoch + 1,
-                                        'state_dict': copy.deepcopy(model.state_dict()),
-                                        'train_loss': train_loss,
-                                        'val_loss': val_loss,
-                                        'train_score_mse': train_score_mse,
-                                        'val_score_mse': val_score_mse,
-                                        'train_bin_mse': train_bin_mse,
-                                        'val_bin_mse': val_bin_mse,
-                                        'optimizer': optimizer.state_dict()},
-                        is_best=is_best,
-                        checkpoint_dir=checkpoints_dir)
+        save_checkpoint({'epoch': epoch + 1,
+                         'best_epoch': best_epoch,
+                         'val_loss': val_loss,
+                         'best_val_loss': best_val_loss,
+                         'state_dict': copy.deepcopy(model.state_dict()),
+                         'optimizer': copy.deepcopy(optimizer.state_dict())
+                         }, is_best=is_best, checkpoint_dir=checkpoints_dir)
 
         # decay learning rate
         lr_scheduler.step()
@@ -214,12 +220,13 @@ def main():
     print('best {0:25}: {1:.4f}'.format('bin-mse', best_val_bin_mse))
     print('best {0:25}: {1:.4f}'.format('score-mse', best_val_score_mse))
 
-    print('\n--> evaluating model on test set...')
+    print('\n==> evaluating best model on test set...')
 
     ckpt = os.path.join(checkpoints_dir, 'model_best.pth.tar')
     test_loss, test_score_mse, test_bin_mse = eval_test(model, criterion, args.data_root, ckpt)
 
-    print('\n** test stats **')
+    print('\n-----------------------')
+    print('** test stats **')
     print('{0:25}: {1:.4f}'.format('loss', test_loss))
     print('{0:25}: {1:.4f}'.format('bin-mse', test_bin_mse))
     print('{0:25}: {1:.4f}'.format('score-mse', test_score_mse))
@@ -228,27 +235,6 @@ def main():
     if args.finetune_file is not None:
         store_stats(best_train_loss, best_val_loss, test_loss, best_train_score_mse, best_val_score_mse, test_score_mse,
                     best_train_bin_mse, best_val_bin_mse, test_bin_mse, best_epoch)
-
-
-def store_stats(train_loss, val_loss, test_loss, train_score_mse, val_score_mse, test_score_mse, train_bin_mse,
-                val_bin_mse, test_bin_mse, best_epoch):
-    with FileLock(args.finetune_file + '.lock'):
-        if not os.path.isfile(args.finetune_file):
-            with open(args.finetune_file, 'a') as f:
-                # write header
-                f.write(' | '.join([f'{{{i}:25}}' for i in range(18)]).format(
-                    'epochs', 'batch-size', 'lr', 'schedule', 'gamma', 'optimizer', 'lr-decay', 'wd',
-                    'train-loss', 'val-loss', 'test-loss', 'train-score-mse', 'val-score-mse', 'test-score-mse',
-                    'train-bin-mse', 'val-bin-mse', 'test-bin-mse', 'best epoch') + '\n')
-
-        with open(args.finetune_file, 'a') as f:
-            # write data
-            data_str = ' | '.join([(f'{v:.4f}'.ljust(25) if isinstance(v, float) else f'{v}'.ljust(25)) for v in
-                                   [args.epochs, args.batch_size, args.lr, args.schedule, args.gamma, args.optimizer,
-                                    args.lr_decay, args.wd, train_loss, val_loss, test_loss, train_score_mse,
-                                    val_score_mse, test_score_mse, train_bin_mse,
-                                    val_bin_mse, test_bin_mse, best_epoch]])
-            f.write(data_str + '\n')
 
 
 def train(dataloader, model, criterion, optimizer, summary_writer, epoch):
@@ -271,9 +257,9 @@ def train(dataloader, model, criterion, optimizer, summary_writer, epoch):
         bin_mse = criterion(assign_bins(outputs[:, -1]), assign_bins(labels[:, -1]))
 
         # record loss
-        loss_meter.update(loss.data, images.size()[0])
-        score_mse_meter.update(score_mse.data, images.size()[0])
-        bin_mse_meter.update(bin_mse.data, images.size()[0])
+        loss_meter.update(float(loss.data), images.size()[0])
+        score_mse_meter.update(float(score_mse.data), images.size()[0])
+        bin_mse_meter.update(float(bin_mse.data), images.size()[0])
 
         # set grads to zero; this is fater than optimizer.zero_grad()
         for param in model.parameters():
@@ -340,13 +326,11 @@ def eval_test(model, criterion, data_root, checkpoint):
                                 shuffle=False, score_type=args.score_type)
 
     # load checkpoint
-    checkpoint = torch.load(checkpoint, map_location=torch.device('gpu' if use_cuda else 'cpu'))
-    checkpoint['state_dict'] = {str(k).replace('module.', ''): v for k, v in checkpoint['state_dict'].items()}
+    checkpoint = torch.load(checkpoint, map_location=torch.device('cpu'))
+    # checkpoint['state_dict'] = {str(k).replace('module.', ''): v for k, v in checkpoint['state_dict'].items()}
     model.load_state_dict(checkpoint['state_dict'], strict=True)
-
-    if use_cuda:
-        model = torch.nn.DataParallel(model).cuda()
-
+    device = torch.device("cuda" if use_cuda else "cpu")
+    model.to(device)
     model.eval()
 
     loss_meter = AverageMeter()
@@ -376,6 +360,25 @@ def eval_test(model, criterion, data_root, checkpoint):
                 break
 
     return loss_meter.avg, score_mse_meter.avg, bin_mse_meter.avg
+
+
+def store_stats(train_loss, val_loss, test_loss, train_score_mse, val_score_mse, test_score_mse, train_bin_mse,
+                val_bin_mse, test_bin_mse, best_epoch):
+    with FileLock(args.finetune_file + '.lock'):
+        if not os.path.isfile(args.finetune_file):
+            with open(args.finetune_file, 'a') as f:
+                # write header
+                cols = [k for k, _ in sorted(args.__dict__.items())]
+                cols += ['train-loss', 'val-loss', 'test-loss', 'train-score-mse', 'val-score-mse', 'test-score-mse',
+                         'train-bin-mse', 'val-bin-mse', 'test-bin-mse', 'best epoch']
+                f.write(','.join(cols) + '\n')
+
+        with open(args.finetune_file, 'a') as f:
+            # write data
+            data = [v for _, v in sorted(args.__dict__.items())]
+            data += [train_loss, val_loss, test_loss, train_score_mse, val_score_mse, test_score_mse, train_bin_mse,
+                     val_bin_mse, test_bin_mse, best_epoch]
+            f.write(','.join([str(v) for v in data]) + '\n')
 
 
 def record_images(images, writer, name='training-images'):

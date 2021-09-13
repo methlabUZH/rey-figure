@@ -8,14 +8,21 @@ import torch
 from constants import BIN_LOCATIONS
 
 
-def directory_setup(model_name, score_type, dataset, results_dir, debug=False):
+def directory_setup(model_name, score_type, dataset, results_dir, debug=False, resume: str = ''):
     """
     setup dir for training results and model checkpoints
     """
+
+    if resume:
+        checkpoints_dir = os.path.join(resume, 'checkpoints/')
+        if not os.path.exists(checkpoints_dir):
+            raise NotADirectoryError(f'no checkpoints in {checkpoints_dir}')
+        return resume, checkpoints_dir
+
     if debug:
         results_dir = os.path.join(results_dir, 'debugging')
     else:
-        timestamp = dt.now().strftime("%Y-%m-%d_%H-%M-%S")
+        timestamp = dt.now().strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]
         results_dir = os.path.join(results_dir, f"{score_type}-score", dataset, model_name, timestamp)
 
     if not os.path.exists(results_dir):

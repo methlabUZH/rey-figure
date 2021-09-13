@@ -34,9 +34,9 @@ if __name__ == '__main__':
     #                                 batch_size=2, num_workers=8, shuffle=True,
     #                                 score_type='median', fraction=1.0, mean=None, std=None)
 
-    model = get_architecture('resnet18', num_outputs=19, dropout=None, track_running_stats=False, image_size=[224, 224])
-    ckpt = '/Users/maurice/phd/src/psychology/results/resnet18/checkpoints/model_best.pth.tar'
-    checkpoint = torch.load(ckpt, map_location=torch.device('gpu' if torch.cuda.is_available() else 'cpu'))
+    model = get_architecture('resnet18', num_outputs=18, dropout=None, norm_layer='batch_norm', image_size=[224, 224])
+    ckpt = '/Users/maurice/phd/src/psychology/results/sum-score/scans-2018-2021-224x224-augmented/resnet18/2021-09-12_20-03-15.155/checkpoints/model_best.pth.tar'
+    checkpoint = torch.load(ckpt, map_location=torch.device('cpu'))
     checkpoint['state_dict'] = {str(k).replace('module.', ''): v for k, v in checkpoint['state_dict'].items()}
     model.load_state_dict(checkpoint['state_dict'], strict=True)
 
