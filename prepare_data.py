@@ -64,6 +64,8 @@ data_2018_2021 = data_2021 + data_2018
 datasets = {'scans-2018': data_2018, 'scans-2018-2021': scans_2018_2021, 'data-2018-2021': data_2018_2021,
             'debug': debug_data}
 
+args.data_root = os.path.abspath(args.data_root)
+
 assert set(data_2018).isdisjoint(data_2021)
 
 
@@ -152,7 +154,6 @@ def preprocess_data(data_root, dataset_name, image_size, augment_data=False):
     # map filenames to paths (assumption: filenames are unique)
     figure_names_and_paths = []
     for (dirpath, dirname, filenames) in os.walk(os.path.join(data_root, 'ReyFigures')):
-
         rel_dirpath = './' + dirpath.split(os.path.normpath(data_root) + '/')[-1]
         dirpath_serialized = serialized_dir + '/' + rel_dirpath.split('./ReyFigures/')[-1]
 
@@ -160,7 +161,6 @@ def preprocess_data(data_root, dataset_name, image_size, augment_data=False):
             continue
 
         for fn in filenames:
-
             if fn.startswith('.'):  # exclude files like .DS_store
                 continue
 
@@ -326,7 +326,7 @@ def compute_mean_and_std(data_root, image_size):
         img = np.load(fp)
         image_shape = np.shape(img)
 
-        if list(image_shape) != image_size:
+        if tuple(image_shape) != tuple(image_size):
             raise ValueError(f'image {fp} with inconsistent image size; expected {image_size}, got {image_shape}')
 
         partial_sum += np.sum(img)

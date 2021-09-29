@@ -9,9 +9,7 @@ from torch import Tensor
 import torch.nn as nn
 from typing import Type, Any, Callable, Union, List, Optional
 
-__all__ = ['ResNet', 'resnet18', 'resnet34', 'resnet50', 'resnet101',
-           'resnet152', 'resnext29_16x64d', 'resnext50_32x4d', 'resnext101_32x8d',
-           'wide_resnet50_2', 'wide_resnet101_2']
+__all__ = ['ResNetV2', 'resnet18V2']
 
 
 def conv3x3(in_planes: int, out_planes: int, stride: int = 1, groups: int = 1, dilation: int = 1) -> nn.Conv2d:
@@ -135,7 +133,7 @@ class Bottleneck(nn.Module):
         return out
 
 
-class ResNet(nn.Module):
+class ResNetV2(nn.Module):
 
     def __init__(
             self,
@@ -146,9 +144,10 @@ class ResNet(nn.Module):
             groups: int = 1,
             width_per_group: int = 64,
             replace_stride_with_dilation: Optional[List[bool]] = None,
+            dropout: float = 0.0,
             norm_layer: Optional[Callable[..., nn.Module]] = None,
     ) -> None:
-        super(ResNet, self).__init__()
+        super(ResNetV2, self).__init__()
 
         if norm_layer is None:
             norm_layer = nn.BatchNorm2d
@@ -185,7 +184,10 @@ class ResNet(nn.Module):
             self.layer4 = self._make_layer(block, 512, layers[3], stride=2, dilate=replace_stride_with_dilation[2])
 
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.fc = nn.Linear(n_final_planes * block.expansion, num_outputs)
+        self.fc1 = nn.Linear(n_final_planes * block.expansion, 2 * n_final_planes * block.expansion)
+        self.fc2 = nn.Linear(2 * n_final_planes * block.expansion, num_outputs)
+
+        self.dropout = nn.Dropout(dropout)
 
         self.score_layer = nn.Linear(in_features=18, out_features=1, bias=False)
         self.score_layer.weight.requires_grad = False
@@ -251,7 +253,10 @@ class ResNet(nn.Module):
 
         x = self.avgpool(x)
         x = torch.flatten(x, 1)
-        x = self.fc(x)
+
+        x = self.fc1(x)
+        x = self.dropout(x)
+        x = self.fc2(x)
 
         score = self.score_layer(x)
         outputs = torch.cat([x, score], dim=1)
@@ -262,96 +267,14 @@ class ResNet(nn.Module):
         return self._forward_impl(x)
 
 
-def _resnet(block: Type[Union[BasicBlock, Bottleneck]], layers: List[int], num_outputs: int,
-            norm_layer: Optional[Callable[..., nn.Module]] = None, **kwargs: Any) -> ResNet:
-    return ResNet(block, layers, num_outputs=num_outputs, norm_layer=norm_layer, zero_init_residual=True, **kwargs)
+def _resnetV2(block: Type[Union[BasicBlock, Bottleneck]], layers: List[int], num_outputs: int,
+              norm_layer: Optional[Callable[..., nn.Module]] = None, dropout: float = 0, **kwargs: Any) -> ResNetV2:
+    return ResNetV2(block, layers, num_outputs=num_outputs, dropout=dropout, norm_layer=norm_layer,
+                    zero_init_residual=True, **kwargs)
 
 
-def resnet18(num_outputs: int, norm_layer: Optional[Callable[..., nn.Module]] = None) -> ResNet:
+def resnet18V2(num_outputs: int, dropout: float, norm_layer: Optional[Callable[..., nn.Module]] = None) -> ResNetV2:
     r"""ResNet-18 model from
     `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
     """
-    return _resnet(BasicBlock, [2, 2, 2, 2], num_outputs, norm_layer=norm_layer)
-
-
-def resnet34(num_outputs: int, norm_layer: Optional[Callable[..., nn.Module]] = None) -> ResNet:
-    r"""ResNet-34 model from
-    `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
-    """
-    return _resnet(BasicBlock, [3, 4, 6, 3], num_outputs=num_outputs, norm_layer=norm_layer)
-
-
-def resnet50(num_outputs: int, norm_layer: Optional[Callable[..., nn.Module]] = None) -> ResNet:
-    r"""ResNet-50 model from
-    `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
-    """
-    return _resnet(Bottleneck, [3, 4, 6, 3], num_outputs=num_outputs, norm_layer=norm_layer)
-
-
-def resnet101(num_outputs: int, norm_layer: Optional[Callable[..., nn.Module]] = None) -> ResNet:
-    r"""ResNet-101 model from
-    `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
-    """
-    return _resnet(Bottleneck, [3, 4, 23, 3], num_outputs=num_outputs, norm_layer=norm_layer)
-
-
-def resnet152(num_outputs: int, norm_layer: Optional[Callable[..., nn.Module]] = None) -> ResNet:
-    r"""ResNet-152 model from
-    `"Deep Residual Learning for Image Recognition" <https://arxiv.org/pdf/1512.03385.pdf>`_.
-    """
-    return _resnet(Bottleneck, [3, 8, 36, 3], num_outputs=num_outputs, norm_layer=norm_layer)
-
-
-def resnext29_16x64d(num_outputs: int, norm_layer: Optional[Callable[..., nn.Module]] = None, **kwargs: Any) -> ResNet:
-    r"""ResNeXt-29 16x64d model from
-    `"Aggregated Residual Transformation for Deep Neural Networks" <https://arxiv.org/pdf/1611.05431.pdf>`_.
-    """
-    kwargs['groups'] = 16
-    kwargs['width_per_group'] = 64
-    model = _resnet(Bottleneck, [3, 3, 3], num_outputs=num_outputs, norm_layer=norm_layer, **kwargs)
-    return model
-
-
-def resnext50_32x4d(num_outputs: int, norm_layer: Optional[Callable[..., nn.Module]] = None, **kwargs: Any) -> ResNet:
-    r"""ResNeXt-50 32x4d model from
-    `"Aggregated Residual Transformation for Deep Neural Networks" <https://arxiv.org/pdf/1611.05431.pdf>`_.
-    """
-    kwargs['groups'] = 32
-    kwargs['width_per_group'] = 4
-    return _resnet(Bottleneck, [3, 4, 6, 3], num_outputs=num_outputs, norm_layer=norm_layer, **kwargs)
-
-
-def resnext101_32x8d(num_outputs: int, norm_layer: Optional[Callable[..., nn.Module]] = None, **kwargs: Any) -> ResNet:
-    r"""ResNeXt-101 32x8d model from
-    `"Aggregated Residual Transformation for Deep Neural Networks" <https://arxiv.org/pdf/1611.05431.pdf>`_.
-    """
-    kwargs['groups'] = 32
-    kwargs['width_per_group'] = 8
-    return _resnet(Bottleneck, [3, 4, 23, 3], num_outputs=num_outputs, norm_layer=norm_layer, **kwargs)
-
-
-def wide_resnet50_2(num_outputs: int, norm_layer: Optional[Callable[..., nn.Module]] = None, **kwargs: Any) -> ResNet:
-    r"""Wide ResNet-50-2 model from
-    `"Wide Residual Networks" <https://arxiv.org/pdf/1605.07146.pdf>`_.
-
-    The model is the same as ResNet except for the bottleneck number of channels
-    which is twice larger in every block. The number of channels in outer 1x1
-    convolutions is the same, e.g. last block in ResNet-50 has 2048-512-2048
-    channels, and in Wide ResNet-50-2 has 2048-1024-2048.
-    """
-    kwargs['width_per_group'] = 64 * 2
-    return _resnet(Bottleneck, [3, 4, 6, 3], num_outputs=num_outputs, norm_layer=norm_layer, **kwargs)
-
-
-def wide_resnet101_2(num_outputs: int, norm_layer: Optional[Callable[..., nn.Module]] = None,
-                     **kwargs: Any) -> ResNet:
-    r"""Wide ResNet-101-2 model from
-    `"Wide Residual Networks" <https://arxiv.org/pdf/1605.07146.pdf>`_.
-
-    The model is the same as ResNet except for the bottleneck number of channels
-    which is twice larger in every block. The number of channels in outer 1x1
-    convolutions is the same, e.g. last block in ResNet-50 has 2048-512-2048
-    channels, and in Wide ResNet-50-2 has 2048-1024-2048.
-    """
-    kwargs['width_per_group'] = 64 * 2
-    return _resnet(Bottleneck, [3, 4, 23, 3], num_outputs=num_outputs, norm_layer=norm_layer, **kwargs)
+    return _resnetV2(BasicBlock, [2, 2, 2, 2], num_outputs, norm_layer=norm_layer, dropout=dropout)

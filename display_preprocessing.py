@@ -1,13 +1,14 @@
 import argparse
 from cv2 import imread
+import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-import os
-import time
+from skimage.color import rgb2gray as skimage_rgb2gray
+from skimage.morphology import erosion as skimage_erosion
+from skimage.exposure import adjust_gamma as skimage_adjust_gamma
 
-from constants import DEFAULT_CANVAS_SIZE, AUGM_CANVAS_SIZE
-from src.data.preprocess import preprocess_image
-from src.data.augmentation import augment_image, AugmentParameters
+from constants import DEFAULT_CANVAS_SIZE
+from src.data.helpers import cutdown, resize_padded
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--image', type=str, required=False)
@@ -15,43 +16,67 @@ parser.add_argument('--size', nargs='+', default=DEFAULT_CANVAS_SIZE, type=int, 
 args = parser.parse_args()
 
 
-def main(filepath, image_size, datadir=None):
-    max_reps = 100
+def main(image_file, gamma, cutdown_thresh, whiten_thresh, save_as=None):
+    image_raw = imread(image_file)
 
-    prep_time = 0
+    image_grayscale = skimage_rgb2gray(image_raw)
+    image_erosion = skimage_erosion(image_grayscale)
+    image_gamma_adjust = skimage_adjust_gamma(image_erosion, gamma=gamma)
 
-    for i, f in enumerate(os.listdir(datadir)):
-        image_raw = imread(os.path.join(datadir, f))
-        img = preprocess_image(image_raw, target_size=image_size)
+    # cutdown
+    thresh_cut = np.percentile(image_gamma_adjust, cutdown_thresh)
+    image_cutdown = cutdown(img=image_gamma_adjust, threshold=thresh_cut)
 
-        print(np.min(image_raw), np.max(image_raw))
-        print(np.min(img), np.max(img))
+    # whiten background
+    thresh_white = np.percentile(image_cutdown, whiten_thresh)
+    image_cutdown[image_cutdown > thresh_white] = 1.0
 
-        # if i + 1 == max_reps:
-        break
+    fig, axes = plt.subplots(1, 4, figsize=(16, 3))
 
-    print(f'total elapsed time:\t\t{prep_time:.4f}')
-    print(f'avg preprocessing time:\t {prep_time / max_reps :.4f}')
+    axes[0].imshow(image_grayscale, cmap='gray', vmin=0, vmax=1)
+    axes[0].set_title('grayscale')
 
-    # for _ in range(10):
-    #     img = augment_image(preprocess_image(image_raw, target_size=AUGM_CANVAS_SIZE),
-    #                         alpha_elastic_transform=AugmentParameters.alpha_elastic_transform,
-    #                         sigma_elastic_transform=AugmentParameters.sigma_elastic_transform,
-    #                         max_factor_skew=AugmentParameters.max_factor_skew,
-    #                         max_angle_rotate=AugmentParameters.max_angle_rotate,
-    #                         target_size=image_size)
-    #
-    #     plt.imshow(img, cmap='gray', vmin=0, vmax=1)
-    #     plt.show()
-    #     plt.close()
+    axes[1].imshow(image_erosion, cmap='gray', vmin=0, vmax=1)
+    axes[1].set_title('erosion')
+
+    axes[2].imshow(image_gamma_adjust, cmap='gray', vmin=0, vmax=1)
+    axes[2].set_title('gamma adjust')
+
+    axes[3].imshow(image_cutdown, cmap='gray', vmin=0, vmax=1)
+    axes[3].set_title('cutdown')
+
+    for ax in axes:
+        ax.axis('off')
+
+    fig.tight_layout()
+    if save_as is None:
+        plt.show()
+    else:
+        print(f'saved image as {save_as}')
+        plt.savefig(save_as, dpi=250, bbox_inches='tight', pad_inches=0.05)
+
+    plt.close()
 
 
 if __name__ == '__main__':
-    # main(filepath=None, image_size=[116, 150],
-    #      datadir='/Users/maurice/phd/src/data/psychology/ReyFigures/data2018/uploadFinal')
-    # print()
-    main(filepath=None, image_size=[224, 224],
-         datadir='/Users/maurice/phd/src/data/psychology/ReyFigures/data2018/uploadFinal')
+    data_root = '/Users/maurice/phd/src/rey-figure/data/ReyFigures/data2021/'
+    scan = data_root + 'USZ_scans/14802C_NaN_dava_120190308092244_Seite_01.jpg'
+    # photo = data_root + 'USZ_fotos/C9_none_foto_20190307_123539.jpg'
+    photo = data_root + 'USZ_fotos/C5694C1K_none_foto_20190306_173942.jpg'
 
-    # main(filepath=None, image_size=[300, 300],
-    #      datadir='/Users/maurice/phd/src/data/psychology/ReyFigures/data2018/uploadFinal')
+    save_dir = '/Users/maurice/Desktop/rey-figures-preprocessing/'
+
+    main(image_file=photo, gamma=3, cutdown_thresh=4, whiten_thresh=8)
+    main(image_file=photo, gamma=10, cutdown_thresh=2, whiten_thresh=12)
+
+    # combination0 = [3, 4, 8]
+    # combination1 = [8, 2, 12]
+    # combination2 = [10, 1, 12]
+    # combination3 = [10, 2, 12]
+    #
+    # for (g, c, w) in [combination0, combination1, combination2, combination3]:
+    #     img_save_as = save_dir + f'photo_gamma={g}_cutdown={c}_whiten={w}.pdf'
+    #     main(image_file=photo, gamma=g, cutdown_thresh=c, whiten_thresh=w, save_as=img_save_as)
+    #
+    #     img_save_as = save_dir + f'scan_gamma={g}_cutdown={c}_whiten={w}.pdf'
+    #     main(image_file=scan, gamma=g, cutdown_thresh=c, whiten_thresh=w, save_as=img_save_as)

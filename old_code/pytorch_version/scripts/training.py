@@ -131,7 +131,7 @@ def train(model, criterion, optimizer, train_dataloader, test_dataloader, opt=No
     n_iter = start_n_iter
     for epoch in range(start_epoch, opt["EPOCHS"]):
         # set models to train mode
-        model.train()
+        model.train_epoch()
 
         # for loop going through dataset
         for data in train_dataloader:
@@ -189,7 +189,7 @@ def train(model, criterion, optimizer, train_dataloader, test_dataloader, opt=No
             print("epoch val: ", epoch)
             with torch.no_grad():
                 # bring models to evaluation mode
-                model.eval()
+                model.eval_model()
 
                 for data in test_dataloader:
                     # data preparation

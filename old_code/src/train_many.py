@@ -56,7 +56,7 @@ for file in os.listdir(config_dir):
         start_training = time.perf_counter()
 
         # run command
-        os.system('~/miniconda2/envs/dslab_spaceml/bin/python -u train.py --config ' + config_path + ' --local ' + args.local + ' --GPU ' + args.GPU + ' --runname ' + run_name + ' > ' + output_file)
+        os.system('~/miniconda2/envs/dslab_spaceml/bin/python -u train_regressor.py --config ' + config_path + ' --local ' + args.local + ' --GPU ' + args.GPU + ' --runname ' + run_name + ' > ' + output_file)
 
         end_training = time.perf_counter()
         print("\nTraining took {}min".format((end_training-start_training)/60))

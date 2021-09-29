@@ -221,7 +221,7 @@ class CNN:
         main_model_summaries = tf.summary.merge_all()
 
         # saver to save model parameters
-        self.saver = tf.train.Saver()
+        self.saver = tf.train_epoch.Saver()
 
         return loss, accuracy, prediction, prediction_bin, main_model_summaries
 
@@ -262,10 +262,10 @@ class CNN:
         summary_pred_var = tf.summary.scalar('prediction_variance', tf.squeeze(var))
 
         self.global_step = tf.Variable(0, name="global_step", trainable=False)
-        learning_rate = tf.train.exponential_decay(.001, self.global_step,
-                                                   10000, 0.1, staircase=True)
+        learning_rate = tf.train_epoch.exponential_decay(.001, self.global_step,
+                                                         10000, 0.1, staircase=True)
 
-        optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate, name="optimizer")
+        optimizer = tf.train_epoch.AdamOptimizer(learning_rate=learning_rate, name="optimizer")
         self.training_step = optimizer.minimize(loss=loss, global_step=self.global_step)
 
         if not LOCAL:

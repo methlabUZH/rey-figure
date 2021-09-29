@@ -7,14 +7,17 @@ from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
 
 
-def get_dataloader(data_root: str, labels_df: pd.DataFrame, batch_size: int, num_workers: int, shuffle: bool,
-                   score_type: str, mean: float = None, std: float = None):
+def get_regression_dataloader(data_root: str, labels_df: pd.DataFrame, batch_size: int, num_workers: int, shuffle: bool,
+                              score_type: str, mean: float = None, std: float = None, prefectch_factor: int = 16,
+                              pin_memory: bool = True):
     transform = None
     if mean is not None and std is not None:
         transform = transforms.Normalize(mean=[mean], std=[std])
 
     dataset = ROCFDatasetRegression(data_root, labels_df=labels_df, transform=transform, score_type=score_type)
-    return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, pin_memory=True)
+
+    return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers,
+                      pin_memory=pin_memory, prefetch_factor=prefectch_factor)
 
 
 class ROCFDatasetRegression(Dataset):
@@ -22,7 +25,7 @@ class ROCFDatasetRegression(Dataset):
     def __init__(self, data_root: str, labels_df: pd.DataFrame, transform: transforms = None,
                  score_type: str = 'sum'):
         self._labels_df = labels_df
-        self._labels_df['items_sum'] = self._labels_df[[f'score_item_{i}' for i in range(1, 19)]].sum(axis=1)
+        self._labels_df.loc[:, 'items_sum'] = self._labels_df[[f'score_item_{i}' for i in range(1, 19)]].sum(axis=1)
 
         if transform is None:
             self._transform = self._normalize_single
@@ -59,3 +62,5 @@ class ROCFDatasetRegression(Dataset):
     @staticmethod
     def _normalize_single(image: torch.Tensor):
         return (image - torch.mean(image)) / torch.std(image)
+
+
