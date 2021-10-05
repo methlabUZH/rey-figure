@@ -48,7 +48,6 @@ class ROCFDatasetItemClassification(Dataset):
 
     def get_class_counts(self):
         class_counts = [0, 0]
-        n_samples = len(self)
 
         for label in self._labels:
             class_counts[label] += 1
@@ -88,14 +87,14 @@ class ROCFDatasetItemClassification(Dataset):
         return (image - torch.mean(image)) / torch.std(image)
 
 
-if __name__ == '__main__':
-    dataroot = '/Users/maurice/phd/src/rey-figure/data/serialized-data/scans-2018-116x150'
-    labels_csv = os.path.join(dataroot, 'train_labels.csv')
-    labels_df = pd.read_csv(labels_csv)
-
-    for i in range(1, 19):
-        ds = ROCFDatasetItemClassification(item=i, data_root=dataroot, labels_df=labels_df)
-        labels = ds._labels
-        pos_samples = sum(ds._labels)
-        total_samples = len(ds._labels)
-        print(f'item={i}, positive samples: {pos_samples / total_samples * 100:.2f}%, total samples: {total_samples}')
+# if __name__ == '__main__':
+#     dataroot = '/Users/maurice/phd/src/rey-figure/data/serialized-data/scans-2018-116x150'
+#     labels_csv = os.path.join(dataroot, 'train_labels.csv')
+#     labels_df = pd.read_csv(labels_csv)
+#
+#     for i in range(1, 19):
+#         ds = ROCFDatasetItemClassification(item=i, data_root=dataroot, labels_df=labels_df)
+#         labels = ds._labels
+#         pos_samples = sum(ds._labels)
+#         total_samples = len(ds._labels)
+#         print(f'item={i}, positive samples: {pos_samples / total_samples * 100:.2f}%, total samples: {total_samples}')

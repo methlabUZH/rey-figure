@@ -10,8 +10,8 @@ from tqdm import tqdm
 import torch
 
 from constants import BIN_LOCATIONS1, BIN_LOCATIONS2
-from src.utils.regression_data_loader import get_eval_dataloader
-from src.utils.helpers import timestamp_human, count_parameters, assign_bins, AverageMeter, Logger
+from src.utils.eval_regression_dataloader import get_eval_dataloader
+from src.utils.helpers import timestamp_human, count_parameters, assign_bins, Logger
 from src.models.other_models.model_factory import get_architecture
 
 DEBUG = False
@@ -55,7 +55,7 @@ def main():
         print('==> debugging on!')
 
     # save terminal output to file
-    out_file = os.path.join(args.results_dir, 'eval.txt' if not DEBUG else 'debug_eval.txt')
+    out_file = os.path.join(args.results_dir, 'eval_regressor.txt' if not DEBUG else 'debug_eval_regressor.txt')
     print(f'==> results will be saved to {out_file}')
     sys.stdout = Logger(print_fp=out_file)
 
@@ -82,16 +82,39 @@ def main():
     if use_cuda:
         model = torch.nn.DataParallel(model).cuda()
 
-    criterion = torch.nn.MSELoss(reduction="mean")
-
     print('\n----------------------\n')
     print(f'[{timestamp_human()}] start eval')
 
     # eval on test set
-    (test_loss, test_score_mse, test_bin1_mse, single_bin1_mses,
-     test_bin2_mse, single_bin2_mses, results_df) = eval_model(model, dataloader, criterion)
+    results_df = eval_model(model, dataloader)
 
     print(f'[{timestamp_human()}] finish eval')
+
+    pred_item_indices = [f'pred_score_item_{i + 1}' for i in range(18)]
+    true_item_indices = [f'true_score_item_{i + 1}' for i in range(18)]
+
+    items_loss = (results_df[pred_item_indices].subtract(results_df[true_item_indices].values) ** 2).mean().mean()
+    score_mse = ((results_df['true_score_sum'] - results_df['pred_total_score']) ** 2).mean()
+    bin1_mse = ((results_df['true_bin_1'] - results_df['pred_bin_1']) ** 2).mean()
+    bin2_mse = ((results_df['true_bin_2'] - results_df['pred_bin_2']) ** 2).mean()
+
+    # compute mse for each item
+    item_mses = {i: ((results_df[f'pred_score_item_{i + 1}'] -
+                      results_df[f'true_score_item_{i + 1}']) ** 2).mean() for i in range(18)}
+
+    # compute score mse for each bin with V1 binning
+    bin_v1_mses = {}
+    for i in range(len(BIN_LOCATIONS1)):
+        bin_df = results_df[results_df['true_bin_1'] == i]
+        bin_mse = ((bin_df['true_score_sum'] - bin_df['pred_total_score']) ** 2).mean()
+        bin_v1_mses[i] = bin_mse
+
+    # compute score mse for each bin with V2 binning
+    bin_v2_mses = {}
+    for i in range(len(BIN_LOCATIONS2)):
+        bin_df = results_df[results_df['true_bin_2'] == i]
+        bin_mse = ((bin_df['true_score_sum'] - bin_df['pred_total_score']) ** 2).mean()
+        bin_v2_mses[i] = bin_mse
 
     print('\n----------------------\n')
     print(tabulate(results_df.head(20), headers='keys', tablefmt='presto', floatfmt=".9f"))
@@ -104,33 +127,32 @@ def main():
     print('----------------------')
     print('{0:15}: {1}'.format('num-test', len(dataloader.dataset)))
     print('{0:15}: {1}'.format('# model-params', count_parameters(model)))
-    print('{0:15}: {1}'.format('loss', test_loss))
-    print('{0:15}: {1}'.format('score mse', test_score_mse))
-    print('{0:15}: {1}'.format('bin-v1 mse', test_bin1_mse))
-    print('{0:15}: {1}'.format('bin-v2 mse', test_bin2_mse))
+    print('{0:15}: {1}'.format('items loss', items_loss))
+    print('{0:15}: {1}'.format('score mse', score_mse))
+    print('{0:15}: {1}'.format('bin-v1 mse', bin1_mse))
+    print('{0:15}: {1}'.format('bin-v2 mse', bin2_mse))
 
     print('\nbin-v1 mse scores:')
     print('----------------------')
     for i, _ in enumerate(BIN_LOCATIONS1):
-        bin_mse = single_bin1_mses.get(i)
+        bin_mse = bin_v1_mses.get(i)
         print('{0:15}: {1}'.format(f'mse bin {i}', bin_mse if bin_mse is not None else np.nan))
 
     print('\nbin-v2 mse scores:')
     print('----------------------')
     for i, _ in enumerate(BIN_LOCATIONS2):
-        bin_mse = single_bin2_mses.get(i)
+        bin_mse = bin_v2_mses.get(i)
         print('{0:15}: {1}'.format(f'mse bin {i}', bin_mse if bin_mse is not None else np.nan))
 
+    print('\nitem mses')
+    print('----------------------')
+    for i in range(18):
+        item_mse = item_mses.get(i)
+        print('{0:15}: {1}'.format(f'item {i + 1}', item_mse if item_mse is not None else np.nan))
 
-def eval_model(model, dataloader, criterion):
+
+def eval_model(model, dataloader):
     model.eval()
-
-    total_loss_meter = AverageMeter()
-    score_mse_meter = AverageMeter()
-    total_bin1_mse_meter = AverageMeter()
-    total_bin2_mse_meter = AverageMeter()
-    single_bin1_score_mse_meters = {i: AverageMeter() for i, _ in enumerate(BIN_LOCATIONS1)}
-    single_bin2_score_mse_meters = {i: AverageMeter() for i, _ in enumerate(BIN_LOCATIONS2)}
 
     num_batches = len(dataloader.dataset) // dataloader.batch_size
 
@@ -150,55 +172,30 @@ def eval_model(model, dataloader, criterion):
             predictions = model(images.float())
 
         # clip outputs to ranges
-        predictions[:, -1] = torch.clip(predictions[:, -1], 0, 36)
         predictions[:, :-1] = torch.clip(predictions[:, :-1], 0, 2)
+        predictions[:, -1] = torch.clip(predictions[:, -1], 0, 36)
 
-        true_scores = labels[:, -1]
-        true_bins1 = assign_bins(scores=true_scores, bin_locations=BIN_LOCATIONS1)
-        true_bins2 = assign_bins(scores=true_scores, bin_locations=BIN_LOCATIONS2)
-
-        pred_scores = predictions[:, -1]
-        pred_bins1 = assign_bins(scores=pred_scores, bin_locations=BIN_LOCATIONS1)
-        pred_bins2 = assign_bins(scores=pred_scores, bin_locations=BIN_LOCATIONS2)
-
-        total_loss = criterion(predictions, labels)
-        score_mse = criterion(pred_scores, true_scores)
-        total_bin1_mse = criterion(pred_bins1, true_bins1)
-        total_bin2_mse = criterion(pred_bins2, true_bins2)
-
-        single_bin1_score_mses = mse_per_bin(pred_scores, true_scores, criterion, BIN_LOCATIONS1)
-        single_bin2_score_mses = mse_per_bin(pred_scores, true_scores, criterion, BIN_LOCATIONS2)
+        # assign bins
+        true_bins1 = assign_bins(scores=labels[:, -1], bin_locations=BIN_LOCATIONS1)
+        true_bins2 = assign_bins(scores=labels[:, -1], bin_locations=BIN_LOCATIONS2)
+        pred_bins1 = assign_bins(scores=predictions[:, -1], bin_locations=BIN_LOCATIONS1)
+        pred_bins2 = assign_bins(scores=predictions[:, -1], bin_locations=BIN_LOCATIONS2)
 
         # write to df
         df_data = np.concatenate(
-            [np.expand_dims(image_id, -1), labels.cpu(), true_bins1.cpu(), true_bins2.cpu(), predictions.cpu(),
-             pred_bins1.cpu(), pred_bins2.cpu(), np.expand_dims(image_jpeg, -1),
+            [np.expand_dims(image_id, -1), labels.cpu().float(), true_bins1.cpu(), true_bins2.cpu(),
+             predictions.cpu().float(), pred_bins1.cpu(), pred_bins2.cpu(), np.expand_dims(image_jpeg, -1),
              np.expand_dims(image_fp_npy, -1)], axis=1)
         results_df = pd.concat([results_df, pd.DataFrame(columns=columns, data=df_data)], ignore_index=True)
-
-        # record loss
-        total_loss_meter.update(total_loss.data, images.size()[0])
-        score_mse_meter.update(score_mse.data, images.size()[0])
-        total_bin1_mse_meter.update(total_bin1_mse.data, images.size()[0])
-        total_bin2_mse_meter.update(total_bin2_mse.data, images.size()[0])
-
-        for b, (bin_mse, n) in single_bin1_score_mses.items():
-            single_bin1_score_mse_meters[b].update(bin_mse.data, n)
-
-        for b, (bin_mse, n) in single_bin2_score_mses.items():
-            single_bin2_score_mse_meters[b].update(bin_mse.data, n)
 
         if DEBUG:
             print(f'processed batch {batch_idx}')
             if batch_idx >= 5:
                 break
 
-    # compute_averages
-    single_bin1_score_mses = {i: m.avg for i, m in single_bin1_score_mse_meters.items()}
-    single_bin2_score_mses = {i: m.avg for i, m in single_bin2_score_mse_meters.items()}
+    results_df[columns[1:-2]] = results_df[columns[1:-2]].astype(float)
 
-    return (total_loss_meter.avg, score_mse_meter.avg, total_bin1_mse_meter.avg, single_bin1_score_mses,
-            total_bin2_mse_meter.avg, single_bin2_score_mses, results_df)
+    return results_df
 
 
 def mse_per_bin(predictions, labels, criterion, bin_locations):

@@ -65,14 +65,15 @@ def directory_setup(model_name, dataset, results_dir, args, resume: str = ''):
         return resume, checkpoints_dir
 
     timestamp = dt.now().strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]
-    hyperparam_str = f'epochs={args.epochs}_bs={args.batch_size}_lr={args.lr}_gamma={args.gamma}_wd={args.wd}'
-    hyperparam_str += f'_dropout={args.dropout}_bn-momentum={args.bn_momentum}'
+    hyperparam_str = f'epochs-{args.epochs}_bs-{args.batch_size}_lr-{args.lr}_gamma-{args.gamma}_wd-{args.wd}'
+    hyperparam_str += f'_dropout-{args.dropout}_bn-momentum-{args.bn_momentum}'
 
     try:
-        hyperparam_str += '_beta={args.beta}'
-    except KeyError:
+        hyperparam_str += f'_beta={args.beta}'
+    except AttributeError:
         pass
 
+    hyperparam_str = hyperparam_str.replace('[', '').replace(']', '').replace(' ', '_').replace(',', '')
     results_dir = os.path.join(results_dir, dataset, model_name, hyperparam_str, timestamp)
 
     if not os.path.exists(results_dir):

@@ -31,8 +31,8 @@ def get_architecture(arch: str,
         return shallow_cnn(dropout_rate=dropout, n_outputs=num_outputs)
     elif arch == 'deep-cnn':
         dropout = (0.0, 0.0) if dropout == 0.0 else dropout
-        return get_reyregressor(n_outputs=num_outputs, dropout=dropout, norm_layer_2d=norm_layer_2d,
-                                norm_layer_1d=norm_layer_1d)
+        return get_reyregressor(n_outputs=num_outputs, dropout=dropout, norm_layer_type=norm_layer_type,
+                                bn_momentum=bn_momentum)
     elif arch == 'resnet18':
         return resnet18(num_outputs, norm_layer=norm_layer_2d)
     elif arch == 'resnet18-V2':

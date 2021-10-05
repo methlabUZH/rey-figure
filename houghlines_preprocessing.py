@@ -3,9 +3,6 @@ from cv2 import imread
 import cv2
 import matplotlib.pyplot as plt
 import numpy as np
-from skimage.color import rgb2gray as skimage_rgb2gray
-from skimage.morphology import erosion as skimage_erosion
-from skimage.exposure import adjust_gamma as skimage_adjust_gamma
 
 from constants import DEFAULT_CANVAS_SIZE
 from src.data.helpers import cutdown, resize_padded

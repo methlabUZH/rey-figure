@@ -13,13 +13,13 @@ def get_eval_dataloader(data_root: str, labels_df: pd.DataFrame, batch_size: int
     if mean is not None and std is not None:
         transform = transforms.Normalize(mean=[mean], std=[std])
 
-    dataset = ROCFDatasetEval(data_root, labels_df=labels_df, transform=transform, score_type=score_type)
+    dataset = ROCFDatasetRegressionEval(data_root, labels_df=labels_df, transform=transform, score_type=score_type)
 
     return DataLoader(dataset=dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers,
                       pin_memory=pin_memory, prefetch_factor=prefectch_factor)
 
 
-class ROCFDatasetEval(Dataset):
+class ROCFDatasetRegressionEval(Dataset):
 
     def __init__(self, data_root: str, labels_df: pd.DataFrame, transform: transforms = None, score_type: str = 'sum'):
         if score_type != 'sum':
@@ -51,16 +51,16 @@ class ROCFDatasetEval(Dataset):
 
     def __getitem__(self, idx):
         # load and normalize image
-        image_npy_fp = self._images_npy[idx]
-        image_jpeg_fp = self._images_jpeg[idx]
         torch_image = torch.from_numpy(np.load(image_npy_fp)[np.newaxis, :])
         image = self._transform(torch_image)
 
-        # get id
-        image_id = self._images_ids[idx]
-
         # load labels
         label = torch.from_numpy(np.asarray(self._labels[idx])).type('torch.FloatTensor')
+
+        # get filepaths and id
+        image_npy_fp = self._images_npy[idx]
+        image_jpeg_fp = self._images_jpeg[idx]
+        image_id = self._images_ids[idx]
 
         return image, label, image_npy_fp, image_jpeg_fp, image_id
 

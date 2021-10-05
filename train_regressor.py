@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from constants import RESULTS_DIR, BIN_LOCATIONS1, BIN_LOCATIONS2
 from src.data.augmentation import AugmentParameters
-from src.utils.regression_data_loader import get_regression_dataloader
+from src.utils.train_dataloader_regression import get_regression_dataloader
 from src.utils.helpers import directory_setup, timestamp_human, plot_scores_preds, count_parameters
 from src.utils.helpers import assign_bins, AverageMeter, Logger
 from src.models import get_reyregressor
@@ -34,7 +34,7 @@ parser.add_argument('--val-fraction', default=0.2, type=float)
 parser.add_argument('--eval-test', action='store_true')
 
 # architecture
-parser.add_argument('--arch', type=str, default='deep-cnn', required=False)
+parser.add_argument('--arch', type=str, default='rey-regressor', required=False)
 parser.add_argument('--image-size', nargs='+', type=int, default=[224, 224])
 parser.add_argument('--norm-layer', type=str, default=None, choices=[None, 'batch_norm', 'group_norm'])
 

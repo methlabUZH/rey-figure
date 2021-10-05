@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from constants import RESULTS_DIR
 from src.data.augmentation import AugmentParameters
-from src.utils.item_classification_data_loader import get_item_classiciation_dataloader
+from src.utils.train_item_classification_dataloader import get_item_classiciation_dataloader
 from src.utils.helpers import directory_setup, timestamp_human, plot_scores_preds, count_parameters
 from src.utils.helpers import AverageMeter, Logger, accuracy
 from src.models import get_reyclassifier
@@ -125,9 +125,9 @@ def main():
         best_epoch = checkpoint['best_epoch']
         best_val_loss = checkpoint['best_val_loss']
         best_val_acc = checkpoint['best_val_acc']
-        best_val_recall = checkpoint['best_val_recall']
-        best_val_precision = checkpoint['best_val_precision']
-        best_val_f_measure = checkpoint['best_val_f_measure']
+        best_val_sensitivity = checkpoint['best_val_sensitivity']
+        best_val_specificity = checkpoint['best_val_specificity']
+        best_val_g_mean = checkpoint['best_val_g_mean']
         model.load_state_dict(checkpoint['state_dict'])
         optimizer.load_state_dict(checkpoint['optimizer'])
     else:
@@ -135,9 +135,9 @@ def main():
         best_epoch = 0
         best_val_loss = np.inf
         best_val_acc = -np.inf
-        best_val_precision = -np.inf
-        best_val_recall = -np.inf
-        best_val_f_measure = -np.inf
+        best_val_specificity = -np.inf
+        best_val_sensitivity = -np.inf
+        best_val_g_mean = -np.inf
 
     # tensorboard
     summary_writer = SummaryWriter(results_dir)
@@ -145,13 +145,19 @@ def main():
     # print setup
     print('\n----------------------\n')
     for k, v in args.__dict__.items():
-        print('{0:20}: {1}'.format(k, v))
+        print('{0:27}: {1}'.format(k, v))
 
-    print('{0:20}: {1:.2f}%'.format('% 0 train-samples', 100 * train_class_counts[0] / sum(train_class_counts)))
-    print('{0:20}: {1:.2f}%'.format('% 0 val-samples', 100 * val_class_counts[0] / sum(val_class_counts)))
-    print('{0:20}: {1}'.format('num-train', len(train_dataloader.dataset)))
-    print('{0:20}: {1}'.format('num-val', len(val_dataloader.dataset)))
-    print('{0:20}: {1}'.format('#params', count_parameters(model)))
+    n_train = sum(train_class_counts)
+    n_val = sum(val_class_counts)
+    print('{0:27}: {1:.2f}% / {2:.2f}%'.format('0 / 1-class train-samples',
+                                               100 * train_class_counts[0] / n_train,
+                                               100 * train_class_counts[1] / n_train))
+    print('{0:27}: {1:.2f}% / {2:.2f}%'.format('0 / 1-class val-samples',
+                                               100 * val_class_counts[0] / n_val,
+                                               100 * val_class_counts[1] / n_val))
+    print('{0:27}: {1}'.format('num-train', len(train_dataloader.dataset)))
+    print('{0:27}: {1}'.format('num-val', len(val_dataloader.dataset)))
+    print('{0:27}: {1}'.format('#params', count_parameters(model)))
 
     print('\n----------------------\n')
     print(f'[{timestamp_human()}] start training')
@@ -160,44 +166,50 @@ def main():
     for epoch in range(start_epoch, args.epochs):
         # train
         t0 = time.time()
-        train_loss, train_acc, train_precision, train_recall, train_f_measure = train_epoch(
+        train_loss, train_acc, train_sensitivity, train_specificity, train_g_mean = train_epoch(
             train_dataloader, model, criterion, optimizer, summary_writer, epoch + 1)
         epoch_time = time.time() - t0
         epoch_times.append(epoch_time)
 
         # validation
-        val_loss, val_acc, val_precision, val_recall, val_f_measure = eval_model(
+        val_loss, val_acc, val_sensitivity, val_specificity, val_g_mean = eval_model(
             val_dataloader, model, criterion, summary_writer, epoch + 1)
 
         print_stats(epoch, args.epochs, epoch_time, lr_scheduler.get_last_lr()[0],
-                    train_loss, train_acc, train_precision, train_recall, train_f_measure,
-                    val_loss, val_acc, val_precision, val_recall, val_f_measure)
+                    train_loss, train_acc, train_sensitivity, train_specificity, train_g_mean,
+                    val_loss, val_acc, val_sensitivity, val_specificity, val_g_mean)
 
         # add tensorboard summaries
         summary_writer.add_scalars('loss', {'train': train_loss, 'val': val_loss}, global_step=epoch)
-        summary_writer.add_scalars('accuracy', {'train': train_loss, 'val': val_loss}, global_step=epoch)
+        summary_writer.add_scalars('accuracy', {'train': train_acc, 'val': val_acc}, global_step=epoch)
+        summary_writer.add_scalars('sensitivity',
+                                   {'train': train_sensitivity, 'val': val_sensitivity}, global_step=epoch)
+        summary_writer.add_scalars('specificity',
+                                   {'train': train_specificity, 'val': val_specificity}, global_step=epoch)
+        summary_writer.add_scalars('g-mean', {'train': train_g_mean, 'val': val_g_mean}, global_step=epoch)
         summary_writer.add_scalar('learning-rate', lr_scheduler.get_last_lr()[0], global_step=epoch)
         summary_writer.flush()
 
         # save model
-        if val_acc > best_val_acc:
+        is_best = val_acc > best_val_acc
+        if is_best:
             best_val_acc = val_acc
             best_epoch = epoch + 1
             best_val_loss = val_loss
-            best_val_precision = val_precision
-            best_val_recall = val_recall
-            best_val_f_measure = val_f_measure
+            best_val_sensitivity = val_sensitivity
+            best_val_specificity = val_specificity
+            best_val_g_mean = val_g_mean
 
         save_checkpoint({'epoch': epoch + 1,
                          'best_epoch': best_epoch,
                          'val_acc': val_acc,
                          'best_val_acc': best_val_acc,
-                         'best_val_precision': best_val_precision,
-                         'best_val_recall': best_val_recall,
-                         'best_val_f_measure': best_val_f_measure,
+                         'best_val_specificity': best_val_specificity,
+                         'best_val_sensitivity': best_val_sensitivity,
+                         'best_val_g_mean': best_val_g_mean,
                          'state_dict': copy.deepcopy(model.state_dict()),
                          'optimizer': copy.deepcopy(optimizer.state_dict())
-                         }, is_best=val_acc > best_val_acc, checkpoint_dir=checkpoints_dir)
+                         }, is_best=is_best, checkpoint_dir=checkpoints_dir)
 
         # decay learning rate
         lr_scheduler.step()
@@ -215,9 +227,9 @@ def main():
     print('{0:25}: {1:.4f}'.format('epoch', best_epoch))
     print('{0:25}: {1:.4f}'.format('loss', best_val_loss))
     print('{0:25}: {1:.4f}%'.format('accuracy', best_val_acc))
-    print('{0:25}: {1:.4f}'.format('precision', best_val_precision))
-    print('{0:25}: {1:.4f}'.format('recall', best_val_recall))
-    print('{0:25}: {1:.4f}'.format('f-measure', best_val_f_measure))
+    print('{0:25}: {1:.4f}'.format('sensitivity', best_val_sensitivity))
+    print('{0:25}: {1:.4f}'.format('specificity', best_val_specificity))
+    print('{0:25}: {1:.4f}'.format('g-mean', best_val_g_mean))
 
     if args.eval_test:
         print('\n==> evaluating best model on test set...')
@@ -227,16 +239,17 @@ def main():
             ckpt = os.path.join(checkpoints_dir, 'checkpoint.pth.tar')
         print(f'==> checkpoint: {ckpt}')
 
-        test_loss, test_acc, n_test, precision, recall, f_measure = eval_test(model, criterion, args.data_root, ckpt)
+        test_loss, test_acc, n_test, sensitivity, specificity, g_mean = eval_test(model, criterion, args.data_root,
+                                                                                  ckpt)
 
         print('\n-----------------------')
         print('** test stats **')
         print('{0:25}: {1:.4f}'.format('# test samples', n_test))
         print('{0:25}: {1:.4f}'.format('loss', test_loss))
         print('{0:25}: {1:.4f}%'.format('accuracy', test_acc))
-        print('{0:25}: {1:.4f}'.format('precision', precision))
-        print('{0:25}: {1:.4f}'.format('recall', recall))
-        print('{0:25}: {1:.4f}'.format('f-measure', f_measure))
+        print('{0:25}: {1:.4f}'.format('sensitivity', sensitivity))
+        print('{0:25}: {1:.4f}'.format('specificity', specificity))
+        print('{0:25}: {1:.4f}'.format('g-mean', g_mean))
 
 
 def train_epoch(dataloader, model, criterion, optimizer, summary_writer, epoch):
@@ -287,11 +300,11 @@ def train_epoch(dataloader, model, criterion, optimizer, summary_writer, epoch):
         if batch_idx >= 5 and DEBUG:
             break
 
-    precision = true_positives / (true_positives + false_positives)
-    recall = true_positives / (true_positives + false_negatives)
-    f_measure = (2 * precision * recall) / (precision + recall)
+    sensitivity = true_positives / (true_positives + false_negatives)
+    specificity = true_negatives / (true_negatives + false_positives)
+    g_mean = np.sqrt(sensitivity.cpu() * specificity.cpu())
 
-    return loss_meter.avg, accuracy_meter.avg, precision, recall, f_measure
+    return loss_meter.avg, accuracy_meter.avg, sensitivity, specificity, g_mean
 
 
 def eval_model(dataloader, model, criterion, summary_writer, epoch):
@@ -335,11 +348,11 @@ def eval_model(dataloader, model, criterion, summary_writer, epoch):
         if batch_idx >= 5 and DEBUG:
             break
 
-    precision = true_positives / (true_positives + false_positives)
-    recall = true_positives / (true_positives + false_negatives)
-    f_measure = (2 * precision * recall) / (precision + recall)
+    sensitivity = true_positives / (true_positives + false_negatives)
+    specificity = true_negatives / (true_negatives + false_positives)
+    g_mean = np.sqrt(sensitivity.cpu() * specificity.cpu())
 
-    return loss_meter.avg, accuracy_meter.avg, precision, recall, f_measure
+    return loss_meter.avg, accuracy_meter.avg, sensitivity, specificity, g_mean
 
 
 def eval_test(model, criterion, data_root, checkpoint):
@@ -391,11 +404,11 @@ def eval_test(model, criterion, data_root, checkpoint):
             if batch_idx >= 5:
                 break
 
-    precision = true_positives / (true_positives + false_positives)
-    recall = true_positives / (true_positives + false_negatives)
-    f_measure = (2 * precision * recall) / (precision + recall)
+    sensitivity = true_positives / (true_positives + false_negatives)
+    specificity = true_negatives / (true_negatives + false_positives)
+    g_mean = np.sqrt(sensitivity.cpu() * specificity.cpu())
 
-    return loss_meter.avg, accuracy_meter.avg, num_test_samples, precision, recall, f_measure
+    return loss_meter.avg, accuracy_meter.avg, num_test_samples, sensitivity, specificity, g_mean
 
 
 def split_df(labels_df, fraction) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -431,14 +444,16 @@ def record_images(images, writer, name='training-images'):
     writer.add_images(name, images)
 
 
-def print_stats(epoch, total_epochs, epoch_time, lr, train_loss, train_acc, train_precision, train_recall,
-                train_f_measure, val_loss, val_acc, val_precision, val_recall, val_f_measure):
-    def _print_str(mode, loss, acc, prec, rec, fm):
-        return f'|| {mode} loss={loss:.6f}, acc={acc:.4f}%, precision={prec:.4f}, recall={rec:.4f}, f-measure={fm:.4f}'
+def print_stats(epoch, total_epochs, epoch_time, lr, train_loss, train_acc, train_sensitivity, train_specificity,
+                train_g_mean, val_loss, val_acc, val_sensitivity, val_specificity, val_g_mean):
+    def _print_str(mode, loss, acc, sens, spec, gm):
+        s = f'|| {mode} loss={loss:.6f}, acc={acc:.4f}%, sensitivity={sens:.4f}, '
+        s += f'specificity={spec:.4f}, g-mean={gm:.4f}'
+        return s
 
     print_str = f'[{timestamp_human()} | {epoch + 1}/{total_epochs}] epoch time: {epoch_time:.2f}, lr: {lr:.6f} '
-    print_str += _print_str('train', train_loss, train_acc, train_precision, train_recall, train_f_measure)
-    print_str += _print_str('val', val_loss, val_acc, val_precision, val_recall, val_f_measure)
+    print_str += _print_str('train', train_loss, train_acc, train_sensitivity, train_specificity, train_g_mean)
+    print_str += _print_str('val', val_loss, val_acc, val_sensitivity, val_specificity, val_g_mean)
     print(print_str)
 
 

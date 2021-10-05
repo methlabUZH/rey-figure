@@ -6,12 +6,12 @@ RESULTS_DIR = os.path.join(ROOT_DIR, 'results/')
 # LABEL_FILE = os.path.join(DATA_DIR, 'rocf_scores.csv')
 
 # hyperparam configs
-RESNET18_CONFIG = os.path.join(ROOT_DIR, 'src/configs/resnet18-hyperparams.json')
-RESNET50_CONFIG = os.path.join(ROOT_DIR, 'src/configs/resnet50-hyperparams.json')
-RESNET101_CONFIG = os.path.join(ROOT_DIR, 'src/configs/resnet101-hyperparams.json')
-RESNEXT50_CONFIG = os.path.join(ROOT_DIR, 'src/configs/resnext50-32x4d-hyperparams.json')
-EFFICIENTNET_B0 = os.path.join(ROOT_DIR, 'src/configs/efficientnet-b0.json')
-EFFICIENTNET_L2 = os.path.join(ROOT_DIR, 'src/configs/efficientnet-l2.json')
+RESNET18_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet18-hyperparams.json')
+RESNET50_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet50-hyperparams.json')
+RESNET101_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet101-hyperparams.json')
+RESNEXT50_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnext50-32x4d-hyperparams.json')
+EFFICIENTNET_B0 = os.path.join(ROOT_DIR, 'old_code/configs/efficientnet-b0.json')
+EFFICIENTNET_L2 = os.path.join(ROOT_DIR, 'old_code/configs/efficientnet-l2.json')
 
 # LABEL_FORMATS = ['items', 'items-median-scores', 'items-sum-scores']
 DEFAULT_CANVAS_SIZE = (116, 150)
