@@ -3,7 +3,7 @@
 Pytorch implementation of CNNs to automate the scoring of Rey-Osterrieth Complex Figure [1]. The rating of the figure is
 subdivided into ratings of 18 individual subelements and is illustrated in the following figure:
 
- <img width="33%" src="/code-main/resources/rocf-scoring.png"> 
+ <img width="33%" src="resources/rocf-scoring.png"> 
 
 ## Overview
 

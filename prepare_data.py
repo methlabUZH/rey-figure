@@ -37,7 +37,8 @@ this script expects your data to be organized like this:
     │     ├── Typeform
     │     ├── USZ_fotos
     │     └── USZ_scans
-    └── UserRatingData
+    ├── UserRatingData
+    └── simulated
 """
 
 # setup arg parser

@@ -23,6 +23,7 @@ def adjust_gamma(image, gamma=1.0):
 def preprocess_image_hough(image):
     """
     see: https://stackoverflow.com/questions/45322630/how-to-detect-lines-in-opencv
+    this might also be useful for cutdown: https://www.py4u.net/discuss/148097
     """
     image = cv2.imread(image)
     image_grayscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
