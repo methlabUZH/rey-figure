@@ -59,6 +59,10 @@ def main(data_root, image_size):
             serialized_dir, data_dir, str(fn).replace('.jpg', '.npy')))
         labels_df = pd.concat([labels_df, df.drop(columns='NAME')], ignore_index=True)
 
+    labels_df_path = os.path.join(serialized_dir, 'simulated_labels.csv')
+    labels_df.to_csv(labels_df_path)
+    print(f'saved labels as {labels_df_path}')
+
     # loop through images and process each (currently this is just saving the images as npy files and optional resize)
     t = tqdm(labels_df.iterrows(), total=len(labels_df), leave=False)
     for idx, row in t:
