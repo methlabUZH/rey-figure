@@ -31,7 +31,8 @@ def main(image_file, gamma, cutdown_thresh, whiten_thresh, save_as=None):
     thresh_white = np.percentile(image_cutdown, whiten_thresh)
     image_cutdown[image_cutdown > thresh_white] = 1.0
 
-    fig, axes = plt.subplots(1, 4, figsize=(16, 3))
+    # fig, axes = plt.subplots(1, 4, figsize=(16, 3))
+    fig, axes = plt.subplots(1, 1, figsize=(5, 5))
 
     axes[0].imshow(image_grayscale, cmap='gray', vmin=0, vmax=1)
     axes[0].set_title('grayscale')
@@ -58,16 +59,29 @@ def main(image_file, gamma, cutdown_thresh, whiten_thresh, save_as=None):
     plt.close()
 
 
+def main2(image_file):
+    image_raw = imread(image_file)
+
+    image = skimage_rgb2gray(image_raw)
+    # image = skimage_adjust_gamma(image, gamma=-3)
+    # image = skimage_erosion(image)
+
+    plt.imshow(image, cmap='gray', vmin=0, vmax=1)
+    plt.axis('off')
+    plt.show()
+    plt.close()
+
+
 if __name__ == '__main__':
-    data_root = '/Users/maurice/phd/src/rey-figure/data_preprocessing/ReyFigures/data2021/'
-    scan = data_root + 'USZ_scans/14802C_NaN_dava_120190308092244_Seite_01.jpg'
-    # photo = data_root + 'USZ_fotos/C9_none_foto_20190307_123539.jpg'
-    photo = data_root + 'USZ_fotos/C5694C1K_none_foto_20190306_173942.jpg'
-
-    save_dir = '/Users/maurice/Desktop/rey-figures-preprocessing/'
-
-    main(image_file=photo, gamma=3, cutdown_thresh=4, whiten_thresh=8)
-    main(image_file=photo, gamma=10, cutdown_thresh=2, whiten_thresh=12)
+    # data_root = '/Users/maurice/phd/src/rey-figure/data_preprocessing/ReyFigures/data2021/'
+    # scan = data_root + 'USZ_scans/14802C_NaN_dava_120190308092244_Seite_01.jpg'
+    # # photo = data_root + 'USZ_fotos/C9_none_foto_20190307_123539.jpg'
+    # photo = data_root + 'USZ_fotos/C5694C1K_none_foto_20190306_173942.jpg'
+    #
+    # save_dir = '/Users/maurice/Desktop/rey-figures-preprocessing/'
+    #
+    # main(image_file=photo, gamma=3, cutdown_thresh=4, whiten_thresh=8)
+    # # main(image_file=photo, gamma=10, cutdown_thresh=2, whiten_thresh=12)
 
     # combination0 = [3, 4, 8]
     # combination1 = [8, 2, 12]
@@ -80,3 +94,6 @@ if __name__ == '__main__':
     #
     #     img_save_as = save_dir + f'scan_gamma={g}_cutdown={c}_whiten={w}.pdf'
     #     main(image_file=scan, gamma=g, cutdown_thresh=c, whiten_thresh=w, save_as=img_save_as)
+
+    photo = '/Users/maurice/phd/src/rey-figure/data/ReyFigures/data2021/USZ_fotos/C623003K_NaN_foto_20190315_111131.jpg'
+    main2(photo)

@@ -19,7 +19,7 @@ from src.data_preprocessing.augmentation import augment_image, AugmentParameters
 from constants import DEFAULT_CANVAS_SIZE, AUGM_CANVAS_SIZE
 
 """
-this script expects your data_preprocessing to be organized like this:
+this script expects your data to be organized like this:
 
 ├──data_root
     ├── DBdumps
@@ -43,38 +43,45 @@ this script expects your data_preprocessing to be organized like this:
 
 # setup arg parser
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_preprocessing-root', type=str, required=True)
-parser.add_argument('--dataset', type=str, choices=['debug', 'scans-2018', 'scans-2018-2021', 'data_preprocessing-2018-2021'])
+parser.add_argument('--data-root', type=str, required=True)
+parser.add_argument('--dataset', type=str,
+                    choices=['debug', 'scans-2018', 'scans-2018-2021', 'data-2018-2021', 'fotos-2021'])
 parser.add_argument('--augment', action='store_true')
+parser.add_argument('--preprocessing', default=1, choices=[0, 1], type=int,
+                    help='type of preprocessing: 0 is minimal, 1 is erosion, contrast, cut whitespace, bg whitening')
 parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
 args = parser.parse_args()
 
-# only 2018 data_preprocessing
+# only 2018 data
 data_2018 = ['newupload_15_11_2018', 'newupload_9_11_2018', 'uploadFinal', 'newupload']
 debug_data = ['newupload_15_11_2018']
 
-# only 2021 data_preprocessing
-data_2021 = ['USZ_scans', 'USZ_fotos', 'Tino_cropped', 'KISPI', 'Typeform']
+# all 2021 data
+data_2021_fotos = ['USZ_fotos', 'Typeform']
+data_2021_scans = ['USZ_scans', 'Tino_cropped', 'KISPI']
 
 # scanned images from 2018 and 2021
-scans_2018_2021 = data_2018 + ['USZ_scans', 'KISPI']
+scans_2018_2021 = data_2018 + data_2021_scans
 
 # all images from 2018 and 2021
-data_2018_2021 = data_2021 + data_2018
+data_2018_2021 = data_2018 + data_2021_scans + data_2021_fotos
 
-datasets = {'scans-2018': data_2018, 'scans-2018-2021': scans_2018_2021, 'data_preprocessing-2018-2021': data_2018_2021,
-            'debug': debug_data}
+# foto figures
+data_2021_fotos = ['USZ_fotos', 'Typeform']
+
+datasets = {'scans-2018': data_2018, 'scans-2018-2021': scans_2018_2021, 'data-2018-2021': data_2018_2021,
+            'fotos-2021': data_2021_fotos, 'debug': debug_data}
 
 args.data_root = os.path.abspath(args.data_root)
 
-assert set(data_2018).isdisjoint(data_2021)
 
-
-def worker(figure, npy_filepath, label, augment_data, target_size, q):
+def worker(figure, npy_filepath, label, augment_data, target_size, preprocessing_version, q):
     if augment_data:
-        original_image_preprocessed = preprocess_image(figure.get_image(), target_size=AUGM_CANVAS_SIZE)
+        original_image_preprocessed = preprocess_image(figure.get_image(), target_size=AUGM_CANVAS_SIZE,
+                                                       version=preprocessing_version)
     else:
-        original_image_preprocessed = preprocess_image(figure.get_image(), target_size=target_size)
+        original_image_preprocessed = preprocess_image(figure.get_image(), target_size=target_size,
+                                                       version=preprocessing_version)
 
     # augment image
     augm_npy_filepaths = []
@@ -137,8 +144,9 @@ def listener(columns, save_as, q):
             df.sort_index()
 
 
-def preprocess_data(data_root, dataset_name, image_size, augment_data=False):
-    serialized_dir = os.path.join(data_root, f'serialized-data_preprocessing/{dataset_name}-{image_size[0]}x{image_size[1]}')
+def preprocess_data(data_root, dataset_name, image_size, preprocessing_version, augment_data=False):
+    serialized_dir = os.path.join(data_root, 'serialized-data',
+                                  f'{dataset_name}-{image_size[0]}x{image_size[1]}-pp{preprocessing_version}')
 
     if augment_data:
         serialized_dir += '-augmented'
@@ -149,7 +157,7 @@ def preprocess_data(data_root, dataset_name, image_size, augment_data=False):
         if data_dir in data_2018:
             os.makedirs(os.path.join(serialized_dir, 'data2018', data_dir))
 
-        if data_dir in data_2021:
+        if data_dir in data_2021_scans or data_dir in data_2021_fotos:
             os.makedirs(os.path.join(serialized_dir, 'data2021', data_dir))
 
     # map filenames to paths (assumption: filenames are unique)
@@ -162,7 +170,7 @@ def preprocess_data(data_root, dataset_name, image_size, augment_data=False):
             continue
 
         for fn in filenames:
-            if fn.startswith('.'):  # exclude files like .DS_store
+            if fn.startswith('.'):  # exclude files like .DS_Store
                 continue
 
             figure_id = os.path.splitext(fn)[0]
@@ -181,7 +189,7 @@ def preprocess_data(data_root, dataset_name, image_size, augment_data=False):
     print(tabulate(df_figure_paths.head(10), headers='keys', tablefmt='psql'))
     print(f'number of unique figures: {len(df_figure_paths)}\n')
 
-    # merge all user rating data_preprocessing files and save as csv
+    # merge all user rating data files and save as csv
     df_user_ratings = join_ground_truth_files(labels_root=os.path.join(data_root, 'UserRatingData/'))
     df_user_ratings = df_user_ratings[df_user_ratings['figure_id'].isin(figure_ids)]
     df_user_ratings = df_user_ratings[df_user_ratings['FILE'].notna()]  # drop nan files
@@ -190,10 +198,10 @@ def preprocess_data(data_root, dataset_name, image_size, augment_data=False):
 
     print(tabulate(df_user_ratings.head(10), headers='keys', tablefmt='psql'))
     print(f'\ntotal user rating rows without duplicates: {len(df_user_ratings)}')
-    print(f'saved merged user rating data_preprocessing as {user_rating_data_fp}')
+    print(f'saved merged user rating data as {user_rating_data_fp}')
 
     # loop through all images and create figure objects
-    print('\n* processing user rating data_preprocessing...')
+    print('\n* processing user rating data...')
     figures = {}
     for _, rating in tqdm(df_user_ratings.iterrows(), total=len(df_user_ratings)):
         figure_id = os.path.splitext(str(rating['FILE']))[0]
@@ -252,7 +260,7 @@ def preprocess_data(data_root, dataset_name, image_size, augment_data=False):
     # fire off workers
     jobs = []
     for figure, label, npy_fp in zip(figures, labels, npy_filepaths):
-        job = pool.apply_async(worker, (figure, npy_fp, label, augment_data, args.image_size, q))
+        job = pool.apply_async(worker, (figure, npy_fp, label, augment_data, args.image_size, preprocessing_version, q))
         jobs.append(job)
 
     # collect results
@@ -347,5 +355,8 @@ def compute_mean_and_std(data_root, image_size):
 
 
 if __name__ == '__main__':
-    preprocess_data(data_root=args.data_root, dataset_name=args.dataset, image_size=args.image_size,
+    preprocess_data(data_root=args.data_root,
+                    dataset_name=args.dataset,
+                    image_size=args.image_size,
+                    preprocessing_version=args.preprocessing,
                     augment_data=args.augment)

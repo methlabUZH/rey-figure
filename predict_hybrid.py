@@ -19,7 +19,7 @@ DEFAULT_IMG = './sample_data/B9483_02C_NaN_img421.npy'
 NORM_LAYER = 'batch_norm'
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--image', type=str, help='path to image file', default=DEFAULT_IMG)
+parser.add_argument('--image', type=str, help='path to npy-image file', default=DEFAULT_IMG)
 parser.add_argument('--show-figure', type=int, default=1, choices=[0, 1])
 args = parser.parse_args()
 

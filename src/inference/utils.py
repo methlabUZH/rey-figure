@@ -1,20 +1,6 @@
-from typing import Union, List, Tuple
-
 import numpy as np
-import os
 import torch
 from typing import *
-
-
-def round_to_item_scores(score: float) -> float:
-    if score < 0.25:
-        return 0
-    if 0.25 <= score < 0.75:
-        return 0.5
-    if 0.75 <= score < 1.5:
-        return 1
-    if 1.5 <= score:
-        return 2
 
 
 def assign_score(x):

@@ -8,7 +8,27 @@ from skimage.exposure import adjust_gamma as skimage_adjust_gamma
 from src.data_preprocessing.helpers import cutdown, resize_padded
 
 
-def preprocess_image(image, target_size):
+def preprocess_image(image, target_size, version=1):
+    if int(version) == 0:
+        return preprocess_image_v0(image, target_size)
+
+    if int(version) == 1:
+        return preprocess_image_v1(image, target_size)
+
+    raise ValueError('preprocessing version must be 0 or 1')
+
+
+def preprocess_image_v0(image, target_size):
+    # convert to grayscale
+    image_preprocessed = skimage_rgb2gray(image)
+
+    # resize
+    image_preprocessed = resize_padded(image_preprocessed, new_shape=target_size)
+
+    return image_preprocessed
+
+
+def preprocess_image_v1(image, target_size):
     # convert to grayscale
     image_preprocessed = skimage_rgb2gray(image)
 
