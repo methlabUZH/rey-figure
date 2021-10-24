@@ -123,7 +123,7 @@ class ReyClassifier(nn.Module):
         return prediction
 
 
-def get_reyclassifier(dropout: Tuple[float, float],
+def get_reyclassifier(dropout: Tuple[float, float] = (.0, .0),
                       bn_momentum: float = 0.1,
                       norm_layer_type: str = 'batch_norm'):
     if norm_layer_type == 'batch_norm':

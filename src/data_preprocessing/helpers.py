@@ -16,7 +16,7 @@ from skimage import filters
 # import warnings
 
 # from constants import BIN_LOCATIONS_DENSE, BIN_LOCATIONS, CANVAS_SIZE
-# from src.utils.helpers import check_if_in_range
+# from src.dataloaders.helpers import check_if_in_range
 
 
 def resize_padded(img, new_shape, fill_cval=None, order=1, anti_alias=True):
@@ -293,7 +293,7 @@ def blur_lines(image):
 
 
 # def preprocess_dataset(figures, labels, files, set="train"):
-#     """Loads raw data and preprocesses it.
+#     """Loads raw data_preprocessing and preprocesses it.
 #     :return: preprocessed images, files, labels
 #     """
 #
@@ -311,16 +311,16 @@ def blur_lines(image):
 #     preprocessed_images = preprocess_images(images)
 #
 #     #################################################
-#     # TODO: create function to save serialized data  #
+#     # TODO: create function to save serialized data_preprocessing  #
 #     #################################################
 #     if REDO_PREPROCESSING_LABELS or REDO_PREPROCESSING_IMAGES:
 #         # save to disk for later use
 #         if (DEBUG):
-#             print("Writing preprocessed data to disk...")
+#             print("Writing preprocessed data_preprocessing to disk...")
 #         create_directory(DATA_DIR + "serialized")
 #
 #     if REDO_PREPROCESSING_IMAGES:
-#         # save images depending on data augmentation or not
+#         # save images depending on data_preprocessing augmentation or not
 #         if DATA_AUGMENTATION:
 #             np.save(DATA_DIR + 'serialized/images_aug.npy', preprocessed_images)
 #         else:
@@ -356,7 +356,7 @@ def blur_lines(image):
 #     except:
 #         pass
 #     #################################################
-#     # TODO: create function to save serialized data #
+#     # TODO: create function to save serialized data_preprocessing #
 #     #################################################
 #
 #     # TODO: Add TEST part of prepare_dataset() function

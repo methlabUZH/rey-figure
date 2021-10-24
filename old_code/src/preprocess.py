@@ -255,7 +255,7 @@ def preprocess(image):
     img_gray[img_gray>thresh_white] = 1
     resized_img = resize_padded(img_gray, CANVAS_SIZE)
     if not DATA_AUGMENTATION:
-        # if data augmentation -> normalization is done later
+        # if data_preprocessing augmentation -> normalization is done later
         resized_img = normalization(resized_img)
     return resized_img
 

@@ -135,7 +135,7 @@ def train(model, criterion, optimizer, train_dataloader, test_dataloader, opt=No
 
         # for loop going through dataset
         for data in train_dataloader:
-            # data preparation
+            # data_preprocessing preparation
             imgs, labels, one_hot_label = data
 
             # if use_cuda:
@@ -192,7 +192,7 @@ def train(model, criterion, optimizer, train_dataloader, test_dataloader, opt=No
                 model.eval_model()
 
                 for data in test_dataloader:
-                    # data preparation
+                    # data_preprocessing preparation
                     imgs, labels, one_hot_label = data
                     outputs = model(imgs.float())
                     loss = criterion(outputs, np.argmax(one_hot_label, axis=1))

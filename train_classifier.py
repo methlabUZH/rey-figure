@@ -14,10 +14,10 @@ from torch import optim
 from torch.utils.tensorboard import SummaryWriter
 
 from constants import RESULTS_DIR
-from src.data.augmentation import AugmentParameters
-from src.utils.train_item_classification_dataloader import get_item_classiciation_dataloader
-from src.utils.helpers import directory_setup, timestamp_human, plot_scores_preds, count_parameters
-from src.utils.helpers import AverageMeter, Logger, accuracy
+from src.data_preprocessing.augmentation import AugmentParameters
+from src.dataloaders.dataloader_item_classification import get_item_classification_dataloader_train
+from src.train_utils import directory_setup, plot_scores_preds, count_parameters, AverageMeter, Logger, accuracy
+from src.utils import timestamp_human
 from src.models import get_reyclassifier
 
 DEBUG = False
@@ -27,12 +27,13 @@ default_data_dir = '/Users/maurice/phd/src/rey-figure/data/serialized-data/scans
 parser = argparse.ArgumentParser()
 
 # setup
-parser.add_argument('--data-root', type=str, default=default_data_dir, required=False)
+parser.add_argument('--data_preprocessing-root', type=str, default=default_data_dir, required=False)
 parser.add_argument('--results-dir', type=str, default=RESULTS_DIR, required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--val-fraction', default=0.2, type=float)
 parser.add_argument('--eval-test', action='store_true')
 parser.add_argument('--item', type=int, default=1)
+parser.add_argument('--id', default=None, type=str)
 
 # architecture
 parser.add_argument('--image-size', nargs='+', type=int, default=[116, 150])
@@ -69,12 +70,14 @@ if use_cuda:
 
 
 def main():
-    # setup dirs for trained model and log data
+    # setup dirs for trained model and log data_preprocessing
     dataset_name = os.path.split(os.path.normpath(args.data_root))[-1]
-    results_dir, checkpoints_dir = directory_setup(model_name=f'aux_classifier_item_{args.item}',
+    results_dir, checkpoints_dir = directory_setup(model_name=f'item-classifier/item-{args.item}',
                                                    dataset=dataset_name,
                                                    results_dir=args.results_dir,
-                                                   args=args, resume=args.resume)
+                                                   args=args,
+                                                   train_id=args.id,
+                                                   resume=args.resume)
 
     # save terminal output to file
     sys.stdout = Logger(print_fp=os.path.join(results_dir, 'out.txt'))
@@ -93,13 +96,13 @@ def main():
         train_labels = labels_df
         print('==> eval on test set')
 
-    train_dataloader = get_item_classiciation_dataloader(args.item, args.data_root, labels_df=train_labels,
-                                                         batch_size=args.batch_size, num_workers=args.workers,
-                                                         shuffle=True, weighted_sampling=args.weighted_sampling)
+    train_dataloader = get_item_classification_dataloader_train(args.item, args.data_root, labels_df=train_labels,
+                                                                batch_size=args.batch_size, num_workers=args.workers,
+                                                                shuffle=True, weighted_sampling=args.weighted_sampling)
 
-    val_dataloader = get_item_classiciation_dataloader(args.item, args.data_root, labels_df=val_labels,
-                                                       batch_size=args.batch_size, num_workers=args.workers,
-                                                       shuffle=False, weighted_sampling=False)
+    val_dataloader = get_item_classification_dataloader_train(args.item, args.data_root, labels_df=val_labels,
+                                                              batch_size=args.batch_size, num_workers=args.workers,
+                                                              shuffle=False, weighted_sampling=False)
 
     train_class_counts = train_dataloader.dataset.get_class_counts()
     val_class_counts = val_dataloader.dataset.get_class_counts()
@@ -340,7 +343,7 @@ def eval_model(dataloader, model, criterion, summary_writer, epoch):
 
         if batch_idx == 0 and epoch == 0:
             record_images(images, summary_writer, name='validation-images')
-            summary_writer.add_figure('predictions', plot_scores_preds(model, images, labels, use_cuda))
+            summary_writer.add_figure('predictions', plot_scores_preds(model, images, labels))
 
         if DEBUG:
             print(f'val batch={batch_idx}')
@@ -356,11 +359,12 @@ def eval_model(dataloader, model, criterion, summary_writer, epoch):
 
 
 def eval_test(model, criterion, data_root, checkpoint):
-    # data
+    # data_preprocessing
     labels_csv = os.path.join(data_root, 'test_labels.csv')
     labels = pd.read_csv(labels_csv)
-    dataloader = get_item_classiciation_dataloader(args.item, args.data_root, labels_df=labels,
-                                                   batch_size=args.batch_size, num_workers=args.workers, shuffle=False)
+    dataloader = get_item_classification_dataloader_train(args.item, args.data_root, labels_df=labels,
+                                                          batch_size=args.batch_size, num_workers=args.workers,
+                                                          shuffle=False)
 
     num_test_samples = len(dataloader.dataset)
 

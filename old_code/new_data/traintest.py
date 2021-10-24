@@ -31,7 +31,7 @@ label_path = "Data2018-11-23.csv"
 train_dir = "Data_train/"
 test_dir = "Data_test/"
 all_dir = "uploadFinal/"
-check_folder = "../data/raw/"
+check_folder = "../data_preprocessing/raw/"
 test_folder = ["Mexico_test/", "Mexico_NA_test/", "Brugger_Daten_test/", "Colombia_test/", "Colombia_NA_test/"]
 train_folder = ["Mexico/", "Mexico_NA/", "Brugger_Daten/", "Colombia/", "Colombia_NA/"]
 with open(label_path) as csv_file:

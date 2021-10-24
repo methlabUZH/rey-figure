@@ -10,8 +10,10 @@ from tqdm import tqdm
 import torch
 
 from constants import BIN_LOCATIONS1, BIN_LOCATIONS2
-from src.utils.eval_regression_dataloader import get_eval_dataloader
-from src.utils.helpers import timestamp_human, count_parameters, assign_bins, Logger
+from src.dataloaders.dataloader_regression import get_regression_dataloader_eval
+from src.train_utils import count_parameters, Logger
+from src.utils import timestamp_human
+from src.inference.utils import assign_bins
 from src.models.other_models.model_factory import get_architecture
 
 DEBUG = False
@@ -21,7 +23,7 @@ default_results_dir = '/Users/maurice/phd/src/rey-figure/results/sum-score/scans
 # setup arg parser
 parser = argparse.ArgumentParser()
 # setup
-parser.add_argument('--data-root', type=str, default=default_data_dir, required=False)
+parser.add_argument('--data_preprocessing-root', type=str, default=default_data_dir, required=False)
 parser.add_argument('--results-dir', type=str, default=default_results_dir, required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--batch-size', default=128, type=int)
@@ -59,12 +61,12 @@ def main():
     print(f'==> results will be saved to {out_file}')
     sys.stdout = Logger(print_fp=out_file)
 
-    # data
-    print(f'==> data from {args.data_root}')
+    # data_preprocessing
+    print(f'==> data_preprocessing from {args.data_root}')
     labels_csv = os.path.join(args.data_root, 'test_labels.csv')
     labels = pd.read_csv(labels_csv)
-    dataloader = get_eval_dataloader(args.data_root, labels_df=labels, batch_size=args.batch_size,
-                                     num_workers=args.workers, score_type=args.score_type)
+    dataloader = get_regression_dataloader_eval(args.data_root, labels_df=labels, batch_size=args.batch_size,
+                                                num_workers=args.workers, score_type=args.score_type)
 
     # setup model
     model = get_architecture(arch=args.arch, num_outputs=18, dropout=0.0, norm_layer_type=args.norm_layer,
@@ -74,7 +76,6 @@ def main():
     checkpoint_file = os.path.join(args.results_dir, 'checkpoints/model_best.pth.tar')
     assert os.path.isfile(checkpoint_file), 'Error: no checkpoint found!'
     checkpoint = torch.load(checkpoint_file, map_location=torch.device('cuda' if use_cuda else 'cpu'))
-    # if not use_cuda:
     checkpoint['state_dict'] = {str(k).replace('module.', ''): v for k, v in checkpoint['state_dict'].items()}
     model.load_state_dict(checkpoint['state_dict'], strict=True)
     print(f'==> loaded checkpoint {checkpoint_file}')

@@ -28,7 +28,7 @@ def train_CNN():
     model = CNN()
     model.apply(weights_init)
 
-    # get train and test data loader
+    # get train and test data_preprocessing loader
     train_data_loader, test_data_loader = get_dataloaders()
 
     criterion = nn.CrossEntropyLoss()

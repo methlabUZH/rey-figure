@@ -2,10 +2,10 @@
 #
 # import torch
 # import torch.nn.functional as F  # noqa
-# from torch.utils.data import DataLoader
+# from torch.dataloaders.data_preprocessing import DataLoader
 # from torch.optim.lr_scheduler import ExponentialLR
 # from torch.optim import Optimizer
-# from torch.utils.tensorboard import SummaryWriter
+# from torch.dataloaders.tensorboard import SummaryWriter
 #
 #
 # def train_epoch(model: torch.nn.Module, criterion: torch.nn.MSELoss, optimizer: Optimizer, scheduler: ExponentialLR,
@@ -18,9 +18,9 @@
 #
 #     start_time = time.time()
 #
-#     for i, data in enumerate(dataloader):
-#         # load data
-#         imgs, labels = data
+#     for i, data_preprocessing in enumerate(dataloader):
+#         # load data_preprocessing
+#         imgs, labels = data_preprocessing
 #         imgs = imgs.cuda() if use_cuda else imgs
 #         labels = labels.cuda() if use_cuda else labels
 #
@@ -70,9 +70,9 @@
 #     # switch to eval mode
 #     model.eval()
 #
-#     for i, data in enumerate(dataloader):
-#         # load data
-#         imgs, labels = data
+#     for i, data_preprocessing in enumerate(dataloader):
+#         # load data_preprocessing
+#         imgs, labels = data_preprocessing
 #         imgs = imgs.cuda() if use_cuda else imgs
 #         labels = labels.cuda() if use_cuda else labels
 #

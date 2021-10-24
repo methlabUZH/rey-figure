@@ -130,7 +130,7 @@ class Figure:
 
 
 class Dataset:
-    """A data set consisting of images, labels, and files"""
+    """A data_preprocessing set consisting of images, labels, and files"""
     def __init__(self, name, images, files, labels = None, intermediates = None):
         self.images = images
         self.labels = labels
@@ -196,7 +196,7 @@ def preprocess_labels(labels):
 def load_raw_data(set = "train"):
 
     if DEBUG:
-        print("Loading new data {} ...".format(set))
+        print("Loading new data_preprocessing {} ...".format(set))
 
     raw_figures = {}
     with open(DATA_DIR + FILENAME_LABELS) as csv_file:
@@ -223,7 +223,7 @@ def load_raw_data(set = "train"):
     figures = [raw_figures[fig] for fig in raw_figures if raw_figures[fig].hasValidAssessment()]
 
     if DEBUG:
-        print("{} figures in {} data have no valid assessment, left with {} good figures".format(len(raw_figures)-len(figures), set, len(figures)))
+        print("{} figures in {} data_preprocessing have no valid assessment, left with {} good figures".format(len(raw_figures)-len(figures), set, len(figures)))
 
     if LOAD_ONLY_FEW:
         figures = figures[0:50]
@@ -273,7 +273,7 @@ else:
 if REDO_PREPROCESSING_IMAGES:
 
     if not DATA_AUGMENTATION:
-        # no data augmentation -> load everything
+        # no data_preprocessing augmentation -> load everything
 
         if DEBUG:
             print("Loading images from disk ...")
@@ -290,9 +290,9 @@ if REDO_PREPROCESSING_IMAGES:
             DATA = Dataset("DATA", np.asarray(images)[0:CONVERGENCE, :], files[0:CONVERGENCE], labels[0:CONVERGENCE])
 
     else:
-        # data augmentation -> load in batches, then combine
+        # data_preprocessing augmentation -> load in batches, then combine
 
-        batch_size = 50 # do data augmentation in batches
+        batch_size = 50 # do data_preprocessing augmentation in batches
         l = 0
         create_directory(DATA_DIR + 'serialized/augmentation_batches')
 
@@ -310,7 +310,7 @@ if REDO_PREPROCESSING_IMAGES:
             if DEBUG:
                 print("preprocessing of {} images took {}s".format(len(images), end_preprocessing - start_preprocessing))
 
-            # do actual data augmentation
+            # do actual data_preprocessing augmentation
             new_images = np.empty([np.shape(images)[0], 1, 116, 150])
             if DEBUG:
                 print ("Doing simulated augmentation")
@@ -358,7 +358,7 @@ if REDO_PREPROCESSING_IMAGES:
 else:
     # don't redo preprocessing for images -> load from disk
     if (DEBUG):
-        print("Reading preprocessed data from disk...")
+        print("Reading preprocessed data_preprocessing from disk...")
 
     if DATA_AUGMENTATION:
         images = np.load(DATA_DIR + 'serialized/images_aug.npy')
@@ -387,11 +387,11 @@ else:
 if REDO_PREPROCESSING_LABELS or REDO_PREPROCESSING_IMAGES:
     # save to disk for later use
     if(DEBUG):
-        print("Writing preprocessed data to disk...")
+        print("Writing preprocessed data_preprocessing to disk...")
     create_directory(DATA_DIR + "serialized")
 
 if REDO_PREPROCESSING_IMAGES:
-    # save images depending on data augmentation or not
+    # save images depending on data_preprocessing augmentation or not
     if DATA_AUGMENTATION:
         np.save(DATA_DIR + 'serialized/images_aug.npy', DATA.images)
     else:
@@ -430,7 +430,7 @@ except:
 
 
 
-# if test time -> prepare test data
+# if test time -> prepare test data_preprocessing
 if TEST:
     figures_test, labels_test, files_test = load_raw_data("test")
     labels_test = preprocess_labels(labels_test)
@@ -454,7 +454,7 @@ else:
 
 
 
-print("new data")
+print("new data_preprocessing")
 print(DATA)
 if TEST:
     print(DATA_TEST)

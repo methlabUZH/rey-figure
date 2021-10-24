@@ -9,17 +9,17 @@ from tabulate import tabulate
 import time
 from tqdm import tqdm
 
-from src.utils.helpers import timestamp_human
-from src.data.preprocess import preprocess_image
+from src.utils import timestamp_human
+from src.data_preprocessing.preprocess import preprocess_image, simulate_augment_image
 
-from src.data.reyfigure import ReyFigure
-from src.data.loading import join_ground_truth_files
-from src.data.helpers import normalize
-from src.data.augmentation import augment_image, simulate_augment_image, AugmentParameters
+from src.data_preprocessing.reyfigure import ReyFigure
+from src.data_preprocessing.loading import join_ground_truth_files
+from src.data_preprocessing.helpers import normalize
+from src.data_preprocessing.augmentation import augment_image, AugmentParameters
 from constants import DEFAULT_CANVAS_SIZE, AUGM_CANVAS_SIZE
 
 """
-this script expects your data to be organized like this:
+this script expects your data_preprocessing to be organized like this:
 
 ├──data_root
     ├── DBdumps
@@ -43,17 +43,17 @@ this script expects your data to be organized like this:
 
 # setup arg parser
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, required=True)
-parser.add_argument('--dataset', type=str, choices=['debug', 'scans-2018', 'scans-2018-2021', 'data-2018-2021'])
+parser.add_argument('--data_preprocessing-root', type=str, required=True)
+parser.add_argument('--dataset', type=str, choices=['debug', 'scans-2018', 'scans-2018-2021', 'data_preprocessing-2018-2021'])
 parser.add_argument('--augment', action='store_true')
 parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
 args = parser.parse_args()
 
-# only 2018 data
+# only 2018 data_preprocessing
 data_2018 = ['newupload_15_11_2018', 'newupload_9_11_2018', 'uploadFinal', 'newupload']
 debug_data = ['newupload_15_11_2018']
 
-# only 2021 data
+# only 2021 data_preprocessing
 data_2021 = ['USZ_scans', 'USZ_fotos', 'Tino_cropped', 'KISPI', 'Typeform']
 
 # scanned images from 2018 and 2021
@@ -62,7 +62,7 @@ scans_2018_2021 = data_2018 + ['USZ_scans', 'KISPI']
 # all images from 2018 and 2021
 data_2018_2021 = data_2021 + data_2018
 
-datasets = {'scans-2018': data_2018, 'scans-2018-2021': scans_2018_2021, 'data-2018-2021': data_2018_2021,
+datasets = {'scans-2018': data_2018, 'scans-2018-2021': scans_2018_2021, 'data_preprocessing-2018-2021': data_2018_2021,
             'debug': debug_data}
 
 args.data_root = os.path.abspath(args.data_root)
@@ -138,7 +138,7 @@ def listener(columns, save_as, q):
 
 
 def preprocess_data(data_root, dataset_name, image_size, augment_data=False):
-    serialized_dir = os.path.join(data_root, f'serialized-data/{dataset_name}-{image_size[0]}x{image_size[1]}')
+    serialized_dir = os.path.join(data_root, f'serialized-data_preprocessing/{dataset_name}-{image_size[0]}x{image_size[1]}')
 
     if augment_data:
         serialized_dir += '-augmented'
@@ -181,7 +181,7 @@ def preprocess_data(data_root, dataset_name, image_size, augment_data=False):
     print(tabulate(df_figure_paths.head(10), headers='keys', tablefmt='psql'))
     print(f'number of unique figures: {len(df_figure_paths)}\n')
 
-    # merge all user rating data files and save as csv
+    # merge all user rating data_preprocessing files and save as csv
     df_user_ratings = join_ground_truth_files(labels_root=os.path.join(data_root, 'UserRatingData/'))
     df_user_ratings = df_user_ratings[df_user_ratings['figure_id'].isin(figure_ids)]
     df_user_ratings = df_user_ratings[df_user_ratings['FILE'].notna()]  # drop nan files
@@ -190,10 +190,10 @@ def preprocess_data(data_root, dataset_name, image_size, augment_data=False):
 
     print(tabulate(df_user_ratings.head(10), headers='keys', tablefmt='psql'))
     print(f'\ntotal user rating rows without duplicates: {len(df_user_ratings)}')
-    print(f'saved merged user rating data as {user_rating_data_fp}')
+    print(f'saved merged user rating data_preprocessing as {user_rating_data_fp}')
 
     # loop through all images and create figure objects
-    print('\n* processing user rating data...')
+    print('\n* processing user rating data_preprocessing...')
     figures = {}
     for _, rating in tqdm(df_user_ratings.iterrows(), total=len(df_user_ratings)):
         figure_id = os.path.splitext(str(rating['FILE']))[0]

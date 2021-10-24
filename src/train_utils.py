@@ -1,59 +1,15 @@
-from datetime import datetime as dt
-from typing import *
-from filelock import FileLock
-import matplotlib.pyplot as plt
-import numpy as np
 import os
 import sys
-import torch
+import uuid
+
+import numpy as np
+from filelock import FileLock
+from matplotlib import pyplot as plt
+
+from src.utils import timestamp_dir
 
 
-def timestamp_human():
-    return dt.now().strftime('%d-%m-%Y %H:%M:%S')
-
-
-def round_item_scores(item_scores: torch.Tensor):
-    def assign_score(x):
-        if x < 0.25:
-            return 0
-        if 0.25 <= x < 0.75:
-            return 0.5
-        if 0.75 <= x < 1.5:
-            return 1
-        if 1.5 <= x:
-            return 2
-
-    rounded_scores = list(
-        [list(map(assign_score, list_of_scores)) for list_of_scores in torch.unbind(item_scores, dim=0)])
-    rounded_scores = torch.tensor(rounded_scores, dtype=torch.float)
-
-    return rounded_scores
-
-
-def assign_bins(scores: Union[torch.Tensor, np.ndarray, int],
-                bin_locations: List[Tuple[float, float]],
-                out_type=torch.float) -> Union[torch.Tensor, np.ndarray, int]:
-    def assign_bin(x) -> int:
-        for i in range(len(bin_locations)):
-            if bin_locations[i][0] <= x < bin_locations[i][1]:
-                return i
-
-        return len(bin_locations) - 1
-
-    if isinstance(scores, float):
-        return assign_bin(scores)
-
-    if isinstance(scores, np.ndarray):
-        binned = np.array(list(map(assign_bin, scores)))
-        return binned
-
-    binned = list(map(assign_bin, torch.unbind(scores, 0)))
-    binned = torch.unsqueeze(torch.tensor(binned, dtype=out_type), 1)
-
-    return binned
-
-
-def directory_setup(model_name, dataset, results_dir, args, resume: str = ''):
+def directory_setup(model_name, dataset, results_dir, args, train_id: int = None, resume: str = ''):
     """
     setup dir for training results and model checkpoints
     """
@@ -64,27 +20,39 @@ def directory_setup(model_name, dataset, results_dir, args, resume: str = ''):
             raise NotADirectoryError(f'no checkpoints in {checkpoints_dir}')
         return resume, checkpoints_dir
 
-    timestamp = dt.now().strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]
-    hyperparam_str = f'epochs-{args.epochs}_bs-{args.batch_size}_lr-{args.lr}_gamma-{args.gamma}_wd-{args.wd}'
-    hyperparam_str += f'_dropout-{args.dropout}_bn-momentum-{args.bn_momentum}'
+    if train_id is None:
+        train_id = 'id-' + str(uuid.uuid4())
+        print(f'==> generated random uuid {train_id}')
+
+    results_dir = os.path.join(results_dir, dataset, train_id, model_name)
 
     try:
-        hyperparam_str += f'_beta={args.beta}'
-    except AttributeError:
-        pass
-
-    hyperparam_str = hyperparam_str.replace('[', '').replace(']', '').replace(' ', '_').replace(',', '')
-    results_dir = os.path.join(results_dir, dataset, model_name, hyperparam_str, timestamp)
-
-    if not os.path.exists(results_dir):
         os.makedirs(results_dir)
+    except OSError:
+        raise OSError(f'results dir already exists! {results_dir}')
 
     # create directory to save trained model
     checkpoints_dir = os.path.join(results_dir, "checkpoints/")
     if not os.path.exists(checkpoints_dir):
         os.makedirs(checkpoints_dir)
 
+    make_hyperparam_file(results_dir, args)
+
     return results_dir, checkpoints_dir
+
+
+def make_hyperparam_file(d, args):
+    timestamp = timestamp_dir()
+    hyperparam_str = f'epochs-{args.epochs}_bs-{args.batch_size}_lr-{args.lr}_gamma-{args.gamma}_wd-{args.wd}'
+    hyperparam_str += f'_dropout-{str(args.dropout).replace(" ", "")}_bn-momentum-{args.bn_momentum}'
+
+    try:
+        hyperparam_str += f'_beta-{args.beta}'
+    except AttributeError:
+        pass
+
+    hyperparam_str = hyperparam_str.replace('[', '').replace(']', '')
+    open(os.path.join(d, hyperparam_str + f'_{timestamp}'), 'w').close()
 
 
 def matplotlib_imshow(img, one_channel=False):
@@ -97,15 +65,10 @@ def matplotlib_imshow(img, one_channel=False):
         plt.imshow(np.transpose(npimg, (1, 2, 0)))
 
 
-def images_to_scores(model, images):
-    outputs = model(images.float())
-    scores = np.squeeze(outputs.cpu().detach().numpy()[:, -1])  # total score is last
-    return scores
-
-
-def plot_scores_preds(model, images, labels, use_cuda):
+def plot_scores_preds(model, images, labels):
     labels = np.squeeze(labels.cpu().detach().numpy()[:, -1])
-    pred_scores = images_to_scores(model, images.cuda() if use_cuda else images)
+    outputs = model(images.float())
+    pred_scores = np.squeeze(outputs.cpu().detach().numpy()[:, -1])  # total score is last
 
     # move to cpu
     images = images.cpu()
@@ -237,7 +200,7 @@ def store_stats(train_loss, val_loss, test_loss, train_score_mse, val_score_mse,
                 f.write(','.join(cols) + '\n')
 
         with open(args.paramtuning_file, 'a') as f:
-            # write data
+            # write data_preprocessing
             data = [v for _, v in sorted(args.__dict__.items())]
             data += [train_loss, val_loss, test_loss, train_score_mse, val_score_mse, test_score_mse, train_bin_mse,
                      val_bin_mse, test_bin_mse, best_epoch]

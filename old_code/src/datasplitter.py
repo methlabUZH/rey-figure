@@ -8,8 +8,8 @@ DEBUG=True
 RANDOM_STATE=123
 
 RAW = [
-    {'name': "Mexico", 'images' : "../data/raw/Mexico_NA/", 'labels': "../data/raw/mexico_NA.csv"},
-    {'name': "Colombia", 'images': "../data/raw/Colombia_NA/", 'labels': "../data/raw/colombia_NA.csv"},
+    {'name': "Mexico", 'images' : "../data_preprocessing/raw/Mexico_NA/", 'labels': "../data_preprocessing/raw/mexico_NA.csv"},
+    {'name': "Colombia", 'images': "../data_preprocessing/raw/Colombia_NA/", 'labels': "../data_preprocessing/raw/colombia_NA.csv"},
 ]
 def is_number(s):
     try:

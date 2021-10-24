@@ -1,9 +1,9 @@
 """
 this code is adapted from:
     https://raw.githubusercontent.com/lukemelas/EfficientNet-PyTorch/7e8b0d312162f335785fb5dcfa1df29a75a1783a/
-        efficientnet_pytorch/utils.py
+        efficientnet_pytorch/dataloaders.py
 
-    utils.py - Helper functions for building the model and for loading model parameters.
+    dataloaders.py - Helper functions for building the model and for loading model parameters.
    These helper functions are built to mirror those in the official TensorFlow implementation.
 """
 
@@ -15,7 +15,7 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
-# from torch.utils import model_zoo
+# from torch.dataloaders import model_zoo
 
 # Author: lukemelas (github username)
 # Github repo: https://github.com/lukemelas/EfficientNet-PyTorch

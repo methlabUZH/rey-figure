@@ -15,7 +15,7 @@ from rocf_scoring.data_preprocessing.preprocess import preprocess_basic, cutdown
 
 VISUALIZE_AUGMENTATION = False
 if VISUALIZE_AUGMENTATION:
-    create_directory("../data/visualized/augment", empty_dir=True)
+    create_directory("../data_preprocessing/visualized/augment", empty_dir=True)
 
 def elastic_transform(image, alpha=0, sigma=0, random_state=None):
     """Elastic deformation of images as described in [Simard2003]_.
@@ -74,7 +74,7 @@ def skew(image, max_factor):
 
 
 def augment(image, alpha=None, sigma=5, max_factor=None, degrees=None):
-    """Augment: function to augment input data using various procedures
+    """Augment: function to augment input data_preprocessing using various procedures
 
     :param image: image (array-type)
     :param alpha: parameter to set intensity of elastic deformation (no deformation if None)
@@ -104,7 +104,7 @@ def augment(image, alpha=None, sigma=5, max_factor=None, degrees=None):
 
     if VISUALIZE_AUGMENTATION:
         blurred = filters.gaussian(orig, 0.8, multichannel=False)
-        imgs_to_file([orig,step_elastic,step_skew,step_rotate,step_cutdown,image,np.zeros((116,10)),blurred],"../data/visualized/augment/"+str(time.time())+".jpg")
+        imgs_to_file([orig,step_elastic,step_skew,step_rotate,step_cutdown,image,np.zeros((116,10)),blurred],"../data_preprocessing/visualized/augment/"+str(time.time())+".jpg")
 
     normalized = normalization(image)
 
@@ -112,7 +112,7 @@ def augment(image, alpha=None, sigma=5, max_factor=None, degrees=None):
 
 def simulate_augment(image):
     """
-    augmented data is different from original, e.g. a bit blurred
+    augmented data_preprocessing is different from original, e.g. a bit blurred
     this function tries to approximate that without actually doing any transformations
     """
     #

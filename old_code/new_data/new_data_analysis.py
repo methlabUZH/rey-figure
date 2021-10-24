@@ -388,7 +388,7 @@ def std_scores(figures):
 
 
 def write_data_to_dataloader_format(data):
-    # write data to current dataloader format using median score
+    # write data_preprocessing to current dataloader format using median score
     filenames = [fig.filename for fig in data.getAllFigures()]
     label = [fig.getMedianScore() for fig in data.getAllFigures()]
     with open('dlf', mode='w', newline='') as csv_file:
@@ -698,7 +698,7 @@ def std_of_scores_vs_label(figures):
     def f(x, A, B):  # this is your 'straight line' y=f(x)
         return A * x + B
 
-    A, B = curve_fit(f, x, y)[0]  # your data x, y to fit
+    A, B = curve_fit(f, x, y)[0]  # your data_preprocessing x, y to fit
 
     plt.plot(x, y, ':')  # true values
     plt.plot(x, y_smooth, 'r')  # smoothed line (like tensorboard)
@@ -746,7 +746,7 @@ def difference_median_score(figures):
     def f(x, A, B):  # this is your 'straight line' y=f(x)
         return A * x + B
 
-    A, B = curve_fit(f, x, y)[0]  # your data x, y to fit
+    A, B = curve_fit(f, x, y)[0]  # your data_preprocessing x, y to fit
 
     plt.plot(x, y, ':')  # true values
     plt.plot(x, y_smooth, 'r')  # smoothed line (like tensorboard)
@@ -1081,9 +1081,9 @@ def std_adults_vs_children(figures):
     plt.show()
 
 
-# assessments = data.getAllAssessments()
-# figures = data.getAllFigures()
-# valid_assessments = data.getAllValidAssessments()
+# assessments = data_preprocessing.getAllAssessments()
+# figures = data_preprocessing.getAllFigures()
+# valid_assessments = data_preprocessing.getAllValidAssessments()
 
 # assessments_per_figure(figures)
 # score_distribution(valid_assessments)
@@ -1092,29 +1092,29 @@ def std_adults_vs_children(figures):
 # median_scores(figures)
 # std_scores(figures)
 # find_outliers(figures)
-# assess_quality_of_incomplete_assessments(data)
-# assess_quality_of_zero_predictions(data)
+# assess_quality_of_incomplete_assessments(data_preprocessing)
+# assess_quality_of_zero_predictions(data_preprocessing)
 # std_of_scores_vs_label(figures)
 
 # difference_median_score(figures)
 
-# analyze_persons(data)
-# new_data = delete_bad_persons(data)
+# analyze_persons(data_preprocessing)
+# new_data = delete_bad_persons(data_preprocessing)
 
 # score_distribution_adults_vs_children(figures)
 # std_adults_vs_children(figures)
 
-# write_data_to_dataloader_format(data)
+# write_data_to_dataloader_format(data_preprocessing)
 
-# items = data.getAllItems()
+# items = data_preprocessing.getAllItems()
 # std_part_scores(items)
 
-# human_loss_mse(data)
-# human_loss_binning(data)
+# human_loss_mse(data_preprocessing)
+# human_loss_binning(data_preprocessing)
 
-# write_human_MSE(data)
+# write_human_MSE(data_preprocessing)
 
-# distribution_of_human_mse(data, 5.61)
-# distribution_of_human_bin_mse(data, 2.6250550072979975)
-# write_human_binMSE(data)
+# distribution_of_human_mse(data_preprocessing, 5.61)
+# distribution_of_human_bin_mse(data_preprocessing, 2.6250550072979975)
+# write_human_binMSE(data_preprocessing)
 distribution_of_human_accurarcy(data, 0.3549592)

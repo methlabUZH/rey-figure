@@ -8,7 +8,7 @@ import pandas as pd
 from tqdm import tqdm
 
 """
-this script is used to serialize simulated data. It is expected that the directory with simulated data is in the data 
+this script is used to serialize simulated data_preprocessing. It is expected that the directory with simulated data_preprocessing is in the data_preprocessing 
 root (see structure in prepare_data.py) and has the following contents: 
 
 ├──simulated
@@ -24,7 +24,7 @@ root (see structure in prepare_data.py) and has the following contents:
 
 # setup arg parser
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, required=False, default='../data')
+parser.add_argument('--data_preprocessing-root', type=str, required=False, default='../data_preprocessing')
 parser.add_argument('--image-size', nargs='+', default=(280, 200), help='height and width', type=int)
 args = parser.parse_args()
 
@@ -41,7 +41,7 @@ LABEL_DF_COLUMNS = ['image_file', 'image_file_serialized', 'total_score'] + [str
 def main(data_root, image_size):
     data_root = os.path.abspath(data_root)
     simulated_data_dir = os.path.join(data_root, 'simulated/')
-    serialized_dir = os.path.join(data_root, f'serialized-data/simulated')
+    serialized_dir = os.path.join(data_root, f'serialized-data_preprocessing/simulated')
 
     # mirror dir structure in serialized dir
     for data_dir, _ in DATA_DIRS_AND_LABELS:

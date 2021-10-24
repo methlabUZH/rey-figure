@@ -1,17 +1,17 @@
 import argparse
-from datetime import datetime
 import numpy as np
 import os
 import pandas as pd
 import random
 import sys
 from tabulate import tabulate
-from typing import Tuple, List
 
 import torch
 
-from src.utils.eval_item_classification_dataloader import get_eval_item_classiciation_dataloader
-from src.utils.helpers import timestamp_human, Logger
+from src.dataloaders.dataloader_item_classification import get_item_classification_dataloader_eval
+from src.inference.model_initialization import get_classifiers_checkpoints
+from src.train_utils import Logger
+from src.utils import timestamp_human
 from src.models import get_reyclassifier
 
 DEBUG = False
@@ -21,7 +21,7 @@ default_results_dir = '/Users/maurice/phd/src/rey-figure/results/classifiers/sca
 # setup arg parser
 parser = argparse.ArgumentParser()
 # setup
-parser.add_argument('--data-root', type=str, default=default_data_dir, required=False)
+parser.add_argument('--data_preprocessing-root', type=str, default=default_data_dir, required=False)
 parser.add_argument('--results-dir', type=str, default=default_results_dir, required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--batch-size', default=128, type=int)
@@ -52,12 +52,12 @@ def main():
     print('==> debugging on!' if DEBUG else '')
 
     # save terminal output to file
-    out_file = os.path.join(args.results_dir, 'eval_classifier.txt' if not DEBUG else 'debug_eval_classifier.txt')
+    out_file = os.path.join(args.results_dir, 'eval_classifiers.txt' if not DEBUG else 'debug_eval_classifiers.txt')
     print(f'==> results will be saved to {out_file}')
     sys.stdout = Logger(print_fp=out_file)
 
-    # data
-    print(f'==> data from {args.data_root}')
+    # data_preprocessing
+    print(f'==> data_preprocessing from {args.data_root}')
     labels_csv = os.path.join(args.data_root, 'test_labels.csv')
     labels = pd.read_csv(labels_csv)
 
@@ -65,7 +65,7 @@ def main():
     model = get_reyclassifier(dropout=(0., 0.), norm_layer_type=args.norm_layer)
 
     # get checkpoint files
-    items_and_checkpoint_files = get_checkpoints(args.results_dir)
+    items_and_checkpoint_files = get_classifiers_checkpoints(args.results_dir)
     avail_items = np.array(items_and_checkpoint_files)[:, 0].tolist()
 
     if use_cuda:
@@ -76,9 +76,9 @@ def main():
     for item, ckpt in items_and_checkpoint_files:
         print(f'[{timestamp_human()}] start eval item {item}, ckpt: {ckpt}')
 
-        dataloader = get_eval_item_classiciation_dataloader(item, args.data_root, labels_df=labels,
-                                                            batch_size=args.batch_size, num_workers=args.workers,
-                                                            max_samples=12 if DEBUG else -1)
+        dataloader = get_item_classification_dataloader_eval(item, args.data_root, labels_df=labels,
+                                                             batch_size=args.batch_size, num_workers=args.workers,
+                                                             max_samples=12 if DEBUG else -1)
         item_predictions = eval_model(model, dataloader, ckpt, item)
 
         if item == 1:
@@ -162,31 +162,6 @@ def eval_model(model, dataloader, checkpoint_fp, item):
     results_df[columns[3:]] = results_df[columns[3:]].astype(int)
 
     return results_df
-
-
-def get_checkpoints(results_root, max_ckpts=-1) -> List[Tuple[int, str]]:
-    checkpoints = []
-
-    for i in range(1, 19):
-        classifier_root = os.path.join(results_root, f'aux_classifier_item_{i}')
-
-        if not os.path.exists(classifier_root):
-            print(f'no checkpoints found for item {i}!')
-            continue
-
-        hyperparam_dir = os.listdir(classifier_root)[0]
-        timestamps = os.listdir(os.path.join(classifier_root, hyperparam_dir))
-        max_timestamp = max([datetime.strptime(ts, '%Y-%m-%d_%H-%M-%S.%f') for ts in timestamps])
-        max_timestamp = max_timestamp.strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]
-        checkpoint = os.path.join(classifier_root, hyperparam_dir, max_timestamp, 'checkpoints/model_best.pth.tar')
-
-        if not os.path.isfile(checkpoint):
-            print(f'no checkpoints found for item {i}!')
-            continue
-
-        checkpoints.append((i, checkpoint))
-
-    return checkpoints if max_ckpts == -1 else checkpoints[:max_ckpts]
 
 
 if __name__ == '__main__':

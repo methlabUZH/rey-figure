@@ -50,7 +50,7 @@ def compute_confusion_matrix(predictions_csv):
     num_pos = np.sum(ground_truth_values, axis=0)
     num_neg = np.sum(1 - ground_truth_values, axis=0)
 
-    # compote sensitivity, specificity and g mean
+    # compute sensitivity, specificity and g mean
     sensitivity_scores = true_positives / (true_positives + false_negatives)
     specificity_scores = true_negatives / (true_negatives + false_positives)
     g_mean_scores = np.sqrt(specificity_scores * sensitivity_scores)

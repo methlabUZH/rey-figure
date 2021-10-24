@@ -16,7 +16,7 @@ def restore(pathname):
 
 def getTestImages(foldername):
     path = DATA_DIR + foldername + '/'
-    filenames = np.genfromtxt('../data/' + foldername + '.csv', dtype='|U64')
+    filenames = np.genfromtxt('../data_preprocessing/' + foldername + '.csv', dtype='|U64')
     return path, filenames
 
 

@@ -11,10 +11,10 @@ class ROCFDataset(Dataset):
     def __init__(self, figures, labels, files, csv_preprocessed=None, csv_raw=None):
         """
         Args:
-            data (): Path to the csv file with annotations.
-            csv_preprocessed (string, optional): csv file containing information about preprocessed data
+            data_preprocessing (): Path to the csv file with annotations.
+            csv_preprocessed (string, optional): csv file containing information about preprocessed data_preprocessing
                                                  (paths, labels, ...)
-            csv_raw (string, optional): csv file containing information about raw data (paths, labels, ...)
+            csv_raw (string, optional): csv file containing information about raw data_preprocessing (paths, labels, ...)
         """
         self.figures = figures
         self.labels = labels
@@ -63,6 +63,6 @@ if __name__=="__main__":
         _labels = torch.stack(_labels)
         _labels = torch.transpose(_labels, 0, 1)
 
-        print("data: ", samples.size())
+        print("data_preprocessing: ", samples.size())
         print("labels: ", _labels)
         print("one hot: ", one_hot_labels)

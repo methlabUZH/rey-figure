@@ -1,9 +1,7 @@
 import os
 
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = os.path.join(ROOT_DIR, 'data/')
 RESULTS_DIR = os.path.join(ROOT_DIR, 'results/')
-# LABEL_FILE = os.path.join(DATA_DIR, 'rocf_scores.csv')
 
 # hyperparam configs
 RESNET18_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet18-hyperparams.json')
@@ -14,6 +12,7 @@ EFFICIENTNET_B0 = os.path.join(ROOT_DIR, 'old_code/configs/efficientnet-b0.json'
 EFFICIENTNET_L2 = os.path.join(ROOT_DIR, 'old_code/configs/efficientnet-l2.json')
 
 # LABEL_FORMATS = ['items', 'items-median-scores', 'items-sum-scores']
+N_ITEMS = 18
 DEFAULT_CANVAS_SIZE = (116, 150)
 AUGM_CANVAS_SIZE = (464, 600)
 DEFAULT_SEED = 762

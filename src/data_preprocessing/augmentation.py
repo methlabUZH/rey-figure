@@ -5,9 +5,8 @@ from imutils import rotate_bound
 from skimage import transform
 from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
-from skimage import filters
 
-from src.data.helpers import cutdown, resize_padded
+from src.data_preprocessing.helpers import cutdown, resize_padded
 
 
 @dataclass
@@ -80,15 +79,6 @@ def augment_image(image, alpha_elastic_transform, sigma_elastic_transform, max_f
     image = elastic_transform(image, alpha=alpha_elastic_transform, sigma=sigma_elastic_transform)
     image = skew(image, max_factor=max_factor_skew)
     image = rotate(image, max_angle=max_angle_rotate)
-    thresh = np.percentile(image, 4)
-    image = cutdown(image, thresh)
-    image = resize_padded(image, target_size)
-
-    return image
-
-
-def simulate_augment_image(image, target_size, gaussian_sigma=0.8):
-    image = filters.gaussian(image, gaussian_sigma, multichannel=False)
     thresh = np.percentile(image, 4)
     image = cutdown(image, thresh)
     image = resize_padded(image, target_size)

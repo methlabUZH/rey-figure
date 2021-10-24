@@ -138,7 +138,7 @@ class ReyRegressor(nn.Module):
 
 
 def get_reyregressor(n_outputs: int,
-                     dropout: Tuple[float, float],
+                     dropout: Tuple[float, float] = (0.0, 0.0),
                      bn_momentum: float = 0.1,
                      norm_layer_type: str = 'batch_norm'):
     if norm_layer_type == 'batch_norm':

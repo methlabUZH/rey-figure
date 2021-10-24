@@ -3,8 +3,8 @@ import os
 ROOT_DIR = '/Users/maurice/phd/src/psychology/main'
 
 # Data
-RAW_DATA_DIR = '/Users/maurice/phd/src/data/psychology/raw/'
-DATA_DIR = os.path.join(ROOT_DIR, 'data/')
+RAW_DATA_DIR = '/Users/maurice/phd/src/data_preprocessing/psychology/raw/'
+DATA_DIR = os.path.join(ROOT_DIR, 'data_preprocessing/')
 FILENAME_LABELS = 'Data07112018.csv'
 LABEL_FORMAT = 'one-per-item'
 

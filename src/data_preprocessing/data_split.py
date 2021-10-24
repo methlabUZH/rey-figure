@@ -18,7 +18,7 @@
 #     files = os.listdir(source_folder)
 #     num_files = len(files)
 #
-#     # select 20% test data randomly
+#     # select 20% test data_preprocessing randomly
 #     test_files = random.sample(files, num_files // 5)
 #     train_files = [f for f in files if f not in test_files]
 #

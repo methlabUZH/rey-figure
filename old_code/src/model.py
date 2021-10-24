@@ -1,3 +1,4 @@
+import src.train_utils
 from helpers import *
 
 import tensorflow as tf
@@ -208,14 +209,14 @@ class CNN:
                 labels_bin = tf.argmax(weighted_labels, axis=1)
 
                 loss = tf.losses.mean_squared_error(self.labels, prediction)
-                accuracy, _ = tf.metrics.accuracy(labels_bin, prediction_bin)
+                accuracy, _ = src.train_utils.accuracy(labels_bin, prediction_bin)
             else:
                 prediction = tf.layers.dense(dense_dropped, len(BIN_LOCATIONS), activation=tf.nn.leaky_relu,
                                              name="prediction")
                 prediction_bin = tf.argmax(prediction, axis=1)
                 labels_bin = tf.argmax(self.labels, axis=1)
                 loss = tf.losses.softmax_cross_entropy(self.labels, prediction)
-                accuracy, _ = tf.metrics.accuracy(labels_bin, prediction_bin)
+                accuracy, _ = src.train_utils.accuracy(labels_bin, prediction_bin)
 
         # collect summaries in main model
         main_model_summaries = tf.summary.merge_all()
@@ -309,7 +310,7 @@ class CNN:
             curr_batch = X[curr_batch_ids]
 
             if DATA_AUGMENTATION and not TEST:
-                # use if data augmentation
+                # use if data_preprocessing augmentation
                 int_batch = np.empty([curr_batch.shape[0], 116, 150])
                 for i in range(curr_batch.shape[0]):
                     int_batch[i, :, :] = curr_batch[i, 0, :, :]
@@ -343,7 +344,7 @@ class CNN:
             curr_labels = y[curr_batch_ids]
 
             if DATA_AUGMENTATION:
-                # data augmentation
+                # data_preprocessing augmentation
                 int_batch = np.empty([curr_data.shape[0], 116, 150])
                 for i in range(curr_data.shape[0]):
                     int_batch[i, :, :] = curr_data[i, randint(0, 9), :, :]
