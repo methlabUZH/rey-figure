@@ -81,7 +81,7 @@ def generate_images_and_tables(predictions_dict, save_dir) -> str:
         ground_truth_binary = np.zeros_like(preds_df['true_scores'].values)
         ground_truth_binary[preds_df['true_scores'].values > 0] = 1.0
         classifier_correct = np.sum(preds_df['classifier'].values == ground_truth_binary)
-        hybrid_score = (preds_df['regressor'][:-1] * preds_df['classifier'][:-1]).sum()
+        hybrid_score = (preds_df['regressor'] * preds_df['classifier']).sum()
         regressor_score = preds_df['regressor'].sum()
         true_score = preds_df['true_scores'].sum()
         preds_df.loc['total score', :] = [classifier_correct, regressor_score, true_score]

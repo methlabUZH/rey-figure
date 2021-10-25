@@ -28,7 +28,7 @@ default_data_dir = '/Users/maurice/phd/src/rey-figure/data/serialized-data/scans
 parser = argparse.ArgumentParser()
 
 # setup
-parser.add_argument('--data_preprocessing-root', type=str, default=default_data_dir, required=False)
+parser.add_argument('--data-root', type=str, default=default_data_dir, required=False)
 parser.add_argument('--results-dir', type=str, default=RESULTS_DIR, required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--val-fraction', default=0.2, type=float)
@@ -73,7 +73,7 @@ MODEL_ARCH = 'rey-regressor'
 
 
 def main():
-    # setup dirs for trained model and log data_preprocessing
+    # setup dirs for trained model and log data
     dataset_name = os.path.split(os.path.normpath(args.data_root))[-1]
     results_dir, checkpoints_dir = directory_setup(model_name=MODEL_ARCH,
                                                    dataset=dataset_name,
@@ -311,7 +311,7 @@ def eval_model(dataloader, model, criterion, summary_writer, epoch):
 
 
 def eval_test(model, criterion, data_root, checkpoint):
-    # data_preprocessing
+    # data
     labels_csv = os.path.join(data_root, 'test_labels.csv')
     labels = pd.read_csv(labels_csv)
     dataloader = get_regression_dataloader_train(args.data_root, labels_df=labels, batch_size=args.batch_size,
