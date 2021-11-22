@@ -15,14 +15,12 @@ from src.utils import timestamp_human
 from src.models import get_reyclassifier
 
 DEBUG = False
-default_data_dir = '/Users/maurice/phd/src/rey-figure/data/serialized-data/scans-2018-116x150'
-default_results_dir = '/Users/maurice/phd/src/rey-figure/results/classifiers/scans-2018-116x150-augmented'
 
 # setup arg parser
 parser = argparse.ArgumentParser()
 # setup
-parser.add_argument('--data_preprocessing-root', type=str, default=default_data_dir, required=False)
-parser.add_argument('--results-dir', type=str, default=default_results_dir, required=False)
+parser.add_argument('--data-root', type=str, default=None)
+parser.add_argument('--results-dir', type=str, default=None)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--batch-size', default=128, type=int)
 
@@ -56,8 +54,8 @@ def main():
     print(f'==> results will be saved to {out_file}')
     sys.stdout = Logger(print_fp=out_file)
 
-    # data_preprocessing
-    print(f'==> data_preprocessing from {args.data_root}')
+    # data
+    print(f'==> data from {args.data_root}')
     labels_csv = os.path.join(args.data_root, 'test_labels.csv')
     labels = pd.read_csv(labels_csv)
 

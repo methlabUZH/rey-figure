@@ -6,7 +6,7 @@ import pandas as pd
 from tabulate import tabulate
 from tqdm import tqdm
 
-from src.inference.model_initialization import get_classifiers_checkpoints2, init_regressor, init_classifier
+from src.inference.model_initialization import get_classifiers_checkpoints, init_regressor, init_classifier
 from src.inference.predict import do_score_image
 from constants import RESULTS_DIR, N_ITEMS
 from analyze.failure_success_cases import get_fail_success_instances
@@ -150,7 +150,7 @@ def generate_images_and_tables(figures_and_predictions, save_dir) -> str:
 
 def main():
     reg_ckpt_fp = os.path.join(REGRESSOR_DIR, 'checkpoints/model_best.pth.tar')
-    items_and_cls_ckpt_files = get_classifiers_checkpoints2(CLASSIFIERS_DIR)
+    items_and_cls_ckpt_files = get_classifiers_checkpoints(CLASSIFIERS_DIR)
 
     # init regressor
     regressor = init_regressor(reg_ckpt_fp)

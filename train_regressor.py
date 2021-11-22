@@ -36,7 +36,7 @@ parser.add_argument('--eval-test', action='store_true')
 parser.add_argument('--id', default=None, type=str)
 
 # architecture
-parser.add_argument('--image-size', nargs='+', type=int, default=[224, 224])
+parser.add_argument('--image-size', nargs='+', type=int, default=[116, 150])
 parser.add_argument('--norm-layer', type=str, default=None, choices=[None, 'batch_norm', 'group_norm'])
 
 # optimization

@@ -1,5 +1,4 @@
 import os
-from datetime import datetime
 from typing import List, Tuple
 
 import torch
@@ -8,32 +7,7 @@ from constants import N_ITEMS
 from src.models import get_reyregressor, get_reyclassifier
 
 
-def get_classifiers_checkpoints(results_root, max_ckpts=-1) -> List[Tuple[int, str]]:
-    checkpoints = []
-
-    for i in range(1, N_ITEMS + 1):
-        classifier_root = os.path.join(results_root, f'aux_classifier_item_{i}')
-
-        if not os.path.exists(classifier_root):
-            print(f'no checkpoints found for item {i}!')
-            continue
-
-        hyperparam_dir = os.listdir(classifier_root)[0]
-        timestamps = os.listdir(os.path.join(classifier_root, hyperparam_dir))
-        max_timestamp = max([datetime.strptime(ts, '%Y-%m-%d_%H-%M-%S.%f') for ts in timestamps])
-        max_timestamp = max_timestamp.strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]
-        checkpoint = os.path.join(classifier_root, hyperparam_dir, max_timestamp, 'checkpoints/model_best.pth.tar')
-
-        if not os.path.isfile(checkpoint):
-            print(f'no checkpoints found for item {i}!')
-            continue
-
-        checkpoints.append((i, checkpoint))
-
-    return checkpoints if max_ckpts == -1 else checkpoints[:max_ckpts]
-
-
-def get_classifiers_checkpoints2(trained_classifiers_root, max_ckpts=-1) -> List[Tuple[int, str]]:
+def get_classifiers_checkpoints(trained_classifiers_root, max_ckpts=-1) -> List[Tuple[int, str]]:
     checkpoints = []
 
     for i in range(1, N_ITEMS + 1):
@@ -75,3 +49,27 @@ def init_classifier(ckpt_fp: str, norm_layer: str) -> torch.nn.Module:
     classifier = init_model_weights(classifier, ckpt_fp)
     classifier.eval()
     return classifier
+
+# def get_classifiers_checkpoints_OLD(results_root, max_ckpts=-1) -> List[Tuple[int, str]]:
+#     checkpoints = []
+#
+#     for i in range(1, N_ITEMS + 1):
+#         classifier_root = os.path.join(results_root, f'item-{i}')
+#
+#         if not os.path.exists(classifier_root):
+#             print(f'no checkpoints found for item {i}!')
+#             continue
+#
+#         hyperparam_dir = os.listdir(classifier_root)[0]
+#         timestamps = os.listdir(os.path.join(classifier_root, hyperparam_dir))
+#         max_timestamp = max([datetime.strptime(ts, '%Y-%m-%d_%H-%M-%S.%f') for ts in timestamps])
+#         max_timestamp = max_timestamp.strftime("%Y-%m-%d_%H-%M-%S.%f")[:-3]
+#         checkpoint = os.path.join(classifier_root, hyperparam_dir, max_timestamp, 'checkpoints/model_best.pth.tar')
+#
+#         if not os.path.isfile(checkpoint):
+#             print(f'no checkpoints found for item {i}!')
+#             continue
+#
+#         checkpoints.append((i, checkpoint))
+#
+#     return checkpoints if max_ckpts == -1 else checkpoints[:max_ckpts]

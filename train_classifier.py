@@ -37,7 +37,7 @@ parser.add_argument('--id', default=None, type=str)
 
 # architecture
 parser.add_argument('--image-size', nargs='+', type=int, default=[116, 150])
-parser.add_argument('--norm-layer', type=str, default=None, choices=[None, 'batch_norm', 'group_norm'])
+parser.add_argument('--norm-layer', type=str, default='batch_norm', choices=[None, 'batch_norm', 'group_norm'])
 
 # optimization
 parser.add_argument('--epochs', default=120, type=int, help='number of total epochs to run')

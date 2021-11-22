@@ -1,17 +1,14 @@
 import argparse
-from datetime import datetime
 import numpy as np
 import os
 import pandas as pd
 import random
 import sys
 from tabulate import tabulate
-from typing import Tuple, List
-from tqdm import tqdm
-
+from typing import Tuple
 import torch
 
-from constants import BIN_LOCATIONS1, BIN_LOCATIONS2, N_ITEMS, ROOT_DIR
+from constants import BIN_LOCATIONS1, BIN_LOCATIONS2, N_ITEMS
 from src.models import get_reyclassifier, get_reyregressor
 from src.dataloaders.dataloader_item_classification import get_item_classification_dataloader_eval
 from src.dataloaders.dataloader_regression import get_regression_dataloader_eval
@@ -21,17 +18,14 @@ from src.inference.utils import assign_bins
 from src.inference.model_initialization import get_classifiers_checkpoints
 
 DEBUG = False
-root_dir = '/Users/maurice/phd/src/rey-figure/'
-default_data_dir = root_dir + 'data_preprocessing/serialized-data_preprocessing/scans-2018-116x150'
-default_reg_results = root_dir + 'results/sum-score/scans-2018-116x150-augmented/deep-cnn/epochs=500_bs=64_lr=0.0001_gamma=1.0_wd=0.0_dropout=[0.3, 0.5]_bn-momentum=0.01_beta=0.1/2021-09-27_21-18-50.833'
-default_cls_results = root_dir + 'results/scans-2018-116x150-augmented'
 
-# setup arg parser
+# arg parser
 parser = argparse.ArgumentParser()
+
 # setup
-parser.add_argument('--data_preprocessing-root', type=str, default=default_data_dir, required=False)
-parser.add_argument('--reg-results', type=str, default=default_reg_results, required=False)
-parser.add_argument('--cls-results', type=str, default=default_cls_results, required=False)
+parser.add_argument('--data-root', type=str, default=None)
+parser.add_argument('--results-dir', type=str, default=None,
+                    help='dir containing item-classifier and rey-regressor subdir')
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--batch-size', default=128, type=int)
 
@@ -63,23 +57,23 @@ def main():
         print('==> debugging on!')
 
     # weights for regressor
-    reg_ckpt_fp = os.path.join(args.reg_results, 'checkpoints/model_best.pth.tar')
+    reg_ckpt_fp = os.path.join(args.results_dir, 'rey-regressor/checkpoints/model_best.pth.tar')
     assert os.path.isfile(reg_ckpt_fp), 'no checkpoint for regressor found!'
 
     # weights for classifiers
-    items_and_cls_ckpt_files = get_classifiers_checkpoints(args.cls_results)
+    items_and_cls_ckpt_files = get_classifiers_checkpoints(os.path.join(args.results_dir, 'item-classifier'))
     avail_items = np.array(items_and_cls_ckpt_files)[:, 0].tolist()
     assert len(avail_items) == 18, 'classifier checkpoints missing!'
 
     # save terminal output to file
-    eval_dir = os.path.join(ROOT_DIR, 'results/hybrid', timestamp_dir())
+    eval_dir = os.path.join(args.results_dir, 'eval-hybrid/', timestamp_dir())
     os.makedirs(eval_dir)
     eval_file = os.path.join(eval_dir, 'eval_hybrid.txt' if not DEBUG else 'debug_eval_hybrid.txt')
     print(f'==> results will be saved to {eval_dir}')
     sys.stdout = Logger(print_fp=eval_file)
 
-    # data_preprocessing
-    print(f'==> data_preprocessing from {args.data_root}')
+    # data
+    print(f'==> data from {args.data_root}')
     labels_csv = os.path.join(args.data_root, 'test_labels.csv')
     labels = pd.read_csv(labels_csv)
     dataloader = get_regression_dataloader_eval(args.data_root, labels_df=labels, batch_size=args.batch_size,
@@ -149,7 +143,8 @@ def main():
     # compute metrics for individual models
     classifiers_metrics = process_classifier_predictions(classifiers_predictions, verbose=True)
     reg_total_scores_metrics, reg_items_metrics = process_regression_predictions(regressor_predictions, verbose=True)
-    hybrid_score_metrics, hybrid_items_metrics = process_regression_predictions(hybrid_predictions, verbose=True)
+    hybrid_score_metrics, hybrid_items_metrics = process_regression_predictions(hybrid_predictions, verbose=True,
+                                                                                title='hybrid metrics')
 
     # save metrics as csvs
     classifiers_metrics.to_csv(os.path.join(eval_dir, 'classifiers_metrics.csv'))
@@ -191,7 +186,9 @@ def process_classifier_predictions(predictions: pd.DataFrame, verbose=False):
     return scores
 
 
-def process_regression_predictions(preds_df: pd.DataFrame, verbose=False) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def process_regression_predictions(preds_df: pd.DataFrame,
+                                   verbose=False,
+                                   title='regressor metrics') -> Tuple[pd.DataFrame, pd.DataFrame]:
     pred_item_cols = [f'pred_score_item_{i}' for i in range(1, N_ITEMS + 1)]
     ground_truth_item_cols = [f'true_score_item_{i}' for i in range(1, N_ITEMS + 1)]
 
@@ -238,7 +235,7 @@ def process_regression_predictions(preds_df: pd.DataFrame, verbose=False) -> Tup
     item_scores_metrics = pd.concat([item_scores_metrics, classification_scores])
 
     if verbose:
-        print('\n// regressor metrics //\n')
+        print('\n// ' + title + ' //\n')
         print(tabulate(item_scores_metrics, headers='keys', tablefmt='presto', floatfmt=".3f"))
         print(tabulate(total_score_metrics, headers='keys', tablefmt='presto', floatfmt=".3f"))
 

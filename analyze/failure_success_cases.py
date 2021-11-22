@@ -7,7 +7,6 @@ import pandas as pd
 from constants import RESULTS_DIR, N_ITEMS
 from src.inference.preprocess import load_and_normalize_image
 from src.inference.utils import assign_score
-from src.utils import print_dataframe
 
 RESULTS_DIR = os.path.join(RESULTS_DIR, 'scans-2018-116x150-augmented/id-1/')
 ID_TO_PATH = '/Users/maurice/phd/src/rey-figure/data/serialized-data/scans-2018-116x150/figures_paths.csv'
