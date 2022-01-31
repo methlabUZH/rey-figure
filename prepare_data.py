@@ -69,8 +69,11 @@ data_2018_2021 = data_2018 + data_2021_scans + data_2021_fotos
 # foto figures
 data_2021_fotos = ['USZ_fotos', 'Typeform']
 
-datasets = {'scans-2018': data_2018, 'scans-2018-2021': scans_2018_2021, 'data-2018-2021': data_2018_2021,
-            'fotos-2021': data_2021_fotos, 'debug': debug_data}
+datasets = {'scans-2018': data_2018,
+            'scans-2018-2021': scans_2018_2021,
+            'data-2018-2021': data_2018_2021,
+            'fotos-2021': data_2021_fotos,
+            'debug': debug_data}
 
 args.data_root = os.path.abspath(args.data_root)
 

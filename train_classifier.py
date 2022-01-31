@@ -286,7 +286,7 @@ def train_epoch(dataloader, model, criterion, optimizer, summary_writer, epoch):
         loss_meter.update(loss.data, images.size()[0])
         accuracy_meter.update(acc[0], images.size()[0])
 
-        # set grads to zero; this is fater than optimizer.zero_grad()
+        # set grads to zero; this is faster than optimizer.zero_grad()
         for param in model.parameters():
             param.grad = None
 

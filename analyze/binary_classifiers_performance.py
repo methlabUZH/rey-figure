@@ -1,5 +1,5 @@
 """
-Script to evaluate the confusion matrix based on prediction made by the neural net regressor.
+Script to evaluate the confusion matrix based on prediction made by the classifiers.
 """
 from itertools import chain
 import numpy as np

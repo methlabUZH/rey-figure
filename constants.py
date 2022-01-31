@@ -3,6 +3,8 @@ import os
 ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
 RESULTS_DIR = os.path.join(ROOT_DIR, 'results/')
 
+FOTO_FOLDERS = ['Typeform', 'USZ_fotos']
+
 # hyperparam configs
 RESNET18_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet18-hyperparams.json')
 RESNET50_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet50-hyperparams.json')

@@ -2,14 +2,16 @@ from itertools import chain
 import numpy as np
 import os
 import pandas as pd
-from typing import List
+from typing import List, Tuple
 
 from src.utils import print_dataframe, mean_confidence_interval
 from src.inference.utils import assign_bin_single
-from constants import RESULTS_DIR, N_ITEMS, BIN_LOCATIONS1, BIN_LOCATIONS2
+from constants import RESULTS_DIR, N_ITEMS, BIN_LOCATIONS1, BIN_LOCATIONS2, FOTO_FOLDERS
 
-RESULTS_DIR = os.path.join(RESULTS_DIR, 'scans-2018-116x150-augmented/id-1/')
+RESULTS_DIR = os.path.join(RESULTS_DIR, 'data-2018-2021-116x150-pp0-augmented/id-e3a767c4-9f39-47c8-bf83-294e0ec8e49e/')
 N_DIGITS = 3
+
+FILTER_FOTOS = False
 
 # column names
 ground_truth_columns_item_scores = [f'true_score_item_{i}' for i in range(1, N_ITEMS + 1)]
@@ -24,8 +26,8 @@ predictions_columns_bin1_score = ['pred_bin_1']
 ground_truth_columns_bin2_score = ['true_bin_2']
 predictions_columns_bin2_score = ['pred_bin_2']
 
-ground_truth_columns_classification = [f'item_{i}_present' for i in range(1, N_ITEMS + 1)]
-predictions_columns_classification = [f'pred_item_{i}_present' for i in range(1, N_ITEMS + 1)]
+ground_truth_columns_classification = [f'true_score_item_{i}' for i in range(1, N_ITEMS + 1)]
+predictions_columns_classification = [f'pred_score_item_{i}' for i in range(1, N_ITEMS + 1)]
 
 
 def get_num_equal_per_row(row, pred_cols, gt_cols):
@@ -88,12 +90,6 @@ def calc_item_detection_ratio(predictions: pd.DataFrame, ground_truth_cols: List
     return mean, ci_err
 
 
-# def calc_total_score_mse(predictions: pd.DataFrame, ground_truth_cols: List[str], predictions_cols: List[str]):
-#     total_scores_true = predictions[ground_truth_cols].sum(axis=1).values
-#     total_scores_predicted = predictions[predictions_cols].sum(axis=1).values
-#     return np.mean((total_scores_true - total_scores_predicted) ** 2)
-
-
 def calc_mse(predictions: pd.DataFrame, ground_truth_cols: List[str], predictions_cols: List[str]):
     return np.mean((predictions[ground_truth_cols].values - predictions[predictions_cols].values) ** 2)
 
@@ -139,9 +135,26 @@ def get_predictions_hybrid(regression_predictions: pd.DataFrame,
     return hybrid_predictions
 
 
+def filter_for_fotos(reg_preds_df: pd.DataFrame, cls_preds_df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    m = reg_preds_df.apply(func=lambda row: any([folder in row['image_file'] for folder in FOTO_FOLDERS]), axis=1)
+    reg_preds_df = reg_preds_df[m]
+
+    m = cls_preds_df.apply(func=lambda row: any([folder in row['image_file'] for folder in FOTO_FOLDERS]), axis=1)
+    cls_preds_df = cls_preds_df[m]
+
+    return reg_preds_df, cls_preds_df
+
+
 def main(regressor_predictions_csv: str, classifiers_predictions_csv: str):
     regression_predictions = pd.read_csv(regressor_predictions_csv, index_col=0)
     classifiers_predictions = pd.read_csv(classifiers_predictions_csv, index_col=0)
+
+    if FILTER_FOTOS:
+        print(f'!!! ==> FILTERED DATA! ONLY CONTAINS FOTO IMAGE FROM FOLDERS {FOTO_FOLDERS} !!!')
+        regression_predictions, classifiers_predictions = filter_for_fotos(regression_predictions,
+                                                                           classifiers_predictions)
+
+    print(f'==> # figures: {len(regression_predictions)}')
     hybrid_predictions = get_predictions_hybrid(regression_predictions, classifiers_predictions)
 
     # sensitivity, specificity, g-mean per item
@@ -192,37 +205,41 @@ def main(regressor_predictions_csv: str, classifiers_predictions_csv: str):
              hybrid_total_bin2_score_mse]]
 
     # bin metrics
+    print('\n**** bin specific metrics ****\n')
     regress_per_bin_metrics = calc_bin_metrics(regression_predictions)
     hybrid_per_bin_metrics = calc_bin_metrics(hybrid_predictions)
     bin_table = generate_bin_metric_latex_table(regress_per_bin_metrics, hybrid_per_bin_metrics)
-    print('\n// bin specific metrics //\n')
     print(bin_table)
 
     # print global metrics
+    print('\n**** global metrics ****\n')
     global_metrics = pd.DataFrame(data, columns=[
         'avg. detected items', 'item mse', 'score mse', 'score-bin1 mse', 'score-bin2 mse'])
-    print('\n// global metrics //\n')
+    global_metrics.index = ['classifiers', 'regressor', 'hybrid']
     print_dataframe(global_metrics, n=-1, n_digits=4)
 
     # generate table with item specific metrics
-    print('\n// item-specific metric item-classifiers //\n')
+    print('\n**** item-specific metrics ****\n')
+    print('\n// item-classifiers //\n')
     print_dataframe(classif_item_metrics, n=-1)
-    print('\n// item-specific metric regressor //\n')
-    print_dataframe(regress_item_metrics, n=-1)
-    print('\n// item-specific metric (hybrid) regressor + item-classifiers //\n')
-    print_dataframe(hybrid_item_metrics, n=-1)
-    print('\n//\n')
+    latex_table_classifiers = generate_item_metrics_latex_table_classifiers(classif_item_metrics)
+    print('latex table:')
+    print(latex_table_classifiers)
 
-    # generate latex tables
+    print('\n// regressor //\n')
+    print_dataframe(regress_item_metrics, n=-1)
+
+    print('\n// hybrid (regressor + item-classifiers) //\n')
+    print_dataframe(hybrid_item_metrics, n=-1)
+
+    # merged item metrics regressor + hybrid
+    print('latex table regressor + hybrid')
     latex_table_regressors = generate_item_metrics_latex_table_regressors(regress_item_metrics, hybrid_item_metrics)
     print(latex_table_regressors)
 
-    latex_table_classifiers = generate_item_metrics_latex_table_classifiers(classif_item_metrics)
-    print(latex_table_classifiers)
 
-
-def generate_item_metrics_latex_table_regressors(regress_metrics: pd.DataFrame,
-                                                 hybrid_metrics: pd.DataFrame):
+def generate_item_metrics_latex_table_regressors(regress_metrics: pd.DataFrame, hybrid_metrics: pd.DataFrame,
+                                                 verbose=False):
     regress_metrics = regress_metrics.transpose()
     hybrid_metrics = hybrid_metrics.transpose()
 
@@ -238,6 +255,9 @@ def generate_item_metrics_latex_table_regressors(regress_metrics: pd.DataFrame,
         regress_metrics.columns, hybrid_metrics.columns)]))
     all_metrics = all_metrics.reindex(columns=reindex_cols)
     all_metrics = pd.merge(sample_stats, all_metrics, left_index=True, right_index=True)
+
+    if verbose:
+        print_dataframe(all_metrics)
 
     table = ""
     for idx, row in all_metrics.iterrows():
@@ -271,6 +291,7 @@ def generate_bin_metric_latex_table(regress_metrics: pd.DataFrame,
         regress_metrics_rename_cols, hybrid_metrics_rename_cols)]))
     all_metrics = all_metrics.reindex(columns=merge_columns + reindex_cols)
     all_metrics = all_metrics.set_index('bin-num')
+
     print_dataframe(all_metrics)
 
     table = ""
@@ -283,7 +304,7 @@ def generate_bin_metric_latex_table(regress_metrics: pd.DataFrame,
         reg_score_mse = row['regressor-score-mse']
         hyb_score_mse = row['hybrid-score-mse']
 
-        table += f'$[{bin_boundaries[0]}, \\ {bin_boundaries[1]})$ && '
+        table += f'$[{bin_boundaries[0]}, \\ {bin_boundaries[1]})$ & '
 
         # detection rates
         if reg_det_avg < hyb_det_avg:
@@ -305,20 +326,21 @@ def generate_bin_metric_latex_table(regress_metrics: pd.DataFrame,
             table += f'${round(hyb_score_mse, N_DIGITS)}$ '
         else:
             table += f'${round(reg_score_mse, N_DIGITS)}$ & '
-            table += '$\\mathbf{' + f'${round(hyb_score_mse, N_DIGITS)}' + '}$ '
+            table += '$\\mathbf{' + f'{round(hyb_score_mse, N_DIGITS)}' + '}$ '
 
         table += '\\\\\n'
 
     return table
 
 
-def generate_item_metrics_latex_table_classifiers(classif_metrics: pd.DataFrame):
+def generate_item_metrics_latex_table_classifiers(classif_metrics: pd.DataFrame, verbose=False):
     classif_metrics = classif_metrics.transpose()
     sample_stats = classif_metrics.loc[:, ['num-neg', 'num-pos']]
     classif_metrics = classif_metrics.drop(columns=['num-neg', 'num-pos'])
     all_metrics = pd.merge(sample_stats, classif_metrics, left_index=True, right_index=True)
 
-    print_dataframe(classif_metrics)
+    if verbose:
+        print_dataframe(classif_metrics)
 
     table = ""
     for idx, row in all_metrics.iterrows():
@@ -335,5 +357,5 @@ def generate_item_metrics_latex_table_classifiers(classif_metrics: pd.DataFrame)
 
 
 if __name__ == '__main__':
-    main(os.path.join(RESULTS_DIR, 'regressor_predictions.csv'),
-         os.path.join(RESULTS_DIR, 'classifiers_predictions.csv'))
+    main(os.path.join(RESULTS_DIR, 'rey-regressor/test-predictions.csv'),
+         os.path.join(RESULTS_DIR, 'item-classifier/test-classification-predictions.csv'))
