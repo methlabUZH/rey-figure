@@ -3,13 +3,10 @@ import sys
 import uuid
 
 import numpy as np
-from filelock import FileLock
 from matplotlib import pyplot as plt
 
-from src.utils import timestamp_dir
 
-
-def directory_setup(model_name, dataset, results_dir, args, train_id: int = None, resume: str = ''):
+def directory_setup(model_name, dataset, results_dir, train_id: int = None, resume: str = ''):
     """
     setup dir for training results and model checkpoints
     """
@@ -36,23 +33,7 @@ def directory_setup(model_name, dataset, results_dir, args, train_id: int = None
     if not os.path.exists(checkpoints_dir):
         os.makedirs(checkpoints_dir)
 
-    make_hyperparam_file(results_dir, args)
-
     return results_dir, checkpoints_dir
-
-
-def make_hyperparam_file(d, args):
-    timestamp = timestamp_dir()
-    hyperparam_str = f'epochs-{args.epochs}_bs-{args.batch_size}_lr-{args.lr}_gamma-{args.gamma}_wd-{args.wd}'
-    hyperparam_str += f'_dropout-{str(args.dropout).replace(" ", "")}_bn-momentum-{args.bn_momentum}'
-
-    try:
-        hyperparam_str += f'_beta-{args.beta}'
-    except AttributeError:
-        pass
-
-    hyperparam_str = hyperparam_str.replace('[', '').replace(']', '')
-    open(os.path.join(d, hyperparam_str + f'_{timestamp}'), 'w').close()
 
 
 def matplotlib_imshow(img, one_channel=False):
@@ -188,23 +169,23 @@ class Logger:
         pass
 
 
-def store_stats(train_loss, val_loss, test_loss, train_score_mse, val_score_mse, test_score_mse, train_bin_mse,
-                val_bin_mse, test_bin_mse, best_epoch, args):
-    with FileLock(args.paramtuning_file + '.lock'):
-        if not os.path.isfile(args.paramtuning_file):
-            with open(args.paramtuning_file, 'a') as f:
-                # write header
-                cols = [k for k, _ in sorted(args.__dict__.items())]
-                cols += ['train-loss', 'val-loss', 'test-loss', 'train-score-mse', 'val-score-mse', 'test-score-mse',
-                         'train-bin-mse', 'val-bin-mse', 'test-bin-mse', 'best epoch']
-                f.write(','.join(cols) + '\n')
-
-        with open(args.paramtuning_file, 'a') as f:
-            # write data_preprocessing
-            data = [v for _, v in sorted(args.__dict__.items())]
-            data += [train_loss, val_loss, test_loss, train_score_mse, val_score_mse, test_score_mse, train_bin_mse,
-                     val_bin_mse, test_bin_mse, best_epoch]
-            f.write(','.join([str(v) for v in data]) + '\n')
+# def store_stats(train_loss, val_loss, test_loss, train_score_mse, val_score_mse, test_score_mse, train_bin_mse,
+#                 val_bin_mse, test_bin_mse, best_epoch, args):
+#     with FileLock(args.paramtuning_file + '.lock'):
+#         if not os.path.isfile(args.paramtuning_file):
+#             with open(args.paramtuning_file, 'a') as f:
+#                 # write header
+#                 cols = [k for k, _ in sorted(args.__dict__.items())]
+#                 cols += ['train-loss', 'val-loss', 'test-loss', 'train-score-mse', 'val-score-mse', 'test-score-mse',
+#                          'train-bin-mse', 'val-bin-mse', 'test-bin-mse', 'best epoch']
+#                 f.write(','.join(cols) + '\n')
+#
+#         with open(args.paramtuning_file, 'a') as f:
+#             # write data_preprocessing
+#             data = [v for _, v in sorted(args.__dict__.items())]
+#             data += [train_loss, val_loss, test_loss, train_score_mse, val_score_mse, test_score_mse, train_bin_mse,
+#                      val_bin_mse, test_bin_mse, best_epoch]
+#             f.write(','.join([str(v) for v in data]) + '\n')
 
 
 def accuracy(output, target, topk=(1,)):

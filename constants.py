@@ -5,15 +5,15 @@ RESULTS_DIR = os.path.join(ROOT_DIR, 'results/')
 
 FOTO_FOLDERS = ['Typeform', 'USZ_fotos']
 
-# hyperparam configs
-RESNET18_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet18-hyperparams.json')
-RESNET50_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet50-hyperparams.json')
-RESNET101_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet101-hyperparams.json')
-RESNEXT50_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnext50-32x4d-hyperparams.json')
-EFFICIENTNET_B0 = os.path.join(ROOT_DIR, 'old_code/configs/efficientnet-b0.json')
-EFFICIENTNET_L2 = os.path.join(ROOT_DIR, 'old_code/configs/efficientnet-l2.json')
+# architectures
+REYCLASSIFIER_3 = 'rey-classifier-3'
+REYCLASSIFIER_4 = 'rey-classifier-4'
+WIDE_RESNET50_2 = 'wide-resnet50-2'
+REYREGRESSOR = 'rey-regressor'
 
-# LABEL_FORMATS = ['items', 'items-median-scores', 'items-sum-scores']
+
+# data
+DEBUG_DATADIR = '/Users/maurice/phd/src/rey-figure/data/serialized-data/debug-116x150-pp0'
 N_ITEMS = 18
 DEFAULT_CANVAS_SIZE = (116, 150)
 AUGM_CANVAS_SIZE = (464, 600)
@@ -80,3 +80,11 @@ BIN_LOCATIONS_DENSE = [
     (35, 36),
     (36, 37)
 ]
+
+# # hyperparam configs
+# RESNET18_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet18-hyperparams.json')
+# RESNET50_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet50-hyperparams.json')
+# RESNET101_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnet101-hyperparams.json')
+# RESNEXT50_CONFIG = os.path.join(ROOT_DIR, 'old_code/configs/resnext50-32x4d-hyperparams.json')
+# EFFICIENTNET_B0 = os.path.join(ROOT_DIR, 'old_code/configs/efficientnet-b0.json')
+# EFFICIENTNET_L2 = os.path.join(ROOT_DIR, 'old_code/configs/efficientnet-l2.json')
