@@ -49,7 +49,10 @@ class ClassificationHead(nn.Module):
         self.relu = nn.ReLU()
 
     def forward(self, x: Tensor) -> Tensor:
-        out = self.fc1(x)
+        # flatten
+        out = x.view(x.size()[0], -1)
+
+        out = self.fc1(out)
         out = self.bn1(out)
         out = self.relu(out)
         out = self.dropout(out)
@@ -120,7 +123,6 @@ class ReyClassifier(nn.Module):
         out = self.block2(out)
         out = self.block3(out)
         out = self.block4(out)
-        out = out.view(out.size()[0], -1)
         out = self.classification_head(out)
         return out
 

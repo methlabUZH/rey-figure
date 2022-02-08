@@ -10,19 +10,18 @@ import torch
 
 from src.dataloaders.dataloader_item_classification import get_item_classification_dataloader
 from src.inference.model_initialization import get_classifiers_checkpoints
-from src.train_utils import Logger
+from src.training.train_utils import Logger
 from src.utils import timestamp_human, class_to_score
-# from src.models import get_reyclassifier
+from src.models import get_classifier
 
 # setup arg parser
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default='')
 parser.add_argument('--results-dir', type=str, default='')
+parser.add_argument('--arch', type=str, default=None, required=False)
+parser.add_argument('--batch-size', default=128, type=int)
 parser.add_argument('--workers', default=8, type=int)
-parser.add_argument('--batch-size', default=8, type=int)
-parser.add_argument('--image-size', nargs='+', type=int, default=[116, 150])
-parser.add_argument('--norm-layer', type=str, default='batch_norm', choices=['batch_norm', 'group_norm'])
-parser.add_argument('--n_blocks', type=int, default=4)
+
 args = parser.parse_args()
 
 _SEED = 7
@@ -48,8 +47,7 @@ def main():
     labels = pd.read_csv(labels_csv)
 
     # setup model
-    model = get_reyclassifier(num_clases=_NUM_CLASSES, num_blocks=args.n_blocks, dropout=(0., 0.),
-                              norm_layer_type=args.norm_layer)
+    model = get_classifier(arch=args.arch, num_classes=_NUM_CLASSES)
 
     # get checkpoint files
     items_and_checkpoint_files = get_classifiers_checkpoints(args.results_dir)

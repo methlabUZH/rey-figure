@@ -13,10 +13,9 @@ import torch
 from torch import optim
 from torch.utils.tensorboard import SummaryWriter
 
-from constants import RESULTS_DIR
 from src.data_preprocessing.augmentation import AugmentParameters
 from src.dataloaders.dataloader_item_classification import get_item_classification_dataloader
-from src.train_utils import directory_setup, plot_scores_preds, count_parameters, AverageMeter, Logger, accuracy
+from src.training.train_utils import directory_setup, plot_scores_preds, count_parameters, AverageMeter, Logger, accuracy
 from src.utils import timestamp_human
 from src.models import get_reyclassifier
 

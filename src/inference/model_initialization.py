@@ -4,7 +4,7 @@ from typing import List, Tuple
 import torch
 
 from constants import N_ITEMS
-from src.models import get_reyregressor, get_reyclassifier
+from src.models import get_regressor, get_classifier
 
 
 def get_classifiers_checkpoints(trained_classifiers_root, max_ckpts=-1) -> List[Tuple[int, str]]:
@@ -37,15 +37,15 @@ def init_model_weights(model: torch.nn.Module, ckpt_fp: str) -> torch.nn.Module:
     return model
 
 
-def init_regressor(ckpt_fp: str, norm_layer: str) -> torch.nn.Module:
-    regressor = get_reyregressor(n_outputs=N_ITEMS, norm_layer_type=norm_layer)
+def init_regressor(ckpt_fp: str) -> torch.nn.Module:
+    regressor = get_regressor()
     regressor = init_model_weights(regressor, ckpt_fp)
     regressor.eval()
     return regressor
 
 
-def init_classifier(ckpt_fp: str, norm_layer: str) -> torch.nn.Module:
-    classifier = get_reyclassifier(norm_layer_type=norm_layer)
+def init_classifier(ckpt_fp: str, arch: str, num_classes: int) -> torch.nn.Module:
+    classifier = get_classifier(arch=arch, num_classes=num_classes)
     classifier = init_model_weights(classifier, ckpt_fp)
     classifier.eval()
     return classifier

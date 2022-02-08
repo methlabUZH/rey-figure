@@ -10,7 +10,7 @@ import torch
 
 from src.dataloaders.dataloader_item_classification import get_item_classification_dataloader_eval
 from src.inference.model_initialization import get_classifiers_checkpoints
-from src.train_utils import Logger
+from src.training.train_utils import Logger
 from src.utils import timestamp_human
 from src.models import get_reyclassifier
 

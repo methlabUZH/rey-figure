@@ -1,2 +1,1 @@
-from src.models.reyregressor import get_reyregressor
-from src.models.model_factory import get_classifier
+from src.models.model_factory import get_classifier, get_regressor

@@ -1,4 +1,5 @@
 from constants import *
+from src.models.reyregressor import reyregressor
 from src.models.reyclassifier import rey_classifier_3, rey_classifier_4
 from src.models.resnet_classifier import wide_resnet50_2
 
@@ -14,3 +15,7 @@ def get_classifier(arch, num_classes: int = 2):
         return rey_classifier_4(num_classes=num_classes)
 
     raise ValueError(f'unknown arch {arch}')
+
+
+def get_regressor():
+    return reyregressor()

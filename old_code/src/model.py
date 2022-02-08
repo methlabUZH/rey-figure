@@ -1,4 +1,4 @@
-import src.train_utils
+import src.training.train_utils
 from helpers import *
 
 import tensorflow as tf
@@ -209,14 +209,14 @@ class CNN:
                 labels_bin = tf.argmax(weighted_labels, axis=1)
 
                 loss = tf.losses.mean_squared_error(self.labels, prediction)
-                accuracy, _ = src.train_utils.accuracy(labels_bin, prediction_bin)
+                accuracy, _ = src.training.train_utils.accuracy(labels_bin, prediction_bin)
             else:
                 prediction = tf.layers.dense(dense_dropped, len(BIN_LOCATIONS), activation=tf.nn.leaky_relu,
                                              name="prediction")
                 prediction_bin = tf.argmax(prediction, axis=1)
                 labels_bin = tf.argmax(self.labels, axis=1)
                 loss = tf.losses.softmax_cross_entropy(self.labels, prediction)
-                accuracy, _ = src.train_utils.accuracy(labels_bin, prediction_bin)
+                accuracy, _ = src.training.train_utils.accuracy(labels_bin, prediction_bin)
 
         # collect summaries in main model
         main_model_summaries = tf.summary.merge_all()
