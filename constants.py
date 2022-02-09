@@ -8,6 +8,7 @@ FOTO_FOLDERS = ['Typeform', 'USZ_fotos']
 # architectures
 REYCLASSIFIER_3 = 'rey-classifier-3'
 REYCLASSIFIER_4 = 'rey-classifier-4'
+REYMULTICLASSIFIER = 'rey-multilabel-classifier'
 WIDE_RESNET50_2 = 'wide-resnet50-2'
 REYREGRESSOR = 'rey-regressor'
 

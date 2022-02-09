@@ -1,7 +1,7 @@
 from src.models.other_models.resnet import *
 from src.models.other_models.resnetV2 import resnet18V2
 from src.models.other_models.shallow_cnn import *
-from src.models.reyregressor import *
+from src.models.rey_regressor import *
 from src.models.other_models.efficientnet import *
 
 from typing import *

@@ -134,6 +134,7 @@ def rey_classifier_3(num_classes):
 def rey_classifier_4(num_classes):
     return ReyClassifier(dropout_rates=_DROPOUT_RATES, num_classes=num_classes, num_blocks=4)
 
+
 # def get_reyclassifier(num_clases: int = 2,
 #                       num_blocks: int = 3,
 #                       dropout: Tuple[float, float] = (.0, .0),
@@ -153,13 +154,13 @@ def rey_classifier_4(num_classes):
 #
 #
 
-# if __name__ == '__main__':
-#     import numpy as np
-#
-#     inputs = torch.from_numpy(np.random.normal(size=(1, 1, 116, 150)))
-#     model = rey_classifier_3(num_classes=4)
-#     model.eval()
-#     print(model)
-#     outputs = model(inputs.float())
-#     print(outputs)
-#
+if __name__ == '__main__':
+    import torch
+    import numpy as np
+
+    inputs = torch.from_numpy(np.random.normal(size=(1, 1, 116, 150)))
+    model = rey_classifier_3(num_classes=4)
+    model.eval()
+    print(model)
+    outputs = model(inputs.float())
+    print(outputs)

@@ -1,7 +1,8 @@
 from constants import *
-from src.models.reyregressor import reyregressor
-from src.models.reyclassifier import rey_classifier_3, rey_classifier_4
+from src.models.rey_regressor import reyregressor
+from src.models.rey_classifier import rey_classifier_3, rey_classifier_4
 from src.models.resnet_classifier import wide_resnet50_2
+from src.models.rey_multilabel_classifier import rey_multiclassifier
 
 
 def get_classifier(arch, num_classes: int = 2):
@@ -13,6 +14,9 @@ def get_classifier(arch, num_classes: int = 2):
 
     if arch == REYCLASSIFIER_4:
         return rey_classifier_4(num_classes=num_classes)
+
+    if arch == REYMULTICLASSIFIER:
+        return rey_multiclassifier(num_classes=num_classes)
 
     raise ValueError(f'unknown arch {arch}')
 

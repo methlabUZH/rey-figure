@@ -20,7 +20,7 @@ def get_regression_dataloader(data_root: str, labels_df: pd.DataFrame, batch_siz
 
     sampler = None
     if weighted_sampling:
-        sample_weights = dataset.get_weights_for_balanced_classes()
+        sample_weights = dataset.get_sample_weights()
         sample_weights = torch.DoubleTensor(sample_weights)
         sampler = WeightedRandomSampler(sample_weights, len(sample_weights))
         shuffle = False
@@ -41,24 +41,17 @@ class ROCFDatasetRegression(Dataset):
             self._transform = transform
 
         # read and process labels
-        label_cols = [f'score_item_{i + 1}' for i in range(18)]  # + ['summed_score']
+        label_cols = [f'score_item_{i + 1}' for i in range(18)]
         labels = self._labels_df[label_cols].values.tolist()
         labels = np.array(list(list(map(map_to_score_grid, lab)) for lab in labels))
         self._labels = np.concatenate([labels, np.expand_dims(np.sum(labels, axis=1), axis=1)], axis=1)
-
-        # label_cols = [f'score_item_{i + 1}' for i in range(18)] + ['summed_score']
-        # self._labels = np.array(self._labels_df[label_cols].values, dtype=float)
 
         # get filepaths and ids
         self._images_npy = [os.path.join(data_root, f) for f in self._labels_df["serialized_filepath"].tolist()]
         self._images_jpeg = [os.path.join(data_root, f) for f in self._labels_df["image_filepath"].tolist()]
         self._images_ids = self._labels_df["figure_id"]
 
-    def get_score_counts(self):
-        _, scores_counts = np.unique(np.array(self._labels)[:, -1], return_counts=True)
-        return scores_counts
-
-    def get_weights_for_balanced_classes(self):
+    def get_sample_weights(self):
         scores, scores_counts = np.unique(np.array(self._labels)[:, -1], return_counts=True)
         n_samples = len(self._labels)
 
@@ -79,7 +72,6 @@ class ROCFDatasetRegression(Dataset):
         image = self._transform(torch_image)
 
         # load labels
-        # label = torch.from_numpy(np.asarray(self._labels[idx])).type('torch.FloatTensor')
         label = torch.from_numpy(self._labels[idx]).type('torch.FloatTensor')
 
         return image, label
