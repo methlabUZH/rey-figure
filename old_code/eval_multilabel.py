@@ -85,7 +85,7 @@ def main():
         for i in avail_items
     ]
 
-    # compute class specific MSE for each item
+    # compute class specific acc for each item
     class_conditional_accuracy_scores = [[np.mean(
         predictions.loc[predictions[f'true_class_item_{i}'] == k, f'pred_class_item_{i}'] == k)
         for k in range(_NUM_CLASSES)] for i in avail_items]
@@ -96,7 +96,7 @@ def main():
         for i in avail_items
     ]
 
-    # compute overall score and MSE
+    # compute overall MSE
     pred_total_scores = predictions.loc[:, [f'pred_score_item_{i}' for i in avail_items]].sum(axis=1)
     true_total_scores = predictions.loc[:, [f'true_score_item_{i}' for i in avail_items]].sum(axis=1)
     score_mse = np.mean((pred_total_scores - true_total_scores) ** 2)
@@ -125,7 +125,7 @@ def eval_model(model, dataloader, checkpoint_fp, item):
     if not USE_CUDA:
         checkpoint['state_dict'] = {str(k).replace('module.', ''): v for k, v in checkpoint['state_dict'].items()}
     model.load_state_dict(checkpoint['state_dict'], strict=True)
-    model.eval()
+    model.run_eval()
 
     # loop through data
     predictions = np.empty(shape=(0, 2), dtype=float)

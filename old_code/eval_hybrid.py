@@ -275,7 +275,7 @@ def compute_confusion_matrix(predictions: pd.DataFrame, pred_item_cols, ground_t
 
 
 def eval_regression_model(model, dataloader):
-    model.eval()
+    model.run_eval()
 
     columns = ['figure_id'] + [f'true_score_item_{i + 1}' for i in range(18)]
     columns += ['true_score_sum', 'true_bin_1', 'true_bin_2']
@@ -324,7 +324,7 @@ def eval_classification_model(model, dataloader, checkpoint_fp, item):
     if not use_cuda:
         checkpoint['state_dict'] = {str(k).replace('module.', ''): v for k, v in checkpoint['state_dict'].items()}
     model.load_state_dict(checkpoint['state_dict'], strict=True)
-    model.eval()
+    model.run_eval()
 
     columns = ['figure_id', 'image_file', 'serialized_file', f'item_{item}_present', f'pred_item_{item}_present']
     results_df = pd.DataFrame(columns=columns)
