@@ -3,8 +3,6 @@ import numpy as np
 import scipy.stats
 from tabulate import tabulate
 
-from constants import BIN_LOCATIONS1, BIN_LOCATIONS2
-
 
 def timestamp_human():
     return dt.now().strftime('%d-%m-%Y %H:%M:%S')
@@ -26,24 +24,24 @@ def mean_confidence_interval(data, confidence=0.95):
     return m, h
 
 
-def map_to_score_grid(s):
+def map_to_score_grid(s: float) -> float:
     if s < 0.25:
-        return 0
+        return 0.0
     if 0.25 <= s < 0.75:
         return 0.5
     if 0.75 <= s < 1.5:
-        return 1
-    return 2
+        return 1.0
+    return 2.0
 
 
-def class_to_score(s) -> float:
-    return {0.0: 0,
-            1.0: 0.5,
-            2.0: 1.0,
-            3.0: 2.0}[float(s)]
+def class_to_score(s: int) -> float:
+    return {0: 0,
+            1: 0.5,
+            2: 1.0,
+            3: 2.0}[s]
 
 
-def score_to_class(s) -> int:
+def score_to_class(s: float) -> int:
     return {0.0: 0,
             0.5: 1,
             1.0: 2,

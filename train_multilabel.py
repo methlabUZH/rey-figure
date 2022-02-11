@@ -2,6 +2,7 @@ import argparse
 import random
 import sys
 import numpy as np
+import os
 import pandas as pd
 from tabulate import tabulate
 import json
@@ -77,8 +78,8 @@ def main():
     trainer = MultilabelTrainer(model, loss_func, train_loader, val_loader, args, results_dir, args.is_binary)
     trainer.train()
 
-    # if args.eval_test:
-    eval_test(trainer, results_dir)
+    if args.eval_test:
+        eval_test(trainer, results_dir)
 
 
 def eval_test(trainer, results_dir):

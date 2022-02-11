@@ -1,4 +1,5 @@
 import numpy as np
+import os
 import pandas as pd
 
 import torch
@@ -19,6 +20,7 @@ class MultilabelEvaluator:
         self.workers = workers
 
         self.predictions = None
+        self.ground_truths = None
         self.use_cuda = torch.cuda.is_available()
 
         if self.use_cuda:
@@ -36,25 +38,25 @@ class MultilabelEvaluator:
         self.dataloader = get_multilabel_dataloader(self.data_dir, labels_df=test_labels, batch_size=self.batch_size,
                                                     num_workers=self.workers, shuffle=False, is_binary=is_binary)
 
-    def run_eval(self):
+    def run_eval(self, save=True):
         if self.is_ensemble:
-            self.predictions = self._get_predictions_ensemble()
+            self.predictions, self.ground_truths = self._get_predictions_ensemble()
         else:
-            self.predictions = self._make_predictions_single_model()
+            self.predictions, self.ground_truths = self._make_predictions_single_model()
 
-    def save_predictions(self, save_as=None):
-        if self.predictions is None:
+        if save:
+            self.save_predictions()
+
+    def save_predictions(self):
+        if self.predictions is None or self.ground_truths is None:
             raise ValueError('predictions is None!')
 
-        if save_as is None:
-            self.predictions.to_csv(os.path.join(self.results_dir, 'test_predictions.csv'))
-            return
-
-        self.predictions.to_csv(save_as)
+        self.predictions.to_csv(os.path.join(self.results_dir, 'test_predictions.csv'))
+        self.ground_truths.to_csv(os.path.join(self.results_dir, 'test_ground_truths.csv'))
 
     def _get_predictions_ensemble(self):
-        data_cols = []
-        data = None
+        column_names = []
+        predictions, ground_truths = None, None
         for item, ckpt in zip(self.items, self.checkpoints):
             print(f'[{timestamp_human()}] start eval item {item}, ckpt: {ckpt}')
             ckpt = torch.load(ckpt, map_location=torch.device('cuda' if self.use_cuda else 'cpu'))
@@ -65,31 +67,17 @@ class MultilabelEvaluator:
             self.model.load_state_dict(ckpt['state_dict'], strict=True)
 
             # get predictions
-            item_data = self._run_inference(item=item)
+            item_predictions, item_ground_truths = self._run_inference(item=item)
 
             # merge with previous data
-            data = item_data if data is None else np.concatenate([data, item_data], axis=1)
-            data_cols += [f'true_class_item_{item}', f'pred_class_item_{item}']
+            predictions = item_predictions if predictions is None else np.concate(
+                [predictions, item_predictions], axis=1)
+            ground_truths = item_ground_truths if ground_truths is None else np.concate(
+                [ground_truths, item_ground_truths], axis=1)
 
-        # write to df
-        id_columns = ['figure_id', 'image_file', 'serialized_file']
-        outputs_df = pd.DataFrame(columns=id_columns + data_cols)
+            column_names += [f'class_item_{item}']
 
-        outputs_df['figure_id'] = self.dataloader.dataset.image_ids[:len(data)]
-        outputs_df['image_file'] = self.dataloader.dataset.jpeg_filepaths[:len(data)]
-        outputs_df['serialized_file'] = self.dataloader.dataset.npy_filepaths[:len(data)]
-
-        outputs_df[data_cols] = data
-
-        # turn classes into scores
-        score_cols = [str(c).replace('_class_', '_score_') for c in data_cols]
-        outputs_df[score_cols] = outputs_df[data_cols].applymap(class_to_score)
-
-        # compute total score
-        outputs_df['true_total_score'] = outputs_df[[c for c in score_cols if str(c).startswith('true_')]].sum(axis=1)
-        outputs_df['pred_total_score'] = outputs_df[[c for c in score_cols if str(c).startswith('pred_')]].sum(axis=1)
-
-        return outputs_df
+        return self._make_dataframes(predictions, ground_truths, column_names)
 
     def _make_predictions_single_model(self):
         # load checkpoint
@@ -101,36 +89,47 @@ class MultilabelEvaluator:
         self.model.load_state_dict(ckpt['state_dict'], strict=True)
 
         # get predictions
-        data = self._run_inference(item=None)
+        predictions, ground_truths = self._run_inference(item=None)
 
+        column_names = [f'class_item_{item + 1}' for item in range(N_ITEMS)]
+
+        return self._make_dataframes(predictions, ground_truths, column_names)
+
+    def _make_dataframes(self, predictions, ground_truths, column_names):
         # write to df
         id_columns = ['figure_id', 'image_file', 'serialized_file']
-        label_columns = [f'true_class_item_{item + 1}' for item in range(N_ITEMS)]
-        pred_columns = [f'pred_class_item_{item + 1}' for item in range(N_ITEMS)]
-        outputs_df = pd.DataFrame(columns=id_columns + label_columns + pred_columns)
+        predictions_df = pd.DataFrame(columns=id_columns + column_names)
+        ground_truths_df = pd.DataFrame(columns=id_columns + column_names)
 
-        outputs_df['figure_id'] = self.dataloader.dataset.image_ids[:len(data)]
-        outputs_df['image_file'] = self.dataloader.dataset.jpeg_filepaths[:len(data)]
-        outputs_df['serialized_file'] = self.dataloader.dataset.npy_filepaths[:len(data)]
+        predictions_df['figure_id'] = self.dataloader.dataset.image_ids[:len(predictions)]
+        predictions_df['image_file'] = self.dataloader.dataset.jpeg_filepaths[:len(predictions)]
+        predictions_df['serialized_file'] = self.dataloader.dataset.npy_filepaths[:len(predictions)]
 
-        outputs_df[label_columns + pred_columns] = data
+        ground_truths_df['figure_id'] = self.dataloader.dataset.image_ids[:len(predictions)]
+        ground_truths_df['image_file'] = self.dataloader.dataset.jpeg_filepaths[:len(predictions)]
+        ground_truths_df['serialized_file'] = self.dataloader.dataset.npy_filepaths[:len(predictions)]
+
+        predictions_df[column_names] = predictions
+        ground_truths_df[column_names] = ground_truths
 
         # turn classes into scores
-        score_cols = [str(c).replace('_class_', '_score_') for c in label_columns + pred_columns]
-        outputs_df[score_cols] = outputs_df[label_columns + pred_columns].applymap(class_to_score)
+        score_cols = [str(c).replace('class_', 'score_') for c in column_names]
+        predictions_df[score_cols] = predictions_df[column_names].applymap(class_to_score)
+        ground_truths_df[score_cols] = ground_truths_df[column_names].applymap(class_to_score)
 
         # compute total score
-        outputs_df['true_total_score'] = outputs_df[[c for c in score_cols if str(c).startswith('true_')]].sum(axis=1)
-        outputs_df['pred_total_score'] = outputs_df[[c for c in score_cols if str(c).startswith('pred_')]].sum(axis=1)
+        predictions_df['total_score'] = predictions_df[score_cols].sum(axis=1)
+        ground_truths_df['total_score'] = ground_truths_df[score_cols].sum(axis=1)
 
-        return outputs_df
+        return predictions_df, ground_truths_df
 
     def _run_inference(self, item=None):
         self.model.eval()
-        data = None
+        predictions, ground_truths = None, None
 
         for inputs, targets in self.dataloader:
             targets = targets.numpy()
+
             if self.use_cuda:
                 inputs = inputs.cuda()
 
@@ -146,7 +145,7 @@ class MultilabelEvaluator:
             targets = targets[:, item - 1] if item is not None else targets
             outputs = np.concatenate([np.expand_dims(out, -1) for out in outputs], axis=1)
 
-            batch_data = np.concatenate([targets, outputs], axis=1)
-            data = batch_data if data is None else np.concatenate([data, batch_data], axis=0)
+            predictions = outputs if predictions is None else np.concatenate([predictions, outputs], axis=0)
+            ground_truths = targets if ground_truths is None else np.concatenate([ground_truths, targets], axis=0)
 
-        return data
+        return predictions, ground_truths

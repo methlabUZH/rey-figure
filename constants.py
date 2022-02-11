@@ -1,7 +1,7 @@
-import os
+import os as _os
 
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
-RESULTS_DIR = os.path.join(ROOT_DIR, 'results/')
+ROOT_DIR = _os.path.dirname(_os.path.abspath(__file__))
+RESULTS_DIR = _os.path.join(ROOT_DIR, 'results/')
 
 FOTO_FOLDERS = ['Typeform', 'USZ_fotos']
 
