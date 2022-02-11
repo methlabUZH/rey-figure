@@ -3,6 +3,8 @@ import numpy as np
 import scipy.stats
 from tabulate import tabulate
 
+from constants import BIN_LOCATIONS1, BIN_LOCATIONS2
+
 
 def timestamp_human():
     return dt.now().strftime('%d-%m-%Y %H:%M:%S')
@@ -46,3 +48,7 @@ def score_to_class(s) -> int:
             0.5: 1,
             1.0: 2,
             2.0: 3}[float(s)]
+
+
+def assign_bin(x, bin_locations):
+    return np.digitize(x, bin_locations, right=True)

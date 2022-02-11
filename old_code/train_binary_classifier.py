@@ -313,7 +313,7 @@ def train_epoch(dataloader, model, criterion, optimizer, summary_writer, epoch):
 
 
 def eval_model(dataloader, model, criterion, summary_writer, epoch):
-    model.eval()
+    model.run_eval()
 
     loss_meter = AverageMeter()
     accuracy_meter = AverageMeter()
@@ -375,7 +375,7 @@ def eval_test(model, criterion, data_root, checkpoint):
     model.load_state_dict(checkpoint['state_dict'], strict=True)
     device = torch.device("cuda" if use_cuda else "cpu")
     model.to(device)
-    model.eval()
+    model.run_eval()
 
     loss_meter = AverageMeter()
     accuracy_meter = AverageMeter()

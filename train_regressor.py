@@ -15,7 +15,6 @@ from src.training.regression_trainer import RegressionTrainer
 
 _VAL_FRACTION = 0.2
 _SEED = 7
-_MODEL_ARCH = 'rey-regressor'
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR, required=False)
@@ -23,7 +22,7 @@ parser.add_argument('--results-dir', type=str, default='./temp', required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--eval-test', action='store_true')
 parser.add_argument('--id', default='debug', type=str)
-parser.add_argument('--epochs', default=60, type=int, help='number of total epochs to run')
+parser.add_argument('--epochs', default=75, type=int, help='number of total epochs to run')
 parser.add_argument('--batch-size', default=64, type=int, help='train batch size (default: 64)')
 parser.add_argument('--lr', '--learning-rate', default=0.0001, type=float, help='initial learning rate')
 parser.add_argument('--beta', type=float, default=0.0, help='weight of the score mse for total loss')
@@ -43,7 +42,7 @@ if USE_CUDA:
 def main():
     # setup dirs
     dataset_name = os.path.split(os.path.normpath(args.data_root))[-1]
-    results_dir, checkpoints_dir = directory_setup(model_name=_MODEL_ARCH,
+    results_dir, checkpoints_dir = directory_setup(model_name=REYREGRESSOR,
                                                    dataset=dataset_name,
                                                    results_dir=args.results_dir,
                                                    train_id=args.id)
@@ -77,19 +76,25 @@ def main():
     trainer.train()
 
     if args.eval_test:
-        eval_test(trainer)
+        eval_test(trainer, results_dir)
 
 
-def eval_test(trainer):
+def eval_test(trainer, results_dir):
+    # load best checkpoint
+    ckpt = os.path.join(results_dir, 'checkpoints/model_best.pth.tar')
+    ckpt = torch.load(ckpt, map_location=torch.device('cuda' if USE_CUDA else 'cpu'))
+    trainer.model.load_state_dict(ckpt['state_dict'], strict=True)
+
+    # get dataloader
     test_labels = pd.read_csv(os.path.join(args.data_root, 'test_labels.csv'))
     test_dataloader = get_regression_dataloader(args.data_root, labels_df=test_labels,
                                                 batch_size=args.batch_size, num_workers=args.workers,
                                                 shuffle=False)
     test_stats = trainer.run_epoch(test_dataloader, is_train=False)
 
-    print('-------eval test-------')
+    print('\n-------eval on test set with best model-------')
     for k, v in test_stats.items():
-        print(f'{k}: {v:.5f}')
+        print(f'{k.replace("val", "test")}: {v:.5f}')
 
 
 if __name__ == '__main__':

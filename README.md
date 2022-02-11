@@ -1,3 +1,5 @@
+# NEEDS TO BE UPDATED
+TODO
 # Automated Scoring of the Rey-Osterrieth Complex Figure
 
 Pytorch implementation of CNNs to automate the scoring of Rey-Osterrieth Complex Figure [1]. The rating of the figure is

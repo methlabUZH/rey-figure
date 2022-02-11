@@ -125,7 +125,7 @@ def eval_model(model, dataloader, checkpoint_fp, item):
     if not use_cuda:
         checkpoint['state_dict'] = {str(k).replace('module.', ''): v for k, v in checkpoint['state_dict'].items()}
     model.load_state_dict(checkpoint['state_dict'], strict=True)
-    model.eval()
+    model.run_eval()
 
     columns = ['figure_id', 'image_file', 'serialized_file', f'true_score_item_{item}', f'pred_score_item_{item}']
     results_df = pd.DataFrame(columns=columns)

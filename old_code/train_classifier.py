@@ -206,7 +206,7 @@ def train_epoch(dataloader, model, criterion, optimizer, summary_writer, epoch):
 
 
 def eval_model(dataloader, model, criterion, summary_writer, epoch):
-    model.eval()
+    model.run_eval()
 
     loss_meter = AverageMeter()
     accuracy_meter = AverageMeter()

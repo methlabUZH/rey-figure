@@ -7,8 +7,9 @@ from constants import N_ITEMS
 from src.models import get_regressor, get_classifier
 
 
-def get_classifiers_checkpoints(trained_classifiers_root, max_ckpts=-1) -> List[Tuple[int, str]]:
+def get_classifiers_checkpoints(trained_classifiers_root, max_ckpts=-1) -> Tuple[List[int], List[str]]:
     checkpoints = []
+    items = []
 
     for i in range(1, N_ITEMS + 1):
         classifier_root = os.path.join(trained_classifiers_root, f'item-{i}')
@@ -23,9 +24,11 @@ def get_classifiers_checkpoints(trained_classifiers_root, max_ckpts=-1) -> List[
             print(f'no checkpoints found for item {i}!')
             continue
 
-        checkpoints.append((i, checkpoint))
+        checkpoints.append(checkpoint)
+        items.append(i)
 
-    return checkpoints if max_ckpts == -1 else checkpoints[:max_ckpts]
+    checkpoints = checkpoints if max_ckpts == -1 else checkpoints[:max_ckpts]
+    return items, checkpoints
 
 
 def init_model_weights(model: torch.nn.Module, ckpt_fp: str) -> torch.nn.Module:

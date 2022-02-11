@@ -92,18 +92,22 @@ class ClassificationTrainer:
             print_str = f'[{timestamp} | {epoch + 1}/{self.args.epochs}] epoch time: {train_stats["epoch_time"]:.2f}, '
             print_str += f'lr: {learning_rate:.6f} ||'
             for k, v in train_stats.items():
+                if k == 'epoch_time':
+                    continue
                 print_str += f' {k}: {v:.5f} '
             print_str += '||'
             for k, v in val_stats.items():
+                if k == 'epoch_time':
+                    continue
                 print_str += f' {k}: {v:.5f} '
             print(print_str)
 
             # add tensorboard summaries
             self.summary_writer.add_scalars('loss',
-                                            {'train': train_stats["train_loss"], 'val': val_stats["val_loss"]},
+                                            {'train': train_stats["train-loss"], 'val': val_stats["val-loss"]},
                                             global_step=epoch)
             self.summary_writer.add_scalars('accuracy',
-                                            {'train': train_stats["train_acc"], 'val': val_stats["val_acc"]},
+                                            {'train': train_stats["train-acc"], 'val': val_stats["val-acc"]},
                                             global_step=epoch)
             self.summary_writer.add_scalar('learning-rate', learning_rate, global_step=epoch)
             self.summary_writer.flush()
@@ -165,7 +169,7 @@ class ClassificationTrainer:
         # measure accuracy and record loss
         acc = accuracy(outputs.data, targets.data)
         self.loss_meter.update(loss.data, inputs.size()[0])
-        self.accuracy_meter.update(acc[0], inputs.size()[0])
+        self.accuracy_meter.update(acc.data, inputs.size()[0])
 
         if is_train:
             # set grads to zero
@@ -179,9 +183,9 @@ class ClassificationTrainer:
         return outputs
 
     def on_end_epoch(self, is_train):
-        prefix = 'train-' if is_train else 'val-'
-        stats = {f'{prefix}loss': self.loss_meter.average(),
-                 f'{prefix}acc': self.accuracy_meter.average(),
+        prefix = 'train' if is_train else 'val'
+        stats = {f'{prefix}-loss': self.loss_meter.average(),
+                 f'{prefix}-acc': self.accuracy_meter.average(),
                  'epoch_time': self.epoch_time_meter.average()}
 
         if self.is_binary:
@@ -190,9 +194,9 @@ class ClassificationTrainer:
             specificity = self.confusion_matrix["true_negatives"] / (
                     self.confusion_matrix["true_negatives"] + self.confusion_matrix["false_positives"])
             gmean = np.sqrt(sensitivity.cpu() * specificity.cpu())
-            stats[f'{prefix}specificity'] = specificity
-            stats[f'{prefix}sensitivity'] = sensitivity
-            stats[f'{prefix}g_mean'] = gmean
+            stats[f'{prefix}-specificity'] = specificity
+            stats[f'{prefix}-sensitivity'] = sensitivity
+            stats[f'{prefix}-g_mean'] = gmean
 
         return stats
 

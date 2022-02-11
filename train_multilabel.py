@@ -24,7 +24,6 @@ parser.add_argument('--results-dir', type=str, default='./temp', required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--is_binary', type=int, default=0, choices=[0, 1])
 parser.add_argument('--eval-test', action='store_true')
-parser.add_argument('--item', type=int, default=1)
 parser.add_argument('--id', default='debug', type=str)
 parser.add_argument('--epochs', default=75, type=int, help='number of total epochs to run')
 parser.add_argument('--batch-size', default=64, type=int, help='train batch size (default: 64)')
@@ -46,9 +45,10 @@ def main():
     num_classes = 2 if args.is_binary else 4
 
     # setup dirs
+    model_name = "binary-" + REYMULTICLASSIFIER if num_classes == 2 else REYMULTICLASSIFIER
     dataset_name = os.path.split(os.path.normpath(args.data_root))[-1]
-    results_dir, checkpoints_dir = directory_setup(model_name=f'{num_classes}-way-item-classifier/item-{args.item}',
-                                                   dataset=dataset_name, results_dir=args.results_dir, train_id=args.id)
+    results_dir, checkpoints_dir = directory_setup(model_name=model_name, dataset=dataset_name,
+                                                   results_dir=args.results_dir, train_id=args.id)
 
     # dump args
     with open(os.path.join(results_dir, 'args.json'), 'w') as f:
@@ -77,12 +77,17 @@ def main():
     trainer = MultilabelTrainer(model, loss_func, train_loader, val_loader, args, results_dir, args.is_binary)
     trainer.train()
 
-    if args.eval_test:
-        eval_test(trainer)
+    # if args.eval_test:
+    eval_test(trainer, results_dir)
 
 
-def eval_test(trainer):
-    # dataloader
+def eval_test(trainer, results_dir):
+    # load best checkpoint
+    ckpt = os.path.join(results_dir, 'checkpoints/model_best.pth.tar')
+    ckpt = torch.load(ckpt, map_location=torch.device('cuda' if USE_CUDA else 'cpu'))
+    trainer.model.load_state_dict(ckpt['state_dict'], strict=True)
+
+    # get dataloader
     test_labels = pd.read_csv(os.path.join(args.data_root, 'test_labels.csv'))
     test_dataloader = get_multilabel_dataloader(args.data_root, labels_df=test_labels, batch_size=args.batch_size,
                                                 num_workers=args.workers, shuffle=False, is_binary=args.is_binary)
@@ -99,7 +104,7 @@ def eval_test(trainer):
         specificities = test_stats['val-specificities']
         sensitivities = test_stats['val-sensitivities']
         gmeans = test_stats['val-gmeans']
-        data = np.stack([data, specificities, sensitivities, gmeans], axis=0)
+        data = np.concatenate([data, np.stack([specificities, sensitivities, gmeans], axis=0)], axis=0)
         indices += ['test-specificity', 'test-sensitivity', 'test-g-mean']
 
     df = pd.DataFrame(data, columns=[f'item_{i + 1}' for i in range(N_ITEMS)])

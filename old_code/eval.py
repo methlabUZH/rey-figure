@@ -125,7 +125,7 @@ def main():
 
 
 def eval_model(model, dataloader, criterion):
-    model.eval()
+    model.run_eval()
 
     total_loss_meter = AverageMeter()
     score_mse_meter = AverageMeter()

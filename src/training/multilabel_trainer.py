@@ -58,7 +58,6 @@ class MultilabelTrainer:
         self.total_loss_meter = AverageMeter()
         self.loss_meters = [AverageMeter() for _ in range(N_ITEMS)]
         self.accuracy_meters = [AverageMeter() for _ in range(N_ITEMS)]
-        self.epoch_time_meter = AverageMeter()
 
     def _reset_meters(self):
         self.total_loss_meter.reset()
@@ -86,10 +85,12 @@ class MultilabelTrainer:
         start_epoch = 0
         best_epoch = 0
         best_val_loss = np.inf
+        epoch_times = []
 
         print(f'[{timestamp_human()}] start training')
 
         for epoch in range(start_epoch, self.args.epochs):
+            epoch_start = time.time()
             # train for one epoch
             train_stats = self.run_epoch(self.train_loader, is_train=True)
 
@@ -97,16 +98,19 @@ class MultilabelTrainer:
             val_stats = self.run_epoch(self.val_loader, is_train=False)
 
             # save model
-            is_best = val_stats['val-total-loss'] > best_val_loss
+            is_best = val_stats['val-total-loss'] < best_val_loss
             if is_best:
                 best_val_loss = val_stats['val-total-loss']
                 best_epoch = epoch + 1
             self.save_checkpoint(epoch, best_epoch, val_stats['val-total-loss'], best_val_loss, is_best)
 
             # print stats
-            self.print_stats(train_stats, val_stats, epoch)
+            epoch_time = time.time() - epoch_start
+            epoch_times.append(epoch_time)
+            self.print_stats(train_stats, val_stats, epoch, epoch_time)
 
             # add tensorboard summaries
+            self.summary_writer.add_scalar('epoch-time', epoch_time, global_step=epoch)
             self.summary_writer.add_scalars('total-loss',
                                             {'train': train_stats["train-total-loss"],
                                              'val': val_stats["val-total-loss"]}, global_step=epoch)
@@ -127,9 +131,9 @@ class MultilabelTrainer:
         self.summary_writer.flush()
         self.summary_writer.close()
 
-        print(f'\ntraining finished; average epoch time: {self.epoch_time_meter.average():.4f}s\n')
+        print(f'\ntraining finished; average epoch time: {np.mean(epoch_times):.4f}s\n')
 
-    def print_stats(self, train_stats, val_stats, epoch):
+    def print_stats(self, train_stats, val_stats, epoch, epoch_time):
         # build train table
         train_accuracies = train_stats['train-accuracies']
         val_accuracies = val_stats['val-accuracies']
@@ -145,8 +149,8 @@ class MultilabelTrainer:
             val_sensitivities = val_stats['val-sensitivities']
             train_gmeans = train_stats['train-gmeans']
             val_gmeans = val_stats['val-gmeans']
-            data = np.stack([data, train_specificities, val_specificities, train_sensitivities, val_sensitivities,
-                             train_gmeans, val_gmeans], axis=0)
+            data = np.concatenate([data, np.stack([train_specificities, val_specificities, train_sensitivities,
+                                                   val_sensitivities, train_gmeans, val_gmeans], axis=0)], axis=0)
             indices += ['train-specificity', 'val-specificity', 'train-sensitivity', 'val-sensitivity', 'train-g-mean',
                         'val-g-mean']
 
@@ -157,7 +161,7 @@ class MultilabelTrainer:
         # print
         learning_rate = self.lr_scheduler.get_last_lr()[0]
         timestamp = timestamp_human()
-        print_str = f'\n-- [{timestamp} | {epoch + 1}/{self.args.epochs}] epoch time: {train_stats["epoch_time"]:.2f}, '
+        print_str = f'\n-- [{timestamp} | {epoch + 1}/{self.args.epochs}] epoch time: {epoch_time:.2f}, '
         print_str += f'lr: {learning_rate:.6f} --'
         print(print_str)
         print(tabulate(df, headers='keys', tablefmt='presto', floatfmt=".3f"))
@@ -171,8 +175,6 @@ class MultilabelTrainer:
         else:
             self.model.eval()
 
-        epoch_start = time.time()
-
         for i, (inputs_batch, targets_batch) in enumerate(dataloader):
             if self.use_cuda:
                 inputs_batch = inputs_batch.cuda()
@@ -183,13 +185,11 @@ class MultilabelTrainer:
             if self.is_binary:
                 for ii, outs in enumerate(outputs):
                     pred_classes = torch.argmax(outs, dim=1)
-                    self.confusion_matrices[ii]['true_positives'] += sum(pred_classes * targets_batch)
-                    self.confusion_matrices[ii]['false_positives'] += sum(pred_classes * (1 - targets_batch))
-                    self.confusion_matrices[ii]['false_negatives'] += sum((1 - pred_classes) * targets_batch)
-                    self.confusion_matrices[ii]['true_negatives'] += sum((1 - pred_classes) * (1 - targets_batch))
-
-        epoch_time = time.time() - epoch_start
-        self.epoch_time_meter.update(epoch_time, n=1)
+                    self.confusion_matrices[ii]['true_positives'] += sum(pred_classes * targets_batch[:, ii])
+                    self.confusion_matrices[ii]['false_positives'] += sum(pred_classes * (1 - targets_batch[:, ii]))
+                    self.confusion_matrices[ii]['false_negatives'] += sum((1 - pred_classes) * targets_batch[:, ii])
+                    self.confusion_matrices[ii]['true_negatives'] += sum(
+                        (1 - pred_classes) * (1 - targets_batch[:, ii]))
 
         return self.on_end_epoch(is_train=is_train)
 
@@ -224,15 +224,15 @@ class MultilabelTrainer:
         prefix = 'train' if is_train else 'val'
         stats = {f'{prefix}-total-loss': self.total_loss_meter.average(),
                  f'{prefix}-losses': [m.average() for m in self.loss_meters],
-                 f'{prefix}-accuracies': [m.average() for m in self.accuracy_meters],
-                 'epoch_time': self.epoch_time_meter.average()}
+                 f'{prefix}-accuracies': [m.average() for m in self.accuracy_meters]}
 
         if self.is_binary:
             sensitivities = [cm["true_positives"] / (cm["true_positives"] + cm["false_negatives"])
                              for cm in self.confusion_matrices]
             specificities = [cm["true_negatives"] / (cm["true_negatives"] + cm["false_positives"])
                              for cm in self.confusion_matrices]
-            gmeans = [np.sqrt(sens * spec) for sens, spec in zip(sensitivities, specificities)]
+            gmeans = [np.sqrt(sens.cpu().numpy() * spec.cpu().numpy()) for sens, spec in
+                      zip(sensitivities, specificities)]
             stats[f'{prefix}-specificities'] = specificities
             stats[f'{prefix}-sensitivities'] = sensitivities
             stats[f'{prefix}-gmeans'] = gmeans

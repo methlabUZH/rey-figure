@@ -53,7 +53,6 @@ class RegressionTrainer:
         self.total_loss_meter = AverageMeter()
         self.items_loss_meter = AverageMeter()
         self.score_loss_meter = AverageMeter()
-        self.epoch_time_meter = AverageMeter()
 
     def _reset_meters(self):
         self.total_loss_meter.reset()
@@ -66,10 +65,12 @@ class RegressionTrainer:
         start_epoch = 0
         best_epoch = 0
         best_val_score_mse, best_val_items_loss, best_val_loss = np.inf, np.inf, np.inf
+        epoch_times = []
 
         print(f'[{timestamp_human()}] start training')
 
         for epoch in range(start_epoch, self.args.epochs):
+            epoch_start = time.time()
             # train for one epoch
             train_stats = self.run_epoch(self.train_loader, is_train=True)
 
@@ -85,23 +86,23 @@ class RegressionTrainer:
                 best_epoch = epoch + 1
             self.save_checkpoint(epoch, best_epoch, val_stats['val-total-loss'], best_val_loss, is_best)
 
+            epoch_time = time.time() - epoch_start
+            epoch_times.append(epoch_time)
+
             # print stats
             learning_rate = self.lr_scheduler.get_last_lr()[0]
             timestamp = timestamp_human()
-            print_str = f'[{timestamp} | {epoch + 1}/{self.args.epochs}] epoch time: {train_stats["epoch_time"]:.2f}, '
+            print_str = f'[{timestamp} | {epoch + 1}/{self.args.epochs}] epoch time: {epoch_time:.2f}, '
             print_str += f'lr: {learning_rate:.6f} ||'
             for k, v in train_stats.items():
-                if k == 'epoch_time':
-                    continue
                 print_str += f' {k}: {v:.5f} '
             print_str += '||'
             for k, v in val_stats.items():
-                if k == 'epoch_time':
-                    continue
                 print_str += f' {k}: {v:.5f} '
             print(print_str)
 
             # add tensorboard summaries
+            self.summary_writer.add_scalar('epoch-time', epoch_time, global_step=epoch)
             self.summary_writer.add_scalars('total-loss',
                                             {'train': train_stats["train-total-loss"],
                                              'val': val_stats["val-total-loss"]},
@@ -123,7 +124,7 @@ class RegressionTrainer:
         self.summary_writer.flush()
         self.summary_writer.close()
 
-        print(f'\ntraining finished; average epoch time: {self.epoch_time_meter.average():.4f}s')
+        print(f'\ntraining finished; average epoch time: {np.mean(epoch_times):.4f}s')
         print('\n-----------------------')
         print('** early stop validation stats **')
         print('{0:25}: {1:.4f}'.format('epoch', best_epoch))
@@ -139,17 +140,12 @@ class RegressionTrainer:
         else:
             self.model.eval()
 
-        epoch_start = time.time()
-
         for i, (inputs_batch, targets_batch) in enumerate(dataloader):
             if self.use_cuda:
                 inputs_batch = inputs_batch.cuda()
                 targets_batch = targets_batch.cuda()
 
             self.forward_step(inputs_batch, targets_batch, is_train=is_train)
-
-        epoch_time = time.time() - epoch_start
-        self.epoch_time_meter.update(epoch_time, n=1)
 
         return self.on_end_epoch(is_train=is_train)
 
@@ -185,8 +181,7 @@ class RegressionTrainer:
         prefix = 'train' if is_train else 'val'
         return {f'{prefix}-total-loss': self.total_loss_meter.average(),
                 f'{prefix}-items-loss': self.items_loss_meter.average(),
-                f'{prefix}-score-loss': self.score_loss_meter.average(),
-                'epoch_time': self.epoch_time_meter.average()}
+                f'{prefix}-score-loss': self.score_loss_meter.average()}
 
     def save_checkpoint(self, epoch, best_epoch, val_total_loss, best_val_loss, is_best):
         checkpoint = {'epoch': epoch + 1,
