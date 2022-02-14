@@ -5,7 +5,7 @@ from src.models.resnet_classifier import wide_resnet50_2
 from src.models.rey_multilabel_classifier import rey_multiclassifier
 
 
-def get_classifier(arch, num_classes: int = 2):
+def get_classifier(arch, num_classes: int = 2, item=None):
     if arch == WIDE_RESNET50_2:
         return wide_resnet50_2(num_outputs=num_classes)
 
@@ -16,7 +16,7 @@ def get_classifier(arch, num_classes: int = 2):
         return rey_classifier_4(num_classes=num_classes)
 
     if arch == REYMULTICLASSIFIER:
-        return rey_multiclassifier(num_classes=num_classes)
+        return rey_multiclassifier(num_classes=num_classes, item=item)
 
     raise ValueError(f'unknown arch {arch}')
 

@@ -5,7 +5,7 @@ import torch.nn as nn
 
 from constants import N_ITEMS
 
-__all__ = ['rey_classifier_3', 'rey_classifier_4']
+__all__ = ['rey_multiclassifier']
 
 _DROPOUT_RATES = (0.3, 0.5)
 _BN_MOMENTUM = 0.1
@@ -46,7 +46,8 @@ class ItemClassifier(nn.Module):
         self.block1 = ConvBlock(in_channels, out_channels=in_channels * 2,
                                 norm_layer=norm_layer_2d,
                                 downsample=nn.AdaptiveMaxPool2d(output_size=(1, 1)),
-                                dropout=nn.Dropout(dropout_rates[0]))
+                                dropout=nn.Dropout(dropout_rates[0])
+                                )
 
         # fc layers
         self.flatten = nn.Flatten()
@@ -78,7 +79,8 @@ class ReyMultiClassifier(nn.Module):
                  dropout_rates: Tuple[float, float],
                  num_classes: int = 2,
                  norm_layer_2d: Optional[Callable[..., nn.Module]] = None,
-                 norm_layer_1d: Optional[Callable[..., nn.Module]] = None):
+                 norm_layer_1d: Optional[Callable[..., nn.Module]] = None,
+                 item: int = None):
         super(ReyMultiClassifier, self).__init__()
 
         if norm_layer_2d is None:
@@ -86,6 +88,12 @@ class ReyMultiClassifier(nn.Module):
 
         if norm_layer_1d is None:
             norm_layer_1d = nn.BatchNorm1d
+
+        self.item = item
+        if item is None:
+            self.forward = self.forward0
+        else:
+            self.forward = self.forward1
 
         self.maxpool = nn.MaxPool2d(kernel_size=2, stride=2, ceil_mode=True)
         self.global_maxpool = nn.AdaptiveMaxPool2d(output_size=(1, 1))
@@ -113,25 +121,18 @@ class ReyMultiClassifier(nn.Module):
 
         self.apply(_init)
 
-    def forward(self, x: Tensor) -> List[Tensor]:
+    def forward0(self, x: Tensor) -> List[Tensor]:
         out = self.block1(x)
         out = self.block2(out)
         shared_features = self.block3(out)
         return [getattr(self, f"item-{i + 1}")(shared_features) for i in range(N_ITEMS)]
 
+    def forward1(self, x: Tensor) -> List[Tensor]:
+        out = self.block1(x)
+        out = self.block2(out)
+        shared_features = self.block3(out)
+        return getattr(self, f"item-{self.item}")(shared_features)
 
-def rey_multiclassifier(num_classes):
-    return ReyMultiClassifier(dropout_rates=_DROPOUT_RATES, num_classes=num_classes)
 
-
-if __name__ == '__main__':
-    import torch
-    import numpy as np
-
-    inputs = torch.from_numpy(np.random.normal(size=(1, 1, 116, 150)))
-    model = rey_multiclassifier(num_classes=4)
-    model.eval()
-    print(model)
-    # with torch.no_grad():
-    outputs = model(inputs.float())
-    print(outputs)
+def rey_multiclassifier(num_classes, item):
+    return ReyMultiClassifier(dropout_rates=_DROPOUT_RATES, num_classes=num_classes, item=item)

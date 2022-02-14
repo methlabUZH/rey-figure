@@ -9,7 +9,7 @@ from tqdm import tqdm
 from src.inference.model_initialization import get_classifiers_checkpoints, init_regressor, init_classifier
 from src.inference.predict import do_score_image
 from constants import RESULTS_DIR, N_ITEMS
-from analyze.failure_success_cases import get_fail_success_instances
+from analyze0.failure_success_cases import get_fail_success_instances
 from src.inference.preprocess import load_and_normalize_image
 
 RESULTS_DIR = os.path.join(RESULTS_DIR, 'scans-2018-116x150-augmented/id-1/')

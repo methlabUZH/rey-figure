@@ -5,7 +5,7 @@ import pandas as pd
 import torch
 
 from constants import *
-from src.utils import map_to_score_grid
+from src.utils import map_to_score_grid, score_to_class
 from src.dataloaders.dataloader_regression import get_regression_dataloader
 
 
@@ -61,6 +61,11 @@ class RegressionEvaluator:
 
         # convert continuous scores to discrete
         predictions_df[column_names] = predictions_df[column_names].applymap(map_to_score_grid)
+
+        # turn scores into classes
+        class_cols = [str(c).replace('score_', 'class_') for c in column_names]
+        predictions_df[class_cols] = predictions_df[column_names].applymap(score_to_class)
+        ground_truths_df[class_cols] = ground_truths_df[column_names].applymap(score_to_class)
 
         # compute total score
         predictions_df['total_score'] = predictions_df[column_names].sum(axis=1)

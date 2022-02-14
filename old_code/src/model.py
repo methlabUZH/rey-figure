@@ -182,7 +182,7 @@ class CNN:
 
         tf.summary.histogram('dense', dense)
 
-        dense_dropped = tf.layers.dropout(dense, rate=self.dropout_ratio, training=self.is_training)
+        dense_dropped = tf.layers.dropout_conv(dense, rate=self.dropout_ratio, training=self.is_training)
 
         if REGRESSOR_MODE:
             if LABEL_FORMAT == 'one-per-item':
