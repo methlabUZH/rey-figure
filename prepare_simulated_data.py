@@ -8,6 +8,7 @@ import pandas as pd
 from tqdm import tqdm
 
 from constants import *
+from src.data_preprocessing.helpers import cutdown
 
 """
 this script is used to serialize simulated data_preprocessing. It is expected that the directory with simulated data_preprocessing is in the data_preprocessing 
@@ -74,14 +75,25 @@ def main(data_root, image_size):
     print(f'saved labels as {labels_df_path}')
 
     # loop through images and process each (currently this is just saving the images as npy files and optional resize)
-    t = tqdm(labels_df.iterrows(), total=len(labels_df), leave=False)
-    for idx, row in t:
+    if image_size is not None:
+        image_size = image_size[::-1]
+
+    progress_bar = tqdm(labels_df.iterrows(), total=len(labels_df), leave=False)
+    for idx, row in progress_bar:
         image = imread(row['image_filepath'], flags=cv2.IMREAD_GRAYSCALE)
+
+        # cutdown
+        image = cutdown(image, threshold=np.percentile(image, 0.1), pad=10)
+
+        # resize
         if image_size is not None:
-            image = resize(image, dsize=image_size[::-1], interpolation=cv2.INTER_AREA)
+            image = resize(image, dsize=image_size, interpolation=cv2.INTER_AREA)
+
         np.save(row['serialized_filepath'], image)
-        t.set_description(f'saved image as {row["serialized_filepath"]}', refresh=True)
+        progress_bar.set_description(f'saved image as {row["serialized_filepath"]}', refresh=True)
 
 
 if __name__ == '__main__':
+    import matplotlib.pyplot as plt
+
     main(data_root=args.data_root, image_size=args.image_size)

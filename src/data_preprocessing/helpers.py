@@ -50,7 +50,7 @@ def undo_normalization(img):
     return img
 
 
-def cutdown(img, threshold=0.94):
+def cutdown(img, threshold=0.94, pad=0):
     threshold = threshold + 10 * np.finfo(float).eps
     i = 0
     while np.min(img[i, :]) > threshold:
@@ -58,7 +58,7 @@ def cutdown(img, threshold=0.94):
         if i >= np.shape(img)[0]:
             i = 0
             break
-    img = img[i:, :]
+    img = img[max(0, i - pad):, :]
 
     i = 0
     while np.min(img[np.shape(img)[0] - 1 - i, :]) > threshold:
@@ -66,7 +66,7 @@ def cutdown(img, threshold=0.94):
         if i >= np.shape(img)[0]:
             i = 0
             break
-    img = img[0:np.shape(img)[0] - i, :]
+    img = img[0:np.shape(img)[0] - max(i - pad, 0), :]
 
     i = 0
     while np.min(img[:, i]) > threshold:
@@ -74,7 +74,7 @@ def cutdown(img, threshold=0.94):
         if i >= np.shape(img)[1]:
             i = 0
             break
-    img = img[:, i:]
+    img = img[:, max(i - pad, 0):]
 
     i = 0
     while np.min(img[:, np.shape(img)[1] - 1 - i]) > threshold:
@@ -82,7 +82,7 @@ def cutdown(img, threshold=0.94):
         if i >= np.shape(img)[1]:
             i = 0
             break
-    img = img[:, 0:np.shape(img)[1] - i]
+    img = img[:, 0:np.shape(img)[1] - max(i - pad, 0)]
 
     return img
 

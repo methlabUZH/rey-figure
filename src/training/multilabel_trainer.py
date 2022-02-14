@@ -192,9 +192,6 @@ class MultilabelTrainer:
                     self.confusion_matrices[ii]['true_negatives'] += sum(
                         (1 - pred_classes) * (1 - targets_batch[:, ii]))
 
-            if i > 2:
-                break
-
         return self.on_end_epoch(is_train=is_train)
 
     def forward_step(self, inputs, targets, is_train):

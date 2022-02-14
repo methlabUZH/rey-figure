@@ -101,12 +101,3 @@ class ROCFDatasetMultiLabelClassification(Dataset):
     @property
     def jpeg_filepaths(self):
         return self._images_jpeg
-
-
-if __name__ == '__main__':
-    root = '/Users/maurice/phd/src/rey-figure/data/serialized-data/simulated'
-    labels_csv = os.path.join(root, 'simulated_labels.csv')
-    labels_df = pd.read_csv(labels_csv)
-    ds = ROCFDatasetMultiLabelClassification(data_root=root, labels_df=labels_df)
-    print(np.shape(ds[0][0]))
-
