@@ -77,7 +77,8 @@ class ROCFDatasetMultiLabelClassification(Dataset):
 
     def __getitem__(self, idx):
         # load and normalize image
-        torch_image = torch.from_numpy(np.load(self._images_npy[idx])[np.newaxis, :])
+        numpy_image = np.load(self._images_npy[idx]).astype(float)[np.newaxis, :]
+        torch_image = torch.from_numpy(numpy_image)
         image = self._transform(torch_image)
 
         # load labels
@@ -101,10 +102,11 @@ class ROCFDatasetMultiLabelClassification(Dataset):
     def jpeg_filepaths(self):
         return self._images_jpeg
 
-# if __name__ == '__main__':
-#     root = '/Users/maurice/phd/src/rey-figure/data/serialized-data/scans-2018-116x150'
-#     labels_csv = os.path.join(root, 'train_labels.csv')
-#     labels_df = pd.read_csv(labels_csv)
-#     ds = ROCFDatasetMultiLabelClassification(data_root=root, labels_df=labels_df)
-#     print(ds[0])
-#
+
+if __name__ == '__main__':
+    root = '/Users/maurice/phd/src/rey-figure/data/serialized-data/simulated'
+    labels_csv = os.path.join(root, 'simulated_labels.csv')
+    labels_df = pd.read_csv(labels_csv)
+    ds = ROCFDatasetMultiLabelClassification(data_root=root, labels_df=labels_df)
+    print(np.shape(ds[0][0]))
+

@@ -2,6 +2,7 @@ import argparse
 import random
 import sys
 import numpy as np
+import os
 import pandas as pd
 import json
 
@@ -20,6 +21,7 @@ _SEED = 7
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR, required=False)
 parser.add_argument('--results-dir', type=str, default='./temp', required=False)
+parser.add_argument('--simulated-data', type=str, default=None, required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--arch', type=str, default=WIDE_RESNET50_2, required=False)
 parser.add_argument('--is_binary', type=int, default=0, choices=[0, 1])
@@ -63,6 +65,11 @@ def main():
 
     # split df into validation and train parts
     train_labels, val_labels = train_val_split(labels_df, fraction=_VAL_FRACTION)
+
+    # include simulated data
+    if args.simulated_data is not None:
+        sim_df = pd.read_csv(args.simulated_data)
+        train_labels = pd.concat([train_labels, sim_df], ignore_index=True)
 
     # get train dataloader
     train_loader = get_item_classification_dataloader(args.item, args.data_root, labels_df=train_labels,

@@ -20,6 +20,7 @@ _SEED = 7
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR, required=False)
 parser.add_argument('--results-dir', type=str, default='./temp', required=False)
+parser.add_argument('--simulated-data', type=str, default=None, required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--eval-test', action='store_true')
 parser.add_argument('--id', default='debug', type=str)
@@ -61,6 +62,11 @@ def main():
 
     # split df into validation and train parts
     train_labels, val_labels = train_val_split(labels_df, fraction=_VAL_FRACTION)
+
+    # include simulated data
+    if args.simulated_data is not None:
+        sim_df = pd.read_csv(args.simulated_data)
+        train_labels = pd.concat([train_labels, sim_df], ignore_index=True)
 
     # get train dataloader
     train_loader = get_regression_dataloader(args.data_root, labels_df=train_labels, batch_size=args.batch_size,

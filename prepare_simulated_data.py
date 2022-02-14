@@ -7,6 +7,8 @@ import os
 import pandas as pd
 from tqdm import tqdm
 
+from constants import *
+
 """
 this script is used to serialize simulated data_preprocessing. It is expected that the directory with simulated data_preprocessing is in the data_preprocessing 
 root (see structure in prepare_data.py) and has the following contents: 
@@ -24,8 +26,8 @@ root (see structure in prepare_data.py) and has the following contents:
 
 # setup arg parser
 parser = argparse.ArgumentParser()
-parser.add_argument('--data_preprocessing-root', type=str, required=False, default='../data_preprocessing')
-parser.add_argument('--image-size', nargs='+', default=(280, 200), help='height and width', type=int)
+parser.add_argument('--data-root', type=str, required=False, default='../data')
+parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
 args = parser.parse_args()
 
 DATA_DIRS_AND_LABELS = [
@@ -35,13 +37,14 @@ DATA_DIRS_AND_LABELS = [
     ('warped_figures_distorted_placed_correctly', 'ScoresDistortedPlacedCorrectly_WARPED.csv')
 ]
 
-LABEL_DF_COLUMNS = ['image_file', 'image_file_serialized', 'total_score'] + [str(i) for i in range(1, 19)]
+LABEL_DF_COLUMNS = ['image_filepath', 'serialized_filepath', 'summed_score']
+LABEL_DF_COLUMNS += [f"score_item_{i + 1}" for i in range(N_ITEMS)]
 
 
 def main(data_root, image_size):
     data_root = os.path.abspath(data_root)
     simulated_data_dir = os.path.join(data_root, 'simulated/')
-    serialized_dir = os.path.join(data_root, f'serialized-data_preprocessing/simulated')
+    serialized_dir = os.path.join(data_root, f'serialized-data/simulated')
 
     # mirror dir structure in serialized dir
     for data_dir, _ in DATA_DIRS_AND_LABELS:
@@ -53,12 +56,19 @@ def main(data_root, image_size):
     labels_df = pd.DataFrame(columns=LABEL_DF_COLUMNS)
     for data_dir, csv_file in DATA_DIRS_AND_LABELS:
         df = pd.read_csv(os.path.join(simulated_data_dir, csv_file))
-        df = df.rename(columns={'tot_score': 'total_score'})
         df['image_file'] = df['NAME'].apply(lambda fn: os.path.join(simulated_data_dir, data_dir, fn))
         df['image_file_serialized'] = df['NAME'].apply(lambda fn: os.path.join(
             serialized_dir, data_dir, str(fn).replace('.jpg', '.npy')))
+        df = df.rename(columns={'tot_score': 'summed_score',
+                                'image_file': 'image_filepath',
+                                'image_file_serialized': 'serialized_filepath',
+                                **{str(i + 1): f"score_item_{i + 1}" for i in range(N_ITEMS)}})
         labels_df = pd.concat([labels_df, df.drop(columns='NAME')], ignore_index=True)
 
+    labels_df['augmented'] = False
+    labels_df['median_score'] = labels_df.loc[:, ['summed_score']]
+    labels_df['figure_id'] = labels_df.loc[:, ["image_filepath"]].applymap(
+        lambda s: os.path.splitext(os.path.split(s)[-1])[0])
     labels_df_path = os.path.join(serialized_dir, 'simulated_labels.csv')
     labels_df.to_csv(labels_df_path)
     print(f'saved labels as {labels_df_path}')
@@ -66,11 +76,11 @@ def main(data_root, image_size):
     # loop through images and process each (currently this is just saving the images as npy files and optional resize)
     t = tqdm(labels_df.iterrows(), total=len(labels_df), leave=False)
     for idx, row in t:
-        image = imread(row['image_file'], flags=cv2.IMREAD_GRAYSCALE)
+        image = imread(row['image_filepath'], flags=cv2.IMREAD_GRAYSCALE)
         if image_size is not None:
-            image = resize(image, dsize=image_size, interpolation=cv2.INTER_AREA)
-        np.save(row['image_file_serialized'], image)
-        t.set_description(f'saved image as {row["image_file_serialized"]}', refresh=True)
+            image = resize(image, dsize=image_size[::-1], interpolation=cv2.INTER_AREA)
+        np.save(row['serialized_filepath'], image)
+        t.set_description(f'saved image as {row["serialized_filepath"]}', refresh=True)
 
 
 if __name__ == '__main__':

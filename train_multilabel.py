@@ -22,12 +22,13 @@ _SEED = 7
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR, required=False)
 parser.add_argument('--results-dir', type=str, default='./temp', required=False)
+parser.add_argument('--simulated-data', type=str, default=None, required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--is_binary', type=int, default=0, choices=[0, 1])
 parser.add_argument('--eval-test', action='store_true')
 parser.add_argument('--id', default='debug', type=str)
-parser.add_argument('--epochs', default=75, type=int, help='number of total epochs to run')
-parser.add_argument('--batch-size', default=64, type=int, help='train batch size (default: 64)')
+parser.add_argument('--epochs', default=1, type=int, help='number of total epochs to run')
+parser.add_argument('--batch-size', default=4, type=int, help='train batch size (default: 64)')
 parser.add_argument('--lr', '--learning-rate', default=0.01, type=float, help='initial learning rate')
 parser.add_argument('--gamma', type=float, default=0.95, help='learning rate decay factor')
 parser.add_argument('--wd', '--weight-decay', type=float, default=0)
@@ -64,6 +65,11 @@ def main():
 
     # split df into validation and train parts
     train_labels, val_labels = train_val_split(labels_df, fraction=_VAL_FRACTION)
+
+    # include simulated data
+    if args.simulated_data is not None:
+        sim_df = pd.read_csv(args.simulated_data)
+        train_labels = pd.concat([train_labels, sim_df], ignore_index=True)
 
     # get train dataloader
     train_loader = get_multilabel_dataloader(args.data_root, labels_df=train_labels, batch_size=args.batch_size,
