@@ -94,6 +94,4 @@ def main(data_root, image_size):
 
 
 if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-
     main(data_root=args.data_root, image_size=args.image_size)
