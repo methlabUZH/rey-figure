@@ -10,13 +10,6 @@ from src.inference.preprocess import preprocess_image_v0
 from src.models import get_classifier, get_regressor
 
 
-def _postprocess_logits(logits):
-    item_classes = np.argmax(np.concatenate([lgt.cpu().numpy() for lgt in logits]), axis=1)
-    item_scores = {f'item{i + 1}': s for i, s, in enumerate(map(class_to_score, item_classes))}
-    total_score = sum(item_scores.values())
-    return item_scores, total_score
-
-
 class PredictorBase:
 
     def __init__(self, results_dir):
@@ -95,15 +88,3 @@ class Regressor(PredictorBase):
         scores = {f'item{i + 1}': s for i, s, in enumerate(map(map_to_score_grid, item_scores))}
         scores['total_score'] = sum(scores.values())
         return scores
-
-
-if __name__ == '__main__':
-    image_fp = "./sample_data/REF_147_NaN_ROCF_Puerto_Rico_Children-104.jpg"
-    ckpt_root = 'results/euler-results/data-2018-2021-116x150-pp0/final/'
-    ml_predictor = MultilabelClassifier(results_dir=ckpt_root + 'rey-multilabel-classifier')
-    ml_scores, true_scores = ml_predictor.predict(image_filepath=image_fp)
-    reg_predictor = Regressor(results_dir=ckpt_root + 'rey-regressor')
-    reg_scores, _ = reg_predictor.predict(image_filepath=image_fp)
-    print(f'Ground Truth Scores: {true_scores}')
-    print(f'Multilabel Scores: {ml_scores}')
-    print(f'Regression Scores: {reg_scores}')
