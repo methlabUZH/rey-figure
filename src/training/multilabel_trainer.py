@@ -3,6 +3,7 @@ import shutil
 import time
 from typing import List, Tuple
 import numpy as np
+import os
 import pandas as pd
 from tabulate import tabulate
 
@@ -190,6 +191,9 @@ class MultilabelTrainer:
                     self.confusion_matrices[ii]['false_negatives'] += sum((1 - pred_classes) * targets_batch[:, ii])
                     self.confusion_matrices[ii]['true_negatives'] += sum(
                         (1 - pred_classes) * (1 - targets_batch[:, ii]))
+
+            if i > 2:
+                break
 
         return self.on_end_epoch(is_train=is_train)
 

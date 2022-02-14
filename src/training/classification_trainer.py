@@ -2,13 +2,13 @@ import copy
 import shutil
 import time
 import numpy as np
+import os
 
 import torch
 import torch.backends.cudnn as cudnn
 from torch import optim
 from torch.utils.tensorboard import SummaryWriter
 
-from constants import *
 from src.training.train_utils import AverageMeter, accuracy
 from src.utils import timestamp_human
 
