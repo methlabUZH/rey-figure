@@ -54,9 +54,10 @@ def assign_bin(x, bin_locations):
     return np.digitize(x, bin_locations, right=True)
 
 
-def init_mpl(sns_style="whitegrid", fontsize=16, grid_lw=1.0):
+def init_mpl(sns_style="whitegrid", colorpalette='muted', fontsize=16, grid_lw=1.0):
     sns.set_style(sns_style)
-    colors = sns.color_palette('muted')
+    sns.set_palette(colorpalette)
+    colors = sns.color_palette(colorpalette)
     mpl.rcParams["font.family"] = "Times New Roman"
     mpl.rcParams["mathtext.fontset"] = "stix"
     mpl.rcParams["font.size"] = fontsize
