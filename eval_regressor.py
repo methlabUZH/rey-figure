@@ -8,13 +8,14 @@ from tabulate import tabulate
 
 from constants import *
 from src.training.train_utils import Logger
-from src.models import get_regressor
+from src.models import get_regressor, get_regressor_v2
 from src.evaluate import RegressionEvaluator
 from src.evaluate.utils import *
 
 # setup arg parser
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default='')
+parser.add_argument('--arch', type=str, default='v1', required=False)
 parser.add_argument('--results-dir', type=str, default='')
 parser.add_argument('--batch-size', default=4, type=int)
 parser.add_argument('--workers', default=8, type=int)
@@ -28,7 +29,13 @@ def main():
     # save terminal output to file
     sys.stdout = Logger(print_fp=os.path.join(args.results_dir, 'eval_out.txt'))
 
-    model = get_regressor()
+    if args.arch == 'v1':
+        model = get_regressor()
+    elif args.arch == 'v2':
+        model = get_regressor_v2()
+    else:
+        raise ValueError(f'unknown arch version {args.arch}')
+
     evaluator = RegressionEvaluator(model=model, results_dir=args.results_dir, data_dir=args.data_root,
                                     batch_size=args.batch_size, workers=args.workers)
     evaluator.run_eval(save=True)

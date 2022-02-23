@@ -23,6 +23,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR, required=False)
 parser.add_argument('--results-dir', type=str, default='./temp', required=False)
 parser.add_argument('--simulated-data', type=str, default=None, required=False)
+parser.add_argument('--max-simulated', type=int, default=-1, required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--is_binary', type=int, default=0, choices=[0, 1])
 parser.add_argument('--eval-test', action='store_true')
@@ -69,6 +70,11 @@ def main():
     # include simulated data
     if args.simulated_data is not None:
         sim_df = pd.read_csv(args.simulated_data)
+
+        # subsamble simulated data
+        if args.max_simulated > 0:
+            sim_df = sim_df.sample(n=args.max_simulated)
+
         train_labels = pd.concat([train_labels, sim_df], ignore_index=True)
 
     # get train dataloader

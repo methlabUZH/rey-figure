@@ -10,49 +10,59 @@ from src.utils import init_mpl
 init_mpl(sns_style='ticks', colorpalette='muted')
 
 
-def main(results_dir_reg, results_dir_mlc, results_dir_mlc_sim, save_as=None):
-    # compute number of misclassified items for each sample for multilabel classifier with simulations
-    predictions_mlc_sim = pd.read_csv(os.path.join(results_dir_mlc_sim, 'test_predictions.csv'))
-    ground_truths_mlc_sim = pd.read_csv(os.path.join(results_dir_mlc_sim, 'test_ground_truths.csv'))
-    predictions_mlc_sim, labels_mlc_sim = compute_quantiles(predictions_mlc_sim, ground_truths_mlc_sim)
+def get_predictions_model_comparison(results_dir_reg_v1, results_dir_mlc, results_dir_reg_v2):
+    predictions_reg_v2 = pd.read_csv(os.path.join(results_dir_reg_v2, 'test_predictions.csv'))
+    ground_truths_reg_v2 = pd.read_csv(os.path.join(results_dir_reg_v2, 'test_ground_truths.csv'))
+    predictions_reg_v2, labels_reg_v2 = compute_quantiles_figures(predictions_reg_v2, ground_truths_reg_v2)
 
-    # compute number of misclassified items for each sample for multilabel classifier
     predictions_mlc = pd.read_csv(os.path.join(results_dir_mlc, 'test_predictions.csv'))
     ground_truths_mlc = pd.read_csv(os.path.join(results_dir_mlc, 'test_ground_truths.csv'))
-    predictions_mlc, labels_mlc = compute_quantiles(predictions_mlc, ground_truths_mlc)
+    predictions_mlc, labels_mlc = compute_quantiles_figures(predictions_mlc, ground_truths_mlc)
 
-    # compute number of misclassified items for each sample for regressor
-    predictions_reg = pd.read_csv(os.path.join(results_dir_reg, 'test_predictions.csv'))
-    ground_truths_reg = pd.read_csv(os.path.join(results_dir_reg, 'test_ground_truths.csv'))
-    predictions_reg, labels_reg = compute_quantiles(predictions_reg, ground_truths_reg)
+    predictions_reg_v1 = pd.read_csv(os.path.join(results_dir_reg_v1, 'test_predictions.csv'))
+    ground_truths_reg_v1 = pd.read_csv(os.path.join(results_dir_reg_v1, 'test_ground_truths.csv'))
+    predictions_reg_v1, labels_reg_v1 = compute_quantiles_figures(predictions_reg_v1, ground_truths_reg_v1)
 
-    fig, axes = plt.subplots(nrows=1, ncols=3, sharey=True, figsize=(15, 5))
+    return [(predictions_mlc, labels_mlc, 'Multilabel Classsifier'),
+            (predictions_reg_v1, labels_reg_v1, 'Regression-V1'),
+            (predictions_reg_v2, labels_reg_v2, 'Regression-V2')]
 
-    sns.boxenplot(x='n_miscl_quantile', y='true_total_score', data=predictions_mlc_sim, order=labels_mlc_sim,
-                  ax=axes[0])
-    axes[0].set_ylabel('Total Score')
-    axes[0].set_xlabel('# Misclassified Items')
-    axes[0].set_title('Multilabel Classifier w/ Simulated Data')
 
-    sns.boxenplot(x='n_miscl_quantile', y='true_total_score', data=predictions_mlc, order=labels_mlc, ax=axes[1])
-    axes[1].set_ylabel('')
-    axes[1].set_xlabel('# Misclassified Items')
-    axes[1].set_title('Multilabel Classifier')
-    axes[1].tick_params(colors='white', which='both', axis='y')
+def get_predictions_data_comparison(results_dir0, results_dir_sim):
+    predictions_sim = pd.read_csv(os.path.join(results_dir_sim, 'test_predictions.csv'))
+    ground_truths_sim = pd.read_csv(os.path.join(results_dir_sim, 'test_ground_truths.csv'))
+    predictions_sim, labels_sim = compute_quantiles_figures(predictions_sim, ground_truths_sim)
 
-    sns.boxenplot(x='n_miscl_quantile', y='true_total_score', data=predictions_reg, order=labels_reg, ax=axes[2])
-    axes[2].set_ylabel('')
-    axes[2].set_xlabel('# Misclassified Items')
-    axes[2].set_title('Regression')
-    axes[2].tick_params(colors='white', which='both', axis='y')
+    predictions0 = pd.read_csv(os.path.join(results_dir0, 'test_predictions.csv'))
+    ground_truths0 = pd.read_csv(os.path.join(results_dir0, 'test_ground_truths.csv'))
+    predictions0, labels_reg0 = compute_quantiles_figures(predictions0, ground_truths0)
 
-    sns.despine(offset=10, trim=False, ax=axes[0])
-    sns.despine(offset=10, trim=False, left=True, ax=axes[1])
-    sns.despine(offset=10, trim=False, left=True, ax=axes[2])
+    return [(predictions_sim, labels_sim, 'Real Data'), (predictions0, labels_reg0, 'Real Data + Simulated')]
 
-    axes[0].grid(axis='y')
-    axes[1].grid(axis='y')
-    axes[2].grid(axis='y')
+
+def make_plot(predictions_list, save_as=None, kind='boxen'):
+    fig, axes = plt.subplots(nrows=1, ncols=len(predictions_list), sharey=True, figsize=(15, 5))
+
+    for i, ((predictions, labels, title), ax) in enumerate(zip(predictions_list, axes)):
+        if kind == 'boxen':
+            sns.boxenplot(x='n_miscl_quantile', y='true_total_score', data=predictions, order=labels, ax=ax)
+        elif kind == 'violin':
+            sns.violinplot(x='n_miscl_quantile', y='true_total_score', data=predictions, order=labels, ax=ax, cut=0,
+                           width=1.0)
+        else:
+            raise ValueError
+
+        if i == 0:
+            ax.set_ylabel('Total Score')
+            sns.despine(offset=10, trim=False, ax=ax)
+        else:
+            ax.tick_params(colors='white', which='both', axis='y')
+            ax.set_ylabel('')
+            sns.despine(offset=10, trim=False, left=True, ax=ax)
+
+        ax.set_xlabel('Quartiles (# Misclassified Items)')
+        ax.set_title(title)
+        ax.grid(axis='y')
 
     if save_as is not None:
         plt.savefig(save_as, bbox_inches='tight', pad_inches=0.1, dpi=100)
@@ -64,7 +74,7 @@ def main(results_dir_reg, results_dir_mlc, results_dir_mlc_sim, save_as=None):
     plt.close()
 
 
-def compute_quantiles(predictions, ground_truths) -> Tuple[pd.DataFrame, List[str]]:
+def compute_quantiles_figures(predictions, ground_truths) -> Tuple[pd.DataFrame, List[str]]:
     # compute number of misclassifications for each sample
     class_columns = [f'class_item_{i + 1}' for i in range(18)]
     predictions['num_miscl'] = np.sum(
@@ -83,9 +93,17 @@ def compute_quantiles(predictions, ground_truths) -> Tuple[pd.DataFrame, List[st
 
 
 if __name__ == '__main__':
-    results_root = './results/euler-results/data-2018-2021-116x150-pp0/'
-    main(results_dir_reg=results_root + 'final/rey-regressor',
-         results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
-         results_dir_mlc_sim=results_root + 'final-simulated/rey-multilabel-classifier',
-         save_as='./analyze/figures/score_quantiles_plot.pdf'
-         )
+    results_root = '../results/euler-results/data-2018-2021-116x150-pp0/'
+
+    # model comparison plots -------------------------------------------------------------------------------------------
+    preds_list = get_predictions_model_comparison(
+        results_dir_reg_v1=results_root + 'final/rey-regressor',
+        results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
+        results_dir_reg_v2=results_root + 'final/rey-regressor-v2')
+    make_plot(preds_list, save_as=None, kind='violin')
+
+    # data comparison plots -------------------------------------------------------------------------------------------
+    preds_list = get_predictions_data_comparison(
+        results_dir0=results_root + 'final/rey-regressor-v2',
+        results_dir_sim=results_root + 'final/rey-multilabel-classifier')
+    make_plot(preds_list, save_as=None, kind='violin')

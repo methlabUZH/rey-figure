@@ -78,7 +78,7 @@ class ROCFDatasetMultiLabelClassification(Dataset):
     def __getitem__(self, idx):
         # load and normalize image
         numpy_image = np.load(self._images_npy[idx]).astype(float)[np.newaxis, :]
-        torch_image = torch.from_numpy(numpy_image)
+        torch_image = torch.from_numpy(numpy_image).type('torch.FloatTensor')
         image = self._transform(torch_image)
 
         # load labels

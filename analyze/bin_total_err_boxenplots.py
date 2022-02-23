@@ -14,13 +14,7 @@ colors = init_mpl(sns_style='ticks', colorpalette='muted')
 _BIN_LOCATIONS = BIN_LOCATIONS3_V2
 
 
-def main(results_dir_reg, results_dir_mlc, results_dir_mlc_sim, quantity='num_misclassified',
-         ylabel='# Mislcassified Items', save_as=None, outliers=True, tickbase=1.0):
-    # compute number of misclassified items for each sample for multilabel classifier
-    predictions_mlc_sim = pd.read_csv(os.path.join(results_dir_mlc_sim, 'test_predictions.csv'))
-    ground_truths_mlc_sim = pd.read_csv(os.path.join(results_dir_mlc_sim, 'test_ground_truths.csv'))
-    predictions_mlc_sim, _ = compute_item_error_rates(predictions_mlc_sim, ground_truths_mlc_sim, quantity)
-
+def model_comparison_predictions(results_dir_reg, results_dir_mlc, results_dir_reg_v2, quantity='num_misclassified'):
     # compute number of misclassified items for each sample for multilabel classifier
     predictions_mlc = pd.read_csv(os.path.join(results_dir_mlc, 'test_predictions.csv'))
     ground_truths_mlc = pd.read_csv(os.path.join(results_dir_mlc, 'test_ground_truths.csv'))
@@ -31,35 +25,35 @@ def main(results_dir_reg, results_dir_mlc, results_dir_mlc_sim, quantity='num_mi
     ground_truths_reg = pd.read_csv(os.path.join(results_dir_reg, 'test_ground_truths.csv'))
     predictions_reg, labels = compute_item_error_rates(predictions_reg, ground_truths_reg, quantity)
 
+    # compute number of misclassified items for each sample for regressor-v2
+    predictions_reg_v2 = pd.read_csv(os.path.join(results_dir_reg_v2, 'test_predictions.csv'))
+    ground_truths_reg_v2 = pd.read_csv(os.path.join(results_dir_reg_v2, 'test_ground_truths.csv'))
+    predictions_reg_v2, _ = compute_item_error_rates(predictions_reg_v2, ground_truths_reg_v2, quantity)
+
     # merde dataframes
-    predictions_reg['model'] = ['Regression'] * len(predictions_reg)
-    predictions_mlc['model'] = ['Multilabel Classifier'] * len(predictions_mlc)
-    predictions_mlc_sim['model'] = ['Multilabel Classifier w/ Simulated Data'] * len(predictions_mlc_sim)
-    predictions = pd.concat([predictions_reg, predictions_mlc, predictions_mlc_sim])
-    fig = plt.figure(figsize=(20, 5))
-    ax = sns.boxenplot(x='Total Score Bin', y=quantity, hue='model', data=predictions, showfliers=outliers,
-                       order=labels,
-                       hue_order=['Multilabel Classifier w/ Simulated Data', 'Multilabel Classifier', 'Regression'])
+    predictions_reg['hue_id'] = ['Regression-V1'] * len(predictions_reg)
+    predictions_mlc['hue_id'] = ['Multilabel Classifier'] * len(predictions_mlc)
+    predictions_reg_v2['hue_id'] = ['Regression-V2'] * len(predictions_reg_v2)
 
-    # modify legend
-    ax.get_legend().remove()
-    handles, labels = ax.get_legend_handles_labels()
-    fig.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(.5, 0.98), fancybox=False)
+    return pd.concat([predictions_reg, predictions_mlc, predictions_reg_v2]), labels
 
-    ax.set_ylabel(ylabel)
-    loc = plticker.MultipleLocator(base=tickbase)
-    ax.yaxis.set_major_locator(loc)
-    sns.despine(offset=10, trim=True)
-    ax.grid(axis='y')
 
-    if save_as is not None:
-        plt.savefig(save_as, bbox_inches='tight', pad_inches=0.1, dpi=100)
-        print(f'saved figure as {save_as}')
-        plt.close(fig)
-        return
+def data_comparison_predictoins(results_dir, results_dir_sim, quantity='num_misclassified'):
+    # compute number of misclassified items for each sample for multilabel classifier
+    predictions0 = pd.read_csv(os.path.join(results_dir, 'test_predictions.csv'))
+    ground_truths0 = pd.read_csv(os.path.join(results_dir, 'test_ground_truths.csv'))
+    predictions0, _ = compute_item_error_rates(predictions0, ground_truths0, quantity)
 
-    plt.show()
-    plt.close(fig)
+    # compute number of misclassified items for each sample for regressor
+    predictions_sim = pd.read_csv(os.path.join(results_dir_sim, 'test_predictions.csv'))
+    ground_truths_sim = pd.read_csv(os.path.join(results_dir_sim, 'test_ground_truths.csv'))
+    predictions_sim, labels = compute_item_error_rates(predictions_sim, ground_truths_sim, quantity)
+
+    # merde dataframes
+    predictions0['hue_id'] = ['Real Data'] * len(predictions0)
+    predictions_sim['hue_id'] = ['Real Data + Simulated'] * len(predictions_sim)
+
+    return pd.concat([predictions0, predictions_sim]), labels
 
 
 def compute_item_error_rates(predictions, ground_truths, quantity) -> Tuple[pd.DataFrame, List[str]]:
@@ -84,18 +78,82 @@ def compute_item_error_rates(predictions, ground_truths, quantity) -> Tuple[pd.D
     return predictions, labels
 
 
+def make_plot(predictions, kind, labels, quantity, ylabel, hue_order, outliers=True, tickbase=1.0, save_as=None):
+    fig = plt.figure(figsize=(20, 5))
+    if kind == 'boxen':
+        ax = sns.boxenplot(x='Total Score Bin', y=quantity, hue='hue_id', data=predictions, showfliers=outliers,
+                           order=labels, hue_order=hue_order)
+
+    elif kind == 'violin':
+        ax = sns.violinplot(x='Total Score Bin', y=quantity, hue='hue_id', data=predictions, order=labels,
+                            kind='violin', bw=0.4,
+                            height=5, aspect=4, legend=False, cut=0, inner='box',
+                            hue_order=hue_order)
+
+    else:
+        raise ValueError
+
+    # remove legend
+    ax.get_legend().remove()
+    handles, labels = ax.get_legend_handles_labels()
+    fig.legend(handles, labels, loc='upper center', ncol=3, bbox_to_anchor=(.5, .98), fancybox=False)
+
+    ax.set_ylabel(ylabel)
+    loc = plticker.MultipleLocator(base=tickbase)
+    ax.yaxis.set_major_locator(loc)
+    sns.despine(offset=10, trim=True)
+    ax.grid(axis='y')
+
+    if save_as is not None:
+        plt.savefig(save_as, bbox_inches='tight', pad_inches=0.1, dpi=100)
+        print(f'saved figure as {save_as}')
+        plt.close()
+        return
+
+    fig.tight_layout()
+    plt.show()
+    plt.clf()
+    plt.close()
+
+
 if __name__ == '__main__':
     results_root = '../results/euler-results/data-2018-2021-116x150-pp0/'
-    main(results_dir_reg=results_root + 'final/rey-regressor',
-         results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
-         results_dir_mlc_sim=results_root + 'final-simulated/rey-multilabel-classifier',
-         quantity='num_misclassified', ylabel='# Misclassified Items', outliers=True, tickbase=2.0,
-         save_as='./figures/num_miscl_boxen_binned.pdf'
-         )
 
-    main(results_dir_reg=results_root + 'final/rey-regressor',
-         results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
-         results_dir_mlc_sim=results_root + 'final-simulated/rey-multilabel-classifier',
-         quantity='total_score_absolute_error', ylabel='Total Score Absolute Error', outliers=False, tickbase=1.0,
-         save_as='./figures/abs_err_boxen_binned.pdf'
-         )
+    # num misclassified plots ------------------------------------------------------------------------------------------
+    # save_as='./figures/num_miscl_violin_binned.pdf'
+    save_as = None
+    preds, labels = model_comparison_predictions(results_dir_reg=results_root + 'final/rey-regressor',
+                                                 results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
+                                                 results_dir_reg_v2=results_root + 'final/rey-regressor-v2',
+                                                 quantity='num_misclassified')
+    make_plot(preds, kind='violin', labels=labels, quantity='num_misclassified', ylabel='# Misclassified Items',
+              outliers=True, tickbase=2.0, save_as=save_as,
+              hue_order=['Multilabel Classifier', 'Regression-V1', 'Regression-V2'])
+
+    # save_as='./figures/num_miscl_violin_binned.pdf'
+    save_as = None
+    preds, labels = model_comparison_predictions(results_dir_reg=results_root + 'final/rey-regressor',
+                                                 results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
+                                                 results_dir_reg_v2=results_root + 'final/rey-regressor-v2',
+                                                 quantity='total_score_absolute_error')
+    make_plot(preds, kind='violin', labels=labels, quantity='total_score_absolute_error',
+              ylabel='Total Score Absolute Error', outliers=True, tickbase=2.0, save_as=save_as,
+              hue_order=['Multilabel Classifier', 'Regression-V1', 'Regression-V2'])
+
+    # data comparison --------------------------------------------------------------------------------------------------
+    # save_as='./figures/---.pdf'
+    save_as = None
+    preds, labels = data_comparison_predictoins(results_dir=results_root + 'final/rey-regressor-v2',
+                                                results_dir_sim=results_root + 'final-simulated/rey-regressor-v2',
+                                                quantity='num_misclassified')
+    make_plot(preds, kind='violin', labels=labels, quantity='num_misclassified', ylabel='# Misclassified Items',
+              outliers=True, tickbase=2.0, save_as=save_as, hue_order=['Real Data', 'Real Data + Simulated'])
+
+    # save_as='./figures/----.pdf'
+    save_as = None
+    preds, labels = data_comparison_predictoins(results_dir=results_root + 'final/rey-regressor-v2',
+                                                results_dir_sim=results_root + 'final-simulated/rey-regressor-v2',
+                                                quantity='total_score_absolute_error')
+    make_plot(preds, kind='violin', labels=labels, quantity='total_score_absolute_error',
+              ylabel='Total Score Absolute Error', outliers=True, tickbase=2.0, save_as=save_as,
+              hue_order=['Real Data', 'Real Data + Simulated'])

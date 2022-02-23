@@ -68,7 +68,7 @@ class ROCFDatasetRegression(Dataset):
 
     def __getitem__(self, idx):
         # load and normalize image
-        torch_image = torch.from_numpy(np.load(self._images_npy[idx])[np.newaxis, :])
+        torch_image = torch.from_numpy(np.load(self._images_npy[idx])[np.newaxis, :]).type('torch.FloatTensor')
         image = self._transform(torch_image)
 
         # load labels

@@ -11,7 +11,7 @@ import torch
 from constants import *
 from src.dataloaders.dataloader_regression import get_regression_dataloader
 from src.training.train_utils import directory_setup, Logger, train_val_split
-from src.models import get_regressor
+from src.models import get_regressor, get_regressor_v2
 from src.training.regression_trainer import RegressionTrainer
 
 _VAL_FRACTION = 0.2
@@ -19,8 +19,11 @@ _SEED = 7
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR, required=False)
+parser.add_argument('--arch', type=str, default='v1', required=False)
 parser.add_argument('--results-dir', type=str, default='./temp', required=False)
-parser.add_argument('--simulated-data', type=str, default=None, required=False)
+parser.add_argument('--simulated-data', type=str, default='../data/serialized-data/simulated/simulated_labels.csv',
+                    required=False)
+parser.add_argument('--max-simulated', type=int, default=-1, required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--eval-test', action='store_true')
 parser.add_argument('--id', default='debug', type=str)
@@ -44,7 +47,7 @@ if USE_CUDA:
 def main():
     # setup dirs
     dataset_name = os.path.split(os.path.normpath(args.data_root))[-1]
-    results_dir, checkpoints_dir = directory_setup(model_name=REYREGRESSOR,
+    results_dir, checkpoints_dir = directory_setup(model_name=REYREGRESSOR + f'-{args.arch}',
                                                    dataset=dataset_name,
                                                    results_dir=args.results_dir,
                                                    train_id=args.id)
@@ -66,6 +69,11 @@ def main():
     # include simulated data
     if args.simulated_data is not None:
         sim_df = pd.read_csv(args.simulated_data)
+
+        # subsamble simulated data
+        if args.max_simulated > 0:
+            sim_df = sim_df.sample(n=args.max_simulated)
+
         train_labels = pd.concat([train_labels, sim_df], ignore_index=True)
 
     # get train dataloader
@@ -77,7 +85,13 @@ def main():
     val_loader = get_regression_dataloader(args.data_root, labels_df=val_labels, batch_size=args.batch_size,
                                            num_workers=args.workers, shuffle=False)
 
-    model = get_regressor()
+    if args.arch == 'v1':
+        model = get_regressor()
+    elif args.arch == 'v2':
+        model = get_regressor_v2()
+    else:
+        raise ValueError(f'unknown arch version {args.arch}')
+
     criterion = torch.nn.MSELoss(reduction="mean")
     trainer = RegressionTrainer(model, criterion, train_loader, val_loader, args, results_dir)
     trainer.train()
