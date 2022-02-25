@@ -120,8 +120,8 @@ if __name__ == '__main__':
     results_root = '../results/euler-results/data-2018-2021-116x150-pp0/'
 
     # num misclassified plots ------------------------------------------------------------------------------------------
-    # save_as='./figures/num_miscl_violin_binned.pdf'
-    save_as = None
+    save_as = './figures/num_miscl_per_bin_model.pdf'
+    # save_as = None
     preds, labels = model_comparison_predictions(results_dir_reg=results_root + 'final/rey-regressor',
                                                  results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
                                                  results_dir_reg_v2=results_root + 'final/rey-regressor-v2',
@@ -130,8 +130,8 @@ if __name__ == '__main__':
               outliers=True, tickbase=2.0, save_as=save_as,
               hue_order=['Multilabel Classifier', 'Regression-V1', 'Regression-V2'])
 
-    # save_as='./figures/num_miscl_violin_binned.pdf'
-    save_as = None
+    save_as = './figures/absolute_error_per_bin_model.pdf'
+    # save_as = None
     preds, labels = model_comparison_predictions(results_dir_reg=results_root + 'final/rey-regressor',
                                                  results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
                                                  results_dir_reg_v2=results_root + 'final/rey-regressor-v2',
@@ -141,16 +141,16 @@ if __name__ == '__main__':
               hue_order=['Multilabel Classifier', 'Regression-V1', 'Regression-V2'])
 
     # data comparison --------------------------------------------------------------------------------------------------
-    # save_as='./figures/---.pdf'
-    save_as = None
+    save_as = './figures/num_miscl_per_bin_data.pdf'
+    # save_as = None
     preds, labels = data_comparison_predictoins(results_dir=results_root + 'final/rey-regressor-v2',
                                                 results_dir_sim=results_root + 'final-simulated/rey-regressor-v2',
                                                 quantity='num_misclassified')
     make_plot(preds, kind='violin', labels=labels, quantity='num_misclassified', ylabel='# Misclassified Items',
               outliers=True, tickbase=2.0, save_as=save_as, hue_order=['Real Data', 'Real Data + Simulated'])
 
-    # save_as='./figures/----.pdf'
-    save_as = None
+    save_as = './figures/absolute_error_per_bin_data.pdf'
+    # save_as = None
     preds, labels = data_comparison_predictoins(results_dir=results_root + 'final/rey-regressor-v2',
                                                 results_dir_sim=results_root + 'final-simulated/rey-regressor-v2',
                                                 quantity='total_score_absolute_error')

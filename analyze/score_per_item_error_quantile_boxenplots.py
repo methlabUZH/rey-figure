@@ -100,10 +100,10 @@ if __name__ == '__main__':
         results_dir_reg_v1=results_root + 'final/rey-regressor',
         results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
         results_dir_reg_v2=results_root + 'final/rey-regressor-v2')
-    make_plot(preds_list, save_as=None, kind='violin')
+    make_plot(preds_list, save_as='./figures/score_n_miscl_quantiles_models.pdf', kind='violin')
 
     # data comparison plots -------------------------------------------------------------------------------------------
     preds_list = get_predictions_data_comparison(
         results_dir0=results_root + 'final/rey-regressor-v2',
         results_dir_sim=results_root + 'final/rey-multilabel-classifier')
-    make_plot(preds_list, save_as=None, kind='violin')
+    make_plot(preds_list, save_as='./figures/score_n_miscl_quantiles_data.pdf', kind='violin')

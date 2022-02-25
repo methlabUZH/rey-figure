@@ -22,12 +22,12 @@ def main(train_labels_csv, simulated_labels_csv):
     train_labels['simulated'] = [0] * len(train_labels)
     simulated_labels['simulated'] = [1] * len(simulated_labels)
 
-    plot_total_score(train_labels, simulated_labels)
-    # plot_item_score(train_labels)
-    # plot_item_score(simulated_labels)
+    plot_total_score(train_labels, simulated_labels, save_as='./figures/score_distribution.pdf')
+    plot_item_score(train_labels, save_as='./figures/item_score_distribution_real.pdf')
+    plot_item_score(simulated_labels, save_as='./figures/item_score_distribution_sim.pdf')
 
 
-def plot_total_score(train_labels, simulated_labels):
+def plot_total_score(train_labels, simulated_labels, save_as=None):
     fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(15, 7))
 
     sns.histplot(train_labels, x='summed_score', ax=axes[0], bins=np.arange(0, 37, 1), color=colors[0])
@@ -46,16 +46,37 @@ def plot_total_score(train_labels, simulated_labels):
     sns.despine(offset=5, trim=False)
 
     fig.tight_layout()
+
+    if save_as is not None:
+        plt.savefig(save_as, bbox_inches='tight', pad_inches=0.1, dpi=100)
+        print(f'saved figure as {save_as}')
+        plt.close(fig)
+        return
+
     plt.show()
+    plt.close()
 
 
-def plot_item_score(labels):
+def plot_item_score(labels, save_as=None):
     fig, axes = plt.subplots(nrows=3, ncols=6, figsize=(15, 7), sharey=True, sharex=True)
     axes = list(itertools.chain(*axes))
+
     for i, ax in enumerate(axes):
         scores, counts = np.unique(labels[f'score_item_{i + 1}'], return_counts=True)
         sns.barplot(x=scores, y=counts, ax=ax)
+
+    fig.supxlabel('Item Score')
+    fig.supylabel('Counts')
+    fig.tight_layout()
+
+    if save_as is not None:
+        plt.savefig(save_as, bbox_inches='tight', pad_inches=0.1, dpi=100)
+        print(f'saved figure as {save_as}')
+        plt.close(fig)
+        return
+
     plt.show()
+    plt.close()
 
 
 if __name__ == '__main__':

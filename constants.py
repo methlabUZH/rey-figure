@@ -2,6 +2,7 @@ import os as _os
 
 ROOT_DIR = _os.path.dirname(_os.path.abspath(__file__))
 RESULTS_DIR = _os.path.join(ROOT_DIR, 'results/')
+RESOURCES_DIR = _os.path.join(ROOT_DIR, 'resources/')
 
 FOTO_FOLDERS = ['Typeform', 'USZ_fotos']
 
@@ -11,7 +12,6 @@ REYCLASSIFIER_4 = 'rey-classifier-4'
 REYMULTICLASSIFIER = 'rey-multilabel-classifier'
 WIDE_RESNET50_2 = 'wide-resnet50-2'
 REYREGRESSOR = 'rey-regressor'
-
 
 # data
 DEBUG_DATADIR = '/Users/maurice/phd/src/rey-figure/data/serialized-data/debug-116x150-pp0'
@@ -23,7 +23,6 @@ DEFAULT_SEED = 762
 BIN_LOCATIONS1_V2 = [-1, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36]
 BIN_LOCATIONS2_V2 = [-1, 6, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36]
 BIN_LOCATIONS3_V2 = [-1, 2, 4, 6, 8, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36]
-
 
 BIN_LOCATIONS1 = [
     (0, 14),
@@ -58,7 +57,6 @@ BIN_LOCATIONS2 = [
     (34, 36),
     (36, 37)
 ]
-
 
 BIN_LOCATIONS_DENSE = [
     (0, 7),

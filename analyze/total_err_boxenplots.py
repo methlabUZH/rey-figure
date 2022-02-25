@@ -98,38 +98,41 @@ if __name__ == '__main__':
     results_root = '../results/euler-results/data-2018-2021-116x150-pp0/'
 
     # model comparison plots -------------------------------------------------------------------------------------------
-    # save_as='./figures/num_miscl_boxen.pdf'
-    save_as = None
+    save_as = './figures/num_miscl_models.pdf'
+    # save_as = None
     preds_list = get_model_comparison_predictions(results_dir_reg_v1=results_root + 'final/rey-regressor',
                                                   results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
                                                   results_dir_reg_v2=results_root + 'final/rey-regressor-v2',
                                                   quantity='num_misclassified')
 
-    make_plot(preds_list, quantity='num_misclassified', ylabel='# Misclassified Items', kind='violin', bw=0.35)
+    make_plot(preds_list, quantity='num_misclassified', ylabel='# Misclassified Items', kind='violin', bw=0.35,
+              save_as=save_as)
 
-    save_as = None
+    save_as = './figures/abs_err_models.pdf'
+    # save_as = None
     preds_list = get_model_comparison_predictions(results_dir_reg_v1=results_root + 'final/rey-regressor',
                                                   results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
                                                   results_dir_reg_v2=results_root + 'final/rey-regressor-v2',
                                                   quantity='total_score_absolute_error')
 
     make_plot(preds_list, quantity='total_score_absolute_error', ylabel='Total Score Absolute Error', kind='violin',
-              bw=0.35)
+              bw=0.35, save_as=save_as)
 
     # data comparison plots --------------------------------------------------------------------------------------------
-    # save_as='./figures/num_miscl_boxen.pdf'
-    save_as = None
+    save_as = './figures/num_miscl_data.pdf'
+    # save_as = None
     preds_list = get_data_comparison_predictions(results_dir0=results_root + 'final/rey-regressor-v2',
                                                  results_dir_sim=results_root + 'final-simulated/rey-regressor-v2',
                                                  quantity='num_misclassified')
 
-    make_plot(preds_list, quantity='num_misclassified', ylabel='# Misclassified Items', kind='violin', bw=0.35)
+    make_plot(preds_list, quantity='num_misclassified', ylabel='# Misclassified Items', kind='violin', bw=0.35,
+              save_as=save_as)
 
-    save_as = None
+    save_as = './figures/abs_err_data.pdf'
+    # save_as = None
     preds_list = get_data_comparison_predictions(results_dir0=results_root + 'final/rey-regressor-v2',
                                                  results_dir_sim=results_root + 'final-simulated/rey-regressor-v2',
-                                                 quantity='total_score_absolute_error',
-                                                 )
+                                                 quantity='total_score_absolute_error')
 
     make_plot(preds_list, quantity='total_score_absolute_error', ylabel='Total Score Absolute Error', kind='violin',
-              bw=0.35)
+              bw=0.35, save_as=save_as)
