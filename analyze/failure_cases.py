@@ -14,14 +14,14 @@ _DATA_ROOT = '/Users/maurice/phd/src/rey-figure/data/'
 _TEX_REPORTS_ROOT = os.path.join(ROOT_DIR, 'tex_reports/failure_cases/')
 _CLUSTER_DATA_ROOT = '/cluster/work/zhang/webermau/rocf/psychology/'
 _SCORE_COLUMNS = [f'score_item_{i + 1}' for i in range(N_ITEMS)] + ['total_score']
-_NUM_CASES = 200
+_NUM_CASES = 300
 _REFERENCE_FILE = os.path.join(RESOURCES_DIR, 'reference.pdf')
 
 _QUANTITY_ABSOLUTE_ERROR = 'total_score_absolute_error'
 _QUANTITY_NUM_MISCLASSIFIED = 'num_misclassified'
 
 
-def main(results_dir, quantity=_QUANTITY_NUM_MISCLASSIFIED):
+def main(results_dir, quantity=_QUANTITY_NUM_MISCLASSIFIED, failure=True):
     predictions = pd.read_csv(os.path.join(results_dir, 'test_predictions.csv'))
     ground_truths = pd.read_csv(os.path.join(results_dir, 'test_ground_truths.csv'))
 
@@ -39,10 +39,10 @@ def main(results_dir, quantity=_QUANTITY_NUM_MISCLASSIFIED):
     predictions = compute_error_rates(predictions, ground_truths, quantity=quantity)
 
     # sort wrt number of misclassified items
-    predictions = predictions.sort_values(quantity, ascending=False)
+    predictions = predictions.sort_values(quantity, ascending=False if failure else True)
 
     # setup dir structure
-    tex_reports_dir = os.path.join(_TEX_REPORTS_ROOT, quantity)
+    tex_reports_dir = os.path.join(_TEX_REPORTS_ROOT, quantity, f'{"failure" if failure else "success"}')
     if not os.path.exists(tex_reports_dir):
         os.makedirs(tex_reports_dir)
         os.makedirs(os.path.join(tex_reports_dir, 'preprocessed_images'))
@@ -170,4 +170,5 @@ def compute_error_rates(preds, ground_truths, quantity) -> pd.DataFrame:
 
 if __name__ == '__main__':
     results_root = '../results/euler-results/data-2018-2021-116x150-pp0/'
-    main(results_dir=results_root + 'final/rey-multilabel-classifier', quantity=_QUANTITY_NUM_MISCLASSIFIED)
+    main(results_dir=results_root + 'final/rey-multilabel-classifier', quantity=_QUANTITY_ABSOLUTE_ERROR,
+         failure=True)

@@ -175,10 +175,10 @@ def bin_plot_f1(multilabel_bin_scores, multilabel_sim_bin_scores, regression_bin
 
 def compute_scores(predictions, ground_truths):
     return {
-        "item_mse_scores": compute_mse_scores(predictions, ground_truths, _SCORE_ITEM_COLS),
+        "item_mse_scores": compute_total_score_error(predictions, ground_truths, _SCORE_ITEM_COLS),
         "item_acc_scores": compute_accuracy_scores(predictions, ground_truths, _CLASS_ITEM_COLS),
         "bin_mse_scores": compute_bin_mse_scores(predictions, ground_truths, _BINS, True, alpha_ci=_CI_ALPHA),
-        "total_score_mse": compute_mse_scores(predictions, ground_truths, ['total_score'], True, alpha_ci=_CI_ALPHA),
+        "total_score_mse": compute_total_score_error(predictions, ground_truths, ['total_score'], True, alpha_ci=_CI_ALPHA),
         "bin_f1_scores": compute_multilabel_f1_score(predictions, ground_truths, _BINS, 4),
         "total_f1_score": compute_multilabel_f1_score(predictions, ground_truths, None, 4)
     }

@@ -2,6 +2,7 @@ import pandas as pd
 import torch
 import numpy as np
 import os
+import cv2
 
 from constants import N_ITEMS
 from src.utils import map_to_score_grid, score_to_class
@@ -11,14 +12,9 @@ from torchvision import transforms
 
 
 def get_multilabel_dataloader(data_root: str, labels_df: pd.DataFrame, batch_size: int,
-                              num_workers: int, shuffle: bool, mean: float = None, std: float = None,
-                              prefectch_factor: int = 16, pin_memory: bool = True, weighted_sampling=False,
-                              is_binary: bool = True):
-    transform = None
-    if mean is not None and std is not None:
-        transform = transforms.Normalize(mean=[mean], std=[std])
-
-    dataset = ROCFDatasetMultiLabelClassification(data_root, labels_df, transform, is_binary=is_binary)
+                              num_workers: int, shuffle: bool, prefectch_factor: int = 16, pin_memory: bool = True,
+                              weighted_sampling=False, is_binary: bool = True):
+    dataset = ROCFDatasetMultiLabelClassification(data_root, labels_df, None, is_binary=is_binary)
 
     sampler = None
     if weighted_sampling:
@@ -31,18 +27,25 @@ def get_multilabel_dataloader(data_root: str, labels_df: pd.DataFrame, batch_siz
                       pin_memory=pin_memory, prefetch_factor=prefectch_factor, sampler=sampler)
 
 
+class Normalize:
+    def __call__(self, img):
+        return (img - np.mean(img)) / np.std(img)
+
+
 class ROCFDatasetMultiLabelClassification(Dataset):
 
-    def __init__(self, data_root: str, labels_df: pd.DataFrame, transform: transforms = None, is_binary: bool = False):
-        if transform is None:
-            self._transform = self._normalize_single
+    def __init__(self, data_root: str, labels_df: pd.DataFrame, transforms_list: transforms = None,
+                 is_binary: bool = False, load_numpy=True):
+        if transforms_list is None:
+            self._transform = transforms.Compose([Normalize()])
         else:
-            self._transform = transform
+            self._transform = transforms.Compose(transforms_list + [Normalize()])
 
         def scores_to_multiclass(x): return score_to_class(map_to_score_grid(x))
         def binarize_labels(x): return 1 if x > 0 else 0
 
         # get labels
+        self._load_numpy = load_numpy
         self._labels_df = labels_df
         score_cols = [f'score_item_{i + 1}' for i in range(N_ITEMS)]
         self._labels_df.loc[:, score_cols] = self._labels_df.loc[:, score_cols].applymap(scores_to_multiclass)
@@ -77,18 +80,24 @@ class ROCFDatasetMultiLabelClassification(Dataset):
 
     def __getitem__(self, idx):
         # load and normalize image
-        numpy_image = np.load(self._images_npy[idx]).astype(float)[np.newaxis, :]
-        torch_image = torch.from_numpy(numpy_image).type('torch.FloatTensor')
-        image = self._transform(torch_image)
+        if self._load_numpy:
+            numpy_image = np.load(self._images_npy[idx]).astype(float)
+        else:
+            numpy_image = cv2.imread(self._images_jpeg[idx], flags=cv2.IMREAD_GRAYSCALE)
+            numpy_image = numpy_image / 255.0
+
+        image = self._transform(numpy_image)
+        image = np.expand_dims(image, axis=0)
+        image = torch.from_numpy(image).type('torch.FloatTensor')
 
         # load labels
         labels = torch.from_numpy(np.array([getattr(self, f"item-{i + 1}")[idx] for i in range(N_ITEMS)]))
 
         return image, labels
 
-    @staticmethod
-    def _normalize_single(image: torch.Tensor):
-        return (image - torch.mean(image)) / torch.std(image)
+    # @staticmethod
+    # def _normalize_single(image: torch.Tensor):
+    #     return (image - torch.mean(image)) / torch.std(image)
 
     @property
     def image_ids(self):

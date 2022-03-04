@@ -44,11 +44,11 @@ def main():
     ground_truths = evaluator.ground_truths
 
     # ------- item specific scores -------
-    item_mse_scores = compute_mse_scores(
+    item_mse_scores = compute_total_score_error(
         predictions, ground_truths, columns=[f"score_item_{i + 1}" for i in range(N_ITEMS)])
 
     # ------- toal score mse -------
-    total_score_mse = compute_mse_scores(predictions, ground_truths, ["total_score"])[0]
+    total_score_mse = compute_total_score_error(predictions, ground_truths, ["total_score"])[0]
 
     print('---------- Item Scores ----------')
     print_df = pd.DataFrame(data=np.stack([item_mse_scores], axis=0),

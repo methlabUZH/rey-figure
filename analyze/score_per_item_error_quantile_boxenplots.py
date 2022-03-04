@@ -82,6 +82,7 @@ def compute_quantiles_figures(predictions, ground_truths) -> Tuple[pd.DataFrame,
 
     # write true total score to predictions df
     predictions['true_total_score'] = ground_truths.loc[:, 'total_score']
+    predictions['true_total_score'] = ground_truths.loc[:, 'total_score']
     scores_q0, scores_q1, scores_q2 = predictions['num_miscl'].quantile([0.25, 0.5, 0.75])
 
     # assign each sample to bin

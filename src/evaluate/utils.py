@@ -6,39 +6,47 @@ import sklearn.metrics as metrics
 
 from constants import N_ITEMS
 
-__all__ = ["compute_mse_scores", "compute_accuracy_scores", "compute_class_conditional_acc_scores",
+__all__ = ["compute_total_score_error", "compute_accuracy_scores", "compute_class_conditional_acc_scores",
            "compute_bin_mse_scores", "compute_multilabel_f1_score"]
 
 
-def compute_mse_scores(predictions_df: pd.DataFrame,
-                       ground_truth_df: pd.DataFrame,
-                       columns: List[str],
-                       return_ci: bool = False,
-                       alpha_ci: float = None) -> Union[List[float], Tuple[List[float], List[Tuple[float, float]]]]:
+def compute_total_score_error(predictions_df: pd.DataFrame,
+                              ground_truth_df: pd.DataFrame,
+                              columns: List[str],
+                              which='mse',
+                              return_ci: bool = False,
+                              alpha_ci: float = None) -> Union[
+    List[float], Tuple[List[float], List[Tuple[float, float]]]]:
     """this function computes the mse for each column in columns
 
     Args:
         predictions_df: dataframe containing the predictions for each sample
         ground_truth_df: dataframe containing the ground truths for each sample
         columns: List of column names for which MSE scores are calculated
+        which: str, must be one of "mae" or "mse"
         return_ci: whether or not to return confidence intervals for each bin-MSE score
         alpha_ci: confidence level
 
     Returns:
         either a list of mse scores, or a tuple of (mse_scores, confidence_intervals)
     """
-    mse_scores = [(ground_truth_df.loc[:, col] - predictions_df.loc[:, col]) ** 2 for col in columns]
+    if which == 'mse':
+        error_scores = [(ground_truth_df.loc[:, col] - predictions_df.loc[:, col]) ** 2 for col in columns]
+    elif which == 'mae':
+        error_scores = [np.abs(ground_truth_df.loc[:, col] - predictions_df.loc[:, col]) for col in columns]
+    else:
+        raise ValueError('param "which" must be one of "mae" or "mse"')
 
-    n_samples = [len(m) for m in mse_scores]
-    mse_scores = [float(np.mean(m)) for m in mse_scores]
+    n_samples = [len(m) for m in error_scores]
+    error_scores = [float(np.mean(m)) for m in error_scores]
 
-    if not return_ci:
-        return mse_scores
+    if not return_ci or which == 'mae':
+        return error_scores
 
     ci = [(float(n * m / stats.chi2.ppf(1 - alpha_ci / 2, df=n - 1)),
-           float(n * m / stats.chi2.ppf(alpha_ci / 2, df=n - 1))) for m, n in zip(mse_scores, n_samples)]
+           float(n * m / stats.chi2.ppf(alpha_ci / 2, df=n - 1))) for m, n in zip(error_scores, n_samples)]
 
-    return mse_scores, ci
+    return error_scores, ci
 
 
 def compute_accuracy_scores(predictions_df: pd.DataFrame,
