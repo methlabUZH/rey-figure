@@ -14,11 +14,10 @@ from src.evaluate.utils import *
 
 # setup arg parser
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, default='')
-parser.add_argument('--results-dir', type=str, default='')
-parser.add_argument('--batch-size', default=4, type=int)
-parser.add_argument('--binary', default=0, type=int, choices=[0, 1])
-parser.add_argument('--ensemble', default=0, type=int, choices=[0, 1])
+parser.add_argument('--data-root', type=str)
+parser.add_argument('--results-dir', type=str)
+parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
+parser.add_argument('--batch-size', default=100, type=int)
 parser.add_argument('--workers', default=8, type=int)
 args = parser.parse_args()
 
@@ -28,19 +27,17 @@ _CLASS_PRED_COLS = [f'pred_class_item_{item + 1}' for item in range(N_ITEMS)]
 _SCORE_LABEL_COLS = [f'true_score_item_{item + 1}' for item in range(N_ITEMS)]
 _SCORE_PRED_COLS = [f'pred_score_item_{item + 1}' for item in range(N_ITEMS)]
 
+_NUM_CLASSES = 4
+
 
 def main():
-    num_classes = 2 if args.binary else 4
     # save terminal output to file
     sys.stdout = Logger(print_fp=os.path.join(args.results_dir, 'eval_out.txt'))
 
-    model = get_classifier(arch=REYMULTICLASSIFIER, num_classes=num_classes)
-    evaluator = MultilabelEvaluator(model=model, results_dir=args.results_dir, data_dir=args.data_root,
-                                    is_ensemble=args.ensemble, is_binary=args.binary, batch_size=args.batch_size)
+    model = get_classifier(arch=REYMULTICLASSIFIER, num_classes=_NUM_CLASSES)
+    evaluator = MultilabelEvaluator(model=model, image_size=args.image_size, results_dir=args.results_dir,
+                                    data_dir=args.data_root, batch_size=args.batch_size)
     evaluator.run_eval(save=True)
-
-    if args.binary:
-        return
 
     predictions = evaluator.predictions
     ground_truths = evaluator.ground_truths

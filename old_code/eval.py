@@ -10,7 +10,7 @@ from tqdm import tqdm
 import torch
 
 from constants import BIN_LOCATIONS1, BIN_LOCATIONS2
-from src.dataloaders.dataloader_regression import get_regression_dataloader_eval
+from old_code.dataloaders import get_regression_dataloader_eval
 from src.training.train_utils import count_parameters, AverageMeter, Logger
 from src.utils import timestamp_human
 from src.inference.utils import assign_bins

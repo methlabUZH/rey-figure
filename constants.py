@@ -14,11 +14,15 @@ WIDE_RESNET50_2 = 'wide-resnet50-2'
 REYREGRESSOR = 'rey-regressor'
 
 # data
-DEBUG_DATADIR = '/Users/maurice/phd/src/rey-figure/data/serialized-data/debug-116x150-pp0'
+DEBUG_DATADIR_SMALL = '/Users/maurice/phd/src/rey-figure/data/serialized-data/debug-116x150-pp0'
+DEBUG_DATADIR_BIG = '/Users/maurice/phd/src/rey-figure/data/serialized-data/debug-232x300-pp0'
 N_ITEMS = 18
 DEFAULT_CANVAS_SIZE = (116, 150)
+DEFAULT_CANVAS_SIZE_BIG = (232, 300)
 AUGM_CANVAS_SIZE = (464, 600)
 DEFAULT_SEED = 762
+CLASSIFICATION_LABELS = 'classification_labels'
+REGRESSION_LABELS = 'regression_labels'
 
 BIN_LOCATIONS1_V2 = [-1, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36]
 BIN_LOCATIONS2_V2 = [-1, 6, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36]

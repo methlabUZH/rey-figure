@@ -3,12 +3,11 @@ import numpy as np
 import os
 import pandas as pd
 from torch.utils.data import DataLoader
-from torchvision import transforms
 import torch
 
 from constants import *
-from src.data_preprocessing.helpers import resize_padded, cutdown
-from src.dataloaders.dataloader_multilabel import ROCFDatasetMultiLabelClassification
+from src.data_preprocessing.helpers import resize_padded
+from old_code.dataloaders.dataloader_multilabel import ROCFDatasetMultiLabelClassification
 from src.inference.model_initialization import get_classifiers_checkpoints
 from src.utils import timestamp_human, class_to_score
 

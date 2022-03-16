@@ -10,8 +10,8 @@ import torch
 
 from constants import BIN_LOCATIONS1, BIN_LOCATIONS2, N_ITEMS
 from src.models import get_reyclassifier, get_reyregressor
-from src.dataloaders.dataloader_item_classification import get_item_classification_dataloader_eval
-from src.dataloaders.dataloader_regression import get_regression_dataloader_eval
+from old_code.dataloaders.dataloader_item_classification import get_item_classification_dataloader_eval
+from old_code.dataloaders import get_regression_dataloader_eval
 from src.training.train_utils import Logger
 from src.utils import timestamp_human, timestamp_dir
 from src.inference.utils import assign_bins

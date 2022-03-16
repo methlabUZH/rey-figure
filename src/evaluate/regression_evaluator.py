@@ -6,15 +6,16 @@ import torch
 
 from constants import *
 from src.utils import map_to_score_grid, score_to_class
-from src.dataloaders.dataloader_regression import get_regression_dataloader
+from src.dataloaders.rocf_dataloader import get_dataloader
 
 
 class RegressionEvaluator:
-    def __init__(self, model, results_dir, data_dir, batch_size=128, workers=8):
+    def __init__(self, model, image_size, results_dir, data_dir, batch_size=128, workers=8):
         self.model = model
         self.results_dir = results_dir
         self.data_dir = data_dir
         self.batch_size = batch_size
+        self.image_size = image_size
         self.workers = workers
 
         self.predictions = None
@@ -29,8 +30,9 @@ class RegressionEvaluator:
 
         # init dataloader
         test_labels = pd.read_csv(os.path.join(self.data_dir, 'test_labels.csv'))
-        self.dataloader = get_regression_dataloader(self.data_dir, labels_df=test_labels, batch_size=self.batch_size,
-                                                    num_workers=self.workers, shuffle=False)
+        self.dataloader = get_dataloader(data_root=self.data_dir, labels=test_labels, label_type=REGRESSION_LABELS,
+                                         batch_size=self.batch_size, num_workers=self.workers, shuffle=False,
+                                         augment=False, image_size=self.image_size)
 
     def run_eval(self, save=True):
         # load checkpoint
@@ -49,11 +51,11 @@ class RegressionEvaluator:
         ground_truths_df = pd.DataFrame(columns=id_columns + column_names)
 
         predictions_df['figure_id'] = self.dataloader.dataset.image_ids[:len(predictions)]
-        predictions_df['image_file'] = self.dataloader.dataset.jpeg_filepaths[:len(predictions)]
+        predictions_df['image_file'] = self.dataloader.dataset.image_files[:len(predictions)]
         predictions_df['serialized_file'] = self.dataloader.dataset.npy_filepaths[:len(predictions)]
 
         ground_truths_df['figure_id'] = self.dataloader.dataset.image_ids[:len(predictions)]
-        ground_truths_df['image_file'] = self.dataloader.dataset.jpeg_filepaths[:len(predictions)]
+        ground_truths_df['image_file'] = self.dataloader.dataset.image_files[:len(predictions)]
         ground_truths_df['serialized_file'] = self.dataloader.dataset.npy_filepaths[:len(predictions)]
 
         predictions_df[column_names] = predictions

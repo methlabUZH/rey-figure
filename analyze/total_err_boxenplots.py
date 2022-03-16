@@ -56,6 +56,8 @@ def make_plot(list_of_predictions_df, quantity, ylabel, save_as=None, kind='boxe
 
         mean = np.mean(predictions.loc[:, quantity])
         median = np.median(predictions.loc[:, quantity])
+        # quantile = np.quantile(predictions.loc[:, quantity], q=0.95)
+        # print(median, quantile, title)
         text = '\n'.join((f'mean: {mean:.2f}', f'median: {median:.2f}'))
         ax.text(0.05, 0.95, text, transform=ax.transAxes, fontsize=14, verticalalignment='top', bbox=props)
         ax.set_title(title)
@@ -100,16 +102,16 @@ if __name__ == '__main__':
     # model comparison plots -------------------------------------------------------------------------------------------
     save_as = './figures/num_miscl_models.pdf'
     # save_as = None
-    preds_list = get_model_comparison_predictions(results_dir_reg_v1=results_root + 'final/rey-regressor',
-                                                  results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
-                                                  results_dir_reg_v2=results_root + 'final/rey-regressor-v2',
-                                                  quantity='num_misclassified')
+    # preds_list = get_model_comparison_predictions(results_dir_reg_v1=results_root + 'final/rey-regressor',
+    #                                               results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
+    #                                               results_dir_reg_v2=results_root + 'final/rey-regressor-v2',
+    #                                               quantity='num_misclassified')
+    #
+    # make_plot(preds_list, quantity='num_misclassified', ylabel='# Misclassified Items', kind='violin', bw=0.35,
+    #           save_as=save_as)
 
-    make_plot(preds_list, quantity='num_misclassified', ylabel='# Misclassified Items', kind='violin', bw=0.35,
-              save_as=save_as)
-
-    save_as = './figures/abs_err_models.pdf'
-    # save_as = None
+    # save_as = './figures/abs_err_models.pdf'
+    save_as = None
     preds_list = get_model_comparison_predictions(results_dir_reg_v1=results_root + 'final/rey-regressor',
                                                   results_dir_mlc=results_root + 'final/rey-multilabel-classifier',
                                                   results_dir_reg_v2=results_root + 'final/rey-regressor-v2',
@@ -118,21 +120,21 @@ if __name__ == '__main__':
     make_plot(preds_list, quantity='total_score_absolute_error', ylabel='Total Score Absolute Error', kind='violin',
               bw=0.35, save_as=save_as)
 
-    # data comparison plots --------------------------------------------------------------------------------------------
-    save_as = './figures/num_miscl_data.pdf'
-    # save_as = None
-    preds_list = get_data_comparison_predictions(results_dir0=results_root + 'final/rey-regressor-v2',
-                                                 results_dir_sim=results_root + 'final-simulated/rey-regressor-v2',
-                                                 quantity='num_misclassified')
-
-    make_plot(preds_list, quantity='num_misclassified', ylabel='# Misclassified Items', kind='violin', bw=0.35,
-              save_as=save_as)
-
-    save_as = './figures/abs_err_data.pdf'
-    # save_as = None
-    preds_list = get_data_comparison_predictions(results_dir0=results_root + 'final/rey-regressor-v2',
-                                                 results_dir_sim=results_root + 'final-simulated/rey-regressor-v2',
-                                                 quantity='total_score_absolute_error')
-
-    make_plot(preds_list, quantity='total_score_absolute_error', ylabel='Total Score Absolute Error', kind='violin',
-              bw=0.35, save_as=save_as)
+    # # data comparison plots --------------------------------------------------------------------------------------------
+    # save_as = './figures/num_miscl_data.pdf'
+    # # save_as = None
+    # preds_list = get_data_comparison_predictions(results_dir0=results_root + 'final/rey-regressor-v2',
+    #                                              results_dir_sim=results_root + 'final-simulated/rey-regressor-v2',
+    #                                              quantity='num_misclassified')
+    #
+    # make_plot(preds_list, quantity='num_misclassified', ylabel='# Misclassified Items', kind='violin', bw=0.35,
+    #           save_as=save_as)
+    #
+    # save_as = './figures/abs_err_data.pdf'
+    # # save_as = None
+    # preds_list = get_data_comparison_predictions(results_dir0=results_root + 'final/rey-regressor-v2',
+    #                                              results_dir_sim=results_root + 'final-simulated/rey-regressor-v2',
+    #                                              quantity='total_score_absolute_error')
+    #
+    # make_plot(preds_list, quantity='total_score_absolute_error', ylabel='Total Score Absolute Error', kind='violin',
+    #           bw=0.35, save_as=save_as)

@@ -10,17 +10,19 @@ import json
 import torch
 
 from constants import *
-from src.dataloaders.dataloader_multilabel import get_multilabel_dataloader
-from src.training.train_utils import directory_setup, Logger, train_val_split
+from src.dataloaders.rocf_dataloader import get_dataloader
 from src.models import get_classifier
+from src.training.train_utils import directory_setup, Logger, train_val_split
 
 from src.training.multilabel_trainer import MultilabelTrainer
 
 _VAL_FRACTION = 0.2
 _SEED = 7
 
+_DEBUG_DATADIR = '/Users/maurice/phd/src/rey-figure/data/resized-data/116x150'
+
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR, required=False)
+parser.add_argument('--data-root', type=str, default=_DEBUG_DATADIR, required=False)
 parser.add_argument('--results-dir', type=str, default='./temp', required=False)
 parser.add_argument('--simulated-data', type=str, default=None, required=False)
 parser.add_argument('--max-simulated', type=int, default=-1, required=False)
@@ -28,12 +30,14 @@ parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--is_binary', type=int, default=0, choices=[0, 1])
 parser.add_argument('--eval-test', action='store_true')
 parser.add_argument('--id', default='debug', type=str)
-parser.add_argument('--epochs', default=1, type=int, help='number of total epochs to run')
-parser.add_argument('--batch-size', default=4, type=int, help='train batch size (default: 64)')
+parser.add_argument('--epochs', default=75, type=int, help='number of total epochs to run')
+parser.add_argument('--batch-size', default=64, type=int, help='train batch size (default: 64)')
 parser.add_argument('--lr', '--learning-rate', default=0.01, type=float, help='initial learning rate')
 parser.add_argument('--gamma', type=float, default=0.95, help='learning rate decay factor')
 parser.add_argument('--wd', '--weight-decay', type=float, default=0)
 parser.add_argument('--weighted-sampling', default=1, type=int, choices=[0, 1])
+parser.add_argument('--augment', default=0, type=int, choices=[0, 1])
+parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
 args = parser.parse_args()
 
 USE_CUDA = torch.cuda.is_available()
@@ -78,12 +82,14 @@ def main():
         train_labels = pd.concat([train_labels, sim_df], ignore_index=True)
 
     # get train dataloader
-    train_loader = get_multilabel_dataloader(args.data_root, labels_df=train_labels, batch_size=args.batch_size,
-                                             num_workers=args.workers, shuffle=True, is_binary=args.is_binary,
-                                             weighted_sampling=args.weighted_sampling)
+    train_loader = get_dataloader(data_root=args.data_root, labels=train_labels, label_type=CLASSIFICATION_LABELS,
+                                  batch_size=args.batch_size, num_workers=args.workers, shuffle=True,
+                                  weighted_sampling=args.weighted_sampling, augment=args.augment,
+                                  image_size=args.image_size)
     # get val dataloader
-    val_loader = get_multilabel_dataloader(args.data_root, labels_df=val_labels, batch_size=args.batch_size,
-                                           num_workers=args.workers, shuffle=False, is_binary=args.is_binary)
+    val_loader = get_dataloader(data_root=args.data_root, labels=val_labels, label_type=CLASSIFICATION_LABELS,
+                                batch_size=args.batch_size, num_workers=args.workers, shuffle=False, augment=False,
+                                image_size=args.image_size)
 
     model = get_classifier(REYMULTICLASSIFIER, num_classes=num_classes)
     loss_func = torch.nn.CrossEntropyLoss()
@@ -102,8 +108,9 @@ def eval_test(trainer, results_dir):
 
     # get dataloader
     test_labels = pd.read_csv(os.path.join(args.data_root, 'test_labels.csv'))
-    test_dataloader = get_multilabel_dataloader(args.data_root, labels_df=test_labels, batch_size=args.batch_size,
-                                                num_workers=args.workers, shuffle=False, is_binary=args.is_binary)
+    test_dataloader = get_dataloader(args.data_root, labels=test_labels, label_type=CLASSIFICATION_LABELS,
+                                     batch_size=args.batch_size, num_workers=args.workers, shuffle=False,
+                                     image_size=args.image_size)
     test_stats = trainer.run_epoch(test_dataloader, is_train=False)
 
     print('\n-------eval test-------')

@@ -9,7 +9,7 @@ import json
 import torch
 
 from constants import *
-from src.dataloaders.dataloader_item_classification import get_item_classification_dataloader
+from old_code.dataloaders.dataloader_item_classification import get_item_classification_dataloader
 from src.training.train_utils import directory_setup, Logger, train_val_split
 from src.models import get_classifier
 
@@ -19,7 +19,7 @@ _VAL_FRACTION = 0.2
 _SEED = 7
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR, required=False)
+parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR_SMALL, required=False)
 parser.add_argument('--results-dir', type=str, default='./temp', required=False)
 parser.add_argument('--simulated-data', type=str, default=None, required=False)
 parser.add_argument('--workers', default=8, type=int)

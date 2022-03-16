@@ -12,7 +12,7 @@ from src.data_preprocessing.helpers import cutdown
 
 """
 this script is used to serialize simulated data_preprocessing. It is expected that the directory with simulated data_preprocessing is in the data_preprocessing 
-root (see structure in prepare_data.py) and has the following contents: 
+root (see structure in prepare_dat.py) and has the following contents: 
 
 ├──simulated
     ├── distorted_placed_correctly

@@ -15,9 +15,10 @@ from src.evaluate.utils import *
 # setup arg parser
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default='')
-parser.add_argument('--arch', type=str, default='v1', required=False)
+parser.add_argument('--arch', type=str, default='v2', required=False)
 parser.add_argument('--results-dir', type=str, default='')
-parser.add_argument('--batch-size', default=4, type=int)
+parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
+parser.add_argument('--batch-size', default=100, type=int)
 parser.add_argument('--workers', default=8, type=int)
 args = parser.parse_args()
 
@@ -36,8 +37,8 @@ def main():
     else:
         raise ValueError(f'unknown arch version {args.arch}')
 
-    evaluator = RegressionEvaluator(model=model, results_dir=args.results_dir, data_dir=args.data_root,
-                                    batch_size=args.batch_size, workers=args.workers)
+    evaluator = RegressionEvaluator(model=model, image_size=args.image_size, results_dir=args.results_dir,
+                                    data_dir=args.data_root, batch_size=args.batch_size, workers=args.workers)
     evaluator.run_eval(save=True)
 
     predictions = evaluator.predictions

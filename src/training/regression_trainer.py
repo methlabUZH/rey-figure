@@ -151,7 +151,7 @@ class RegressionTrainer:
 
     def forward_step(self, inputs, targets, is_train):
         inputs = torch.autograd.Variable(inputs).float()
-        targets = torch.autograd.Variable(targets)
+        targets = torch.autograd.Variable(targets).float()
 
         if is_train:
             outputs = self.model(inputs)

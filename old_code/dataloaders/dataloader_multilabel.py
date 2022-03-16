@@ -108,5 +108,5 @@ class ROCFDatasetMultiLabelClassification(Dataset):
         return self._images_npy
 
     @property
-    def jpeg_filepaths(self):
+    def image_files(self):
         return self._images_jpeg

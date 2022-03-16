@@ -8,7 +8,7 @@ from tabulate import tabulate
 
 import torch
 
-from src.dataloaders.dataloader_item_classification import get_item_classification_dataloader
+from old_code.dataloaders.dataloader_item_classification import get_item_classification_dataloader
 from src.inference.model_initialization import get_classifiers_checkpoints
 from src.training.train_utils import Logger
 from src.utils import timestamp_human, class_to_score
@@ -153,7 +153,7 @@ def eval_model(model, dataloader, checkpoint_fp, item):
 
     # add filepaths
     results_df['figure_id'] = dataloader.dataset.image_ids[:len(predictions)]
-    results_df['image_file'] = dataloader.dataset.jpeg_filepaths[:len(predictions)]
+    results_df['image_file'] = dataloader.dataset.image_files[:len(predictions)]
     results_df['serialized_file'] = dataloader.dataset.npy_filepaths[:len(predictions)]
 
     # add class predictions

@@ -15,7 +15,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from constants import *
 from src.data_preprocessing.augmentation import AugmentParameters
-from src.dataloaders.dataloader_item_classification import get_item_classification_dataloader
+from old_code.dataloaders.dataloader_item_classification import get_item_classification_dataloader
 from src.training.train_utils import directory_setup, plot_scores_preds, count_parameters, AverageMeter, Logger, accuracy
 from src.utils import timestamp_human
 from src.models import get_classifier
@@ -25,7 +25,7 @@ _NUM_CLASSES = 4
 _SEED = 7
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR, required=False)
+parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR_SMALL, required=False)
 parser.add_argument('--results-dir', type=str, default='./temp', required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--arch', type=str, default=WIDE_RESNET50_2, required=False)
