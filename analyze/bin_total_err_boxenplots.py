@@ -7,7 +7,8 @@ import seaborn as sns
 from typing import List, Tuple
 
 from constants import *
-from src.utils import assign_bin, init_mpl
+from src.utils import assign_bin
+from analyze.plot_utils import init_mpl
 
 colors = init_mpl(sns_style='ticks', colorpalette='muted')
 

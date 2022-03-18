@@ -16,7 +16,8 @@ _SCORE_COLS = [f'score_item_{i + 1}' for i in range(N_ITEMS)]
 class ROCFDataset(Dataset):
 
     def __init__(self, data_root: str, labels: pd.DataFrame, label_type=CLASSIFICATION_LABELS, data_augmentation=False,
-                 image_size=DEFAULT_CANVAS_SIZE):
+                 image_size=DEFAULT_CANVAS_SIZE, variance_weighting=False):
+        self._variance_weighting = variance_weighting
         self._labels_df = labels
 
         # round item scores to score grid {0, 0.5, 1.0, 2.0}
@@ -56,6 +57,11 @@ class ROCFDataset(Dataset):
         self._images_npy = [os.path.join(data_root, f) for f in self._labels_df["serialized_filepath"].tolist()]
         self._image_ids = self._labels_df["figure_id"]
 
+        # get variances
+        self._human_variances = None
+        if self._variance_weighting:
+            self._human_variances = self._labels_df["figure_avg_sd"].tolist()
+
     def __getitem__(self, idx):
         image_numpy = np.load(file=self._images_npy[idx])
         image_numpy = image_numpy[np.newaxis, :]
@@ -69,6 +75,10 @@ class ROCFDataset(Dataset):
         image_tensor = image_tensor.type('torch.FloatTensor')
         image_tensor /= 255.0
         image_tensor = self._normalize(image_tensor)
+
+        # get human rater variance
+        if self._variance_weighting:
+            return image_tensor, self._labels[idx], self._human_variances[idx]
 
         return image_tensor, self._labels[idx]
 

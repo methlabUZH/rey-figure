@@ -8,7 +8,8 @@ import matplotlib.pyplot as plt
 
 from constants import *
 from src.evaluate.utils import *
-from src.utils import assign_bin, init_mpl
+from src.utils import assign_bin
+from analyze.plot_utils import init_mpl
 
 _CLASS_ITEM_COLS = [f"class_item_{i + 1}" for i in range(N_ITEMS)]
 _SCORE_ITEM_COLS = [f"score_item_{i + 1}" for i in range(N_ITEMS)]

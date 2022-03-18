@@ -17,9 +17,10 @@ def get_dataloader(data_root: str,
                    prefectch_factor: int = 16,
                    pin_memory: bool = True,
                    weighted_sampling=False,
+                   variance_weighting=False,
                    augment=False):
     multilabel_dataset = ROCFDataset(data_root, labels, label_type=label_type, data_augmentation=augment,
-                                     image_size=image_size)
+                                     image_size=image_size, variance_weighting=variance_weighting)
 
     if weighted_sampling:
         sample_weights = multilabel_dataset.get_sample_weights()

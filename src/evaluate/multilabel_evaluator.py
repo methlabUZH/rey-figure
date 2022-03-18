@@ -1,7 +1,7 @@
 import numpy as np
 import os
 import pandas as pd
-
+from tqdm import tqdm
 import torch
 
 from constants import *
@@ -26,7 +26,6 @@ class MultilabelEvaluator:
             self.model.cuda()
 
         self.checkpoints = os.path.join(results_dir, 'checkpoints/model_best.pth.tar')
-        # self.items = None
 
         # init dataloader
         test_labels = pd.read_csv(os.path.join(self.data_dir, 'test_labels.csv'))
@@ -95,7 +94,9 @@ class MultilabelEvaluator:
         self.model.eval()
         predictions, ground_truths = None, None
 
-        for inputs, targets in self.dataloader:
+        n = len(self.dataloader)
+
+        for inputs, targets in tqdm(self.dataloader, total=n):
             targets = targets.numpy()
 
             if self.use_cuda:

@@ -1,6 +1,10 @@
+import os
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+
 import argparse
 import numpy as np
-import os
 import pandas as pd
 import sys
 
@@ -52,13 +56,17 @@ def main():
     # ------- toal score mse -------
     total_score_mse = compute_total_score_error(predictions, ground_truths, ["total_score"])[0]
 
+    # ------- toal score mae -------
+    total_score_mae = compute_total_score_error(predictions, ground_truths, ["total_score"], which='mae')[0]
+
     print('---------- Item Scores ----------')
     print_df = pd.DataFrame(data=np.stack([item_accuracy_scores, item_mse_scores], axis=0),
-                            columns=[f'item-{i}' for i in range(N_ITEMS)],
+                            columns=[f'item-{i+1}' for i in range(N_ITEMS)],
                             index=['Accuracy', 'MSE'])
     print(tabulate(print_df, headers='keys', tablefmt='presto', floatfmt=".3f"))
 
     print(f'\nOverall Score MSE: {total_score_mse}')
+    print(f'\nOverall Score MAE: {total_score_mae}')
 
 
 if __name__ == '__main__':

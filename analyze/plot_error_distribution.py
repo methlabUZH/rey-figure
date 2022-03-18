@@ -15,7 +15,7 @@ from tabulate import tabulate
 import seaborn as sns
 
 from constants import *
-from src.utils import init_mpl
+from analyze.plot_utils import init_mpl
 
 colors = init_mpl(sns_style='ticks', colorpalette='muted')
 

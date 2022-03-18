@@ -15,22 +15,20 @@ from src.dataloaders.rocf_dataloader import get_dataloader
 from src.models import get_classifier
 from src.training.train_utils import directory_setup, Logger, train_val_split
 
-from src.training.multilabel_trainer import MultilabelTrainer
+from src.training.multilabel_trainer_v import MultilabelTrainer
 
 _VAL_FRACTION = 0.2
 _SEED = 7
 
-_DEBUG_DATADIR = '/Users/maurice/phd/src/rey-figure/data/resized-data/116x150'
-
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, default=_DEBUG_DATADIR, required=False)
+parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR_SMALL, required=False)
 parser.add_argument('--results-dir', type=str, default='./temp', required=False)
 parser.add_argument('--simulated-data', type=str, default=None, required=False)
 parser.add_argument('--max-simulated', type=int, default=-1, required=False)
 parser.add_argument('--workers', default=8, type=int)
 parser.add_argument('--is_binary', type=int, default=0, choices=[0, 1])
 parser.add_argument('--eval-test', action='store_true')
-parser.add_argument('--id', default=None, type=str)
+parser.add_argument('--id', default='final-variance-weighted', type=str)
 parser.add_argument('--epochs', default=75, type=int, help='number of total epochs to run')
 parser.add_argument('--batch-size', default=64, type=int, help='train batch size (default: 64)')
 parser.add_argument('--lr', '--learning-rate', default=0.01, type=float, help='initial learning rate')
@@ -69,6 +67,16 @@ def main():
     labels_csv = os.path.join(args.data_root, 'train_labels.csv')
     labels_df = pd.read_csv(labels_csv)
 
+    # compute loss weights
+    data_root = Path(args.data_root).parent.parent.absolute()
+    rater_variances = pd.read_csv(os.path.join(data_root, 'variance_all_figures.csv'))
+    rater_variances = rater_variances[rater_variances.part == 1]
+    rater_variances['figure_id'] = rater_variances.loc[:, ['ID']].applymap(lambda s: os.path.splitext(s)[0])
+    rater_variances = rater_variances[['figure_id', 'figure_avg_sd']]
+    rater_variances['figure_avg_sd'] = rater_variances.loc[:, ['figure_avg_sd']].applymap(
+        lambda v: 1.0 / (1.0 + float(v)))
+    labels_df = pd.merge(labels_df, rater_variances)
+
     # split df into validation and train parts
     train_labels, val_labels = train_val_split(labels_df, fraction=_VAL_FRACTION)
 
@@ -86,15 +94,15 @@ def main():
     train_loader = get_dataloader(data_root=args.data_root, labels=train_labels, label_type=CLASSIFICATION_LABELS,
                                   batch_size=args.batch_size, num_workers=args.workers, shuffle=True,
                                   weighted_sampling=args.weighted_sampling, augment=args.augment,
-                                  image_size=args.image_size)
+                                  image_size=args.image_size, variance_weighting=True)
     # get val dataloader
     val_loader = get_dataloader(data_root=args.data_root, labels=val_labels, label_type=CLASSIFICATION_LABELS,
                                 batch_size=args.batch_size, num_workers=args.workers, shuffle=False, augment=False,
-                                image_size=args.image_size)
+                                image_size=args.image_size, variance_weighting=True)
 
     model = get_classifier(REYMULTICLASSIFIER, num_classes=num_classes)
-    loss_func = torch.nn.CrossEntropyLoss()
-    trainer = MultilabelTrainer(model, loss_func, train_loader, val_loader, args, results_dir, args.is_binary)
+    loss_func = torch.nn.CrossEntropyLoss(reduction='none')
+    trainer = MultilabelTrainer(model, loss_func, train_loader, val_loader, args, results_dir)
     trainer.train()
 
     if args.eval_test:
@@ -111,7 +119,7 @@ def eval_test(trainer, results_dir):
     test_labels = pd.read_csv(os.path.join(args.data_root, 'test_labels.csv'))
     test_dataloader = get_dataloader(args.data_root, labels=test_labels, label_type=CLASSIFICATION_LABELS,
                                      batch_size=args.batch_size, num_workers=args.workers, shuffle=False,
-                                     image_size=args.image_size)
+                                     image_size=args.image_size, variance_weighting=True)
     test_stats = trainer.run_epoch(test_dataloader, is_train=False)
 
     print('\n-------eval test-------')

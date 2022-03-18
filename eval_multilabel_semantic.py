@@ -1,6 +1,10 @@
+import os
+
+os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 import argparse
 import numpy as np
-import os
 import pandas as pd
 import sys
 
@@ -9,6 +13,7 @@ from tabulate import tabulate
 from constants import *
 from src.training.train_utils import Logger
 from src.models import get_classifier
+from src.dataloaders.semantic_transforms_dataset import TF_BIRGHTNESS, TF_PERSPECTIVE, TF_CONTRAST, TF_ROTATION
 from src.evaluate import SemanticMultilabelEvaluator
 from src.evaluate.utils import *
 
@@ -18,13 +23,17 @@ _RES_DIR = './results/euler-results/data-2018-2021-116x150-pp0/final/rey-multila
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR_SMALL)
 parser.add_argument('--results-dir', type=str, default=_RES_DIR)
-parser.add_argument('--batch-size', default=64, type=int)
-parser.add_argument('--binary', default=0, type=int, choices=[0, 1])
-parser.add_argument('--ensemble', default=0, type=int, choices=[0, 1])
+parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
+parser.add_argument('--batch-size', default=100, type=int)
 parser.add_argument('--workers', default=8, type=int)
 
-parser.add_argument('--rot', type=float, default=None)
-parser.add_argument('--tilt', type=float, default=None)
+# transformations
+parser.add_argument('--transform', type=str, default=TF_ROTATION,
+                    choices=[TF_BIRGHTNESS, TF_PERSPECTIVE, TF_CONTRAST, TF_ROTATION])
+parser.add_argument('--angles', nargs='+', type=float, default=[0, 5], help='absolute value (min, max) rotation angles')
+parser.add_argument('--distortion', type=float, help='amount of distortion; ranges from 0 to 1')
+parser.add_argument('--brightness', type=float, help='0 = black image, 1 = original image, 2 increases the brightness')
+parser.add_argument('--contrast', type=float, help='0 = gray image, 1 = original image, 2 increases the contrast')
 
 args = parser.parse_args()
 
@@ -34,30 +43,33 @@ _CLASS_PRED_COLS = [f'pred_class_item_{item + 1}' for item in range(N_ITEMS)]
 _SCORE_LABEL_COLS = [f'true_score_item_{item + 1}' for item in range(N_ITEMS)]
 _SCORE_PRED_COLS = [f'pred_score_item_{item + 1}' for item in range(N_ITEMS)]
 
+_NUM_CLASSES = 4
+
 
 def main():
-    num_classes = 2 if args.binary else 4
-
-    assert (args.rot is None or args.tilt is None), "only one of rot and tilt can be not None"
-
     # save terminal output to file
-    if args.rot is not None:
-        prefix = f'rot={args.rot}'
+    if args.transform == TF_ROTATION:
+        prefix = f'rotation_{args.angles}'
+    elif args.transform == TF_CONTRAST:
+        prefix = f'contrast_{args.contrast}'
+    elif args.transform == TF_BIRGHTNESS:
+        prefix = f'brightness_{args.brightness}'
+    elif args.transform == TF_PERSPECTIVE:
+        prefix = f'perspective_{args.distortion}'
     else:
-        prefix = f"perspective={args.tilt}"
+        raise ValueError
 
     log_file = "semantic_eval_out_" + prefix + ".txt"
 
     sys.stdout = Logger(print_fp=os.path.join(args.results_dir, log_file))
 
-    model = get_classifier(arch=REYMULTICLASSIFIER, num_classes=num_classes)
-    evaluator = SemanticMultilabelEvaluator(model=model, results_dir=args.results_dir, data_dir=args.data_root,
-                                            is_ensemble=args.ensemble, is_binary=args.binary, rotation_angle=args.rot,
-                                            perspective_change=args.tilt, batch_size=args.batch_size)
+    model = get_classifier(arch=REYMULTICLASSIFIER, num_classes=_NUM_CLASSES)
+    evaluator = SemanticMultilabelEvaluator(model=model, image_size=args.image_size, results_dir=args.results_dir,
+                                            data_dir=args.data_root, batch_size=args.batch_size,
+                                            transform=args.transform, rotation_angles=args.angles,
+                                            distortion_scale=args.distortion, brightness_factor=args.brightness,
+                                            contrast_factor=args.contrast)
     evaluator.run_eval(save=True, prefix=prefix)
-
-    if args.binary:
-        return
 
     predictions = evaluator.predictions
     ground_truths = evaluator.ground_truths
@@ -79,7 +91,7 @@ def main():
 
     print('---------- Item Scores ----------')
     print_df = pd.DataFrame(data=np.stack([item_accuracy_scores, item_mse_scores, item_mae_scores], axis=0),
-                            columns=[f'item-{i}' for i in range(N_ITEMS)],
+                            columns=[f'item-{i + 1}' for i in range(N_ITEMS)],
                             index=['Accuracy', 'MSE', 'MAE'])
     print(tabulate(print_df, headers='keys', tablefmt='presto', floatfmt=".3f"))
 
