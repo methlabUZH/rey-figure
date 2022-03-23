@@ -5,6 +5,8 @@ import numpy as np
 import os
 import pandas as pd
 import json
+import random
+from datetime import datetime
 
 import torch
 
@@ -15,7 +17,7 @@ from src.models import get_regressor, get_regressor_v2
 from src.training.regression_trainer import RegressionTrainer
 
 _VAL_FRACTION = 0.2
-_SEED = 7
+_SEED = random.seed(datetime.now())
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR_SMALL, required=False)

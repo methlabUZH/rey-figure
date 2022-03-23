@@ -7,6 +7,9 @@ import pandas as pd
 from pathlib import Path
 from tabulate import tabulate
 import json
+import random
+from datetime import datetime
+
 
 import torch
 
@@ -18,7 +21,7 @@ from src.training.train_utils import directory_setup, Logger, train_val_split
 from src.training.multilabel_trainer import MultilabelTrainer
 
 _VAL_FRACTION = 0.2
-_SEED = 7
+_SEED = random.seed(datetime.now())
 
 _DEBUG_DATADIR = '/Users/maurice/phd/src/rey-figure/data/resized-data/116x150'
 

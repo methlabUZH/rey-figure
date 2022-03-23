@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-import os 
+import os
+from pydoc import classname 
 import numpy as np 
 import pandas as pd
 import argparse
@@ -16,9 +17,11 @@ from src.evaluate import MultilabelEvaluator
 from src.evaluate.utils import *
 from collections import Counter
 import time 
+import copy 
 
 
-models_root = '/home/ubuntu/projects/rey-figure/results/'
+# Set models_root to the top directory from which the script starts collecting all models below into an ensemble 
+models_root = '/home/ubuntu/projects/rey-figure/results/data-2018-2021-116x150-pp0'
 result_dir = './ensemble'
 # save terminal output to file
 sys.stdout = Logger(print_fp=os.path.join(result_dir, f'{time.time()}_ensemble_eval_out.txt'))
@@ -57,7 +60,11 @@ print(*files, sep='\n')
 dataframes = []
 for file in files:
     dataframes.append(pd.read_csv(file))
-ensemble_df = dataframes[0].copy() # just for initialization 
+
+ensemble_df = pd.DataFrame().reindex_like(dataframes[0]) # just for initialization 
+ensemble_df.to_csv('ensemble_start.csv')
+
+test_df = copy.deepcopy(dataframes[1])
 
 # Write the ensemble classes by majority vote 
 class_names = [f'class_item_{i}' for i in range(1,19)]
@@ -69,20 +76,45 @@ for i, class_name in enumerate(class_names):
         for dataframe in dataframes:
             class_votes.append(dataframe[class_name][j])
         majority_vote = Counter(class_votes).most_common(1)[0][0]
+        old = ensemble_df[class_name][j]
         ensemble_df[class_name][j] = majority_vote
-        
+        if i % 100 == 0: #old != ensemble_df[class_name][j]:
+            #print(f"changed class at {class_name, j}")
+            print("votes: ", class_votes, "majority: ", majority_vote)
 
+        
 # Now write the item scores for the majority votes computed above 
 score_names = [f'score_item_{i}' for i in range(1,19)]
 for i, score_name in enumerate(score_names):
     for j in range(len(ensemble_df[score_name])):
-        # translate majority vote to score 
-        #ensemble_df[score_name][j] = class_to_score(ensemble_df[class_names[i]][j])
-        scores = []
-        for dataframe in dataframes:
-            scores.append(dataframe[score_name][j])
-        ensemble_df[score_name][j] = np.mean(scores)
+        old = ensemble_df[score_name][j]
+        # Option 1: translate majority vote to score 
+        ensemble_df[score_name][j] = class_to_score(ensemble_df[class_names[i]][j])
+        
+        # Option 2: average the raw scores to new scores 
+        #scores = []
+        #for dataframe in dataframes:
+        #    scores.append(dataframe[score_name][j])
+        #ensemble_df[score_name][j] = np.mean(scores)
+        #if ensemble_df[score_name][j] != old:
+            #print(f"changed score at {score_name, j}")
+            #print(scores, np.mean(scores), ensemble_df[score_name][j])
 
+
+# Now compute the total score for each column 
+for j in range(len(ensemble_df['score_item_1'])): # iterate row wise 
+    total_score = 0 
+    for i, score_name in enumerate(score_names):
+        total_score += ensemble_df[score_name][j]
+    #print(f"total score", total_score)
+    ensemble_df['total_score'][j] = total_score
+    #print(ensemble_df['total_score'][j])
+
+#print(test_df == ensemble_df)
+#print(ensemble_df.compare(test_df))
+#print(f"dataframe equals original one: {ensemble_df.equals(test_df)}")
+
+ensemble_df.to_csv('ensemble_end.csv')
 
 # Compute the metrics of the ensemble 
 predictions = ensemble_df
