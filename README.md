@@ -37,7 +37,7 @@
    This will create a new dir in the specified results directory and save checkpoints + print outputs there.
 4. To evaluate models, run the following command
    ```python
-   python evaluate_multilabel.py --data-root /data-root/serialized-data/data-2018-2021-116x150-pp0 --results-dir /path/to/results --image-size 116 150 --batch-size 100
+   python eval_multilabel.py --data-root /data-root/serialized-data/data-2018-2021-116x150-pp0 --results-dir /path/to/results --image-size 116 150 --batch-size 100
    ```
    This will compute the overall MSE (note: change this to MAE in future), and create csv files which contains the
    prediction for each figure in the test set.
