@@ -9,5 +9,5 @@ if NEW_DATA:
 else:
     from dataloader_old import DATA
 
-print("Dataset {} loaded, containing image data_preprocessing of size{} ".format(DATA.name, np.shape(DATA.images)))
+print("Dataset {} loaded, containing image preprocessing of size{} ".format(DATA.name, np.shape(DATA.images)))
 

@@ -1,7 +1,7 @@
-# use new or old data_preprocessing
+# use new or old preprocessing
 NEW_DATA: True
 
-# use data_preprocessing augmentation
+# use preprocessing augmentation
 DATA_AUGMENTATION: False
 
 # label format: 'one-per-item' (19-dimensional), 'three-per-item' (55-dimensiona), or 'one' (only complete score)
@@ -40,7 +40,7 @@ DROPOUT: 0.5
 # classification encoding: 'one-hot' (0,0,1,0,0), 'weighted' (0.05,0.1,0.7,0.1,0.05), 'ordinal' (1, 1, 1, 0, 0)
 CLASSIFICATION_ENCODER: 'one-hot'
 
-# test can be False (normal cross-val on train/val) or True (train on all training data_preprocessing, test on test data_preprocessing)
+# test can be False (normal cross-val on train/val) or True (train on all training preprocessing, test on test preprocessing)
 TEST: False
 
 # droput for monte carlo dropout after every layer CNN layer to approximate uncertainty

@@ -293,7 +293,7 @@ def blur_lines(image):
 
 
 # def preprocess_dataset(figures, labels, files, set="train"):
-#     """Loads raw data_preprocessing and preprocesses it.
+#     """Loads raw preprocessing and preprocesses it.
 #     :return: preprocessed images, files, labels
 #     """
 #
@@ -311,16 +311,16 @@ def blur_lines(image):
 #     preprocessed_images = preprocess_images(images)
 #
 #     #################################################
-#     # TODO: create function to save serialized data_preprocessing  #
+#     # TODO: create function to save serialized preprocessing  #
 #     #################################################
 #     if REDO_PREPROCESSING_LABELS or REDO_PREPROCESSING_IMAGES:
 #         # save to disk for later use
 #         if (DEBUG):
-#             print("Writing preprocessed data_preprocessing to disk...")
+#             print("Writing preprocessed preprocessing to disk...")
 #         create_directory(DATA_DIR + "serialized")
 #
 #     if REDO_PREPROCESSING_IMAGES:
-#         # save images depending on data_preprocessing augmentation or not
+#         # save images depending on preprocessing augmentation or not
 #         if DATA_AUGMENTATION:
 #             np.save(DATA_DIR + 'serialized/images_aug.npy', preprocessed_images)
 #         else:
@@ -356,7 +356,7 @@ def blur_lines(image):
 #     except:
 #         pass
 #     #################################################
-#     # TODO: create function to save serialized data_preprocessing #
+#     # TODO: create function to save serialized preprocessing #
 #     #################################################
 #
 #     # TODO: Add TEST part of prepare_dataset() function

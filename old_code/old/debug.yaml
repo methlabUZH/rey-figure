@@ -1,7 +1,7 @@
 # number of images in a single training batch
 BATCH_SIZE: 2
 
-# number of workers for data_preprocessing loading
+# number of workers for preprocessing loading
 NUM_WORKERS: 8
 
 # training hyper parameters

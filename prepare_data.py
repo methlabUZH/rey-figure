@@ -1,20 +1,17 @@
 import argparse
-import json
+import cv2
 import multiprocessing as mp
 import numpy as np
 import os
 import pandas as pd
-import random
-from tabulate import tabulate
-import time
+import shutil
+from typing import *
 from tqdm import tqdm
 
-from src.utils import timestamp_human
-from src.data_preprocessing.preprocess import preprocess_image
+import numpy as np
 
-from src.data_preprocessing.reyfigure import ReyFigure
-from src.data_preprocessing.loading import join_ground_truth_files
-from src.data_preprocessing.augmentation import AugmentParameters
+from constants import *
+from src.preprocessing2 import resize_padded, create_label_files
 
 """
 this script expects your data to be organized like this:
@@ -37,289 +34,125 @@ this script expects your data to be organized like this:
     │     └── USZ_scans
     ├── UserRatingData
     └── simulated
-        
+
 """
 
-# setup arg parser
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, default='../data')
-parser.add_argument('--dataset', type=str, default='debug',
-                    choices=['debug', 'scans-2018', 'scans-2018-2021', 'data-2018-2021', 'fotos-2021'])
-parser.add_argument('--preprocessing', default=0, choices=[0, 1], type=int,
-                    help='type of preprocessing: 0 is minimal, 1 is erosion, contrast, cut whitespace, bg whitening')
+parser.add_argument('--data-root', type=str, default='./data')
 parser.add_argument('--image-size', nargs='+', default=[116, 150], help='height and width', type=int)
+parser.add_argument('--seed', type=int, default=1, help='random seed used for train and test split')
 args = parser.parse_args()
 
-# only 2018 data
-data_2018 = ['newupload_15_11_2018', 'newupload_9_11_2018', 'uploadFinal', 'newupload']
-debug_data = ['newupload_15_11_2018', 'USZ_fotos']
-
-# all 2021 data
-data_2021_fotos = ['USZ_fotos', 'Typeform']
-data_2021_scans = ['USZ_scans', 'Tino_cropped', 'KISPI']
-
-# scanned images from 2018 and 2021
-scans_2018_2021 = data_2018 + data_2021_scans
-
-# all images from 2018 and 2021
-data_2018_2021 = data_2018 + data_2021_scans + data_2021_fotos
-
-datasets = {'scans-2018': data_2018,
-            'scans-2018-2021': scans_2018_2021,
-            'data-2018-2021': data_2018_2021,
-            'fotos-2021': data_2021_fotos,
-            'debug': debug_data}
-
-args.data_root = os.path.abspath(args.data_root)
+# set numpy random seed (will be used by pandas)
+np.random.seed(args.seed)
 
 
-def worker(figure, npy_filepath, label, target_size, preprocessing_version, q):
-    original_image_preprocessed = preprocess_image(figure.get_image(), target_size=target_size,
-                                                   version=preprocessing_version)
+def main(data_root, image_size):
+    serialized_dir = os.path.join(data_root, 'serialized-data', 'data_{}x{}-seed_{}'.format(*image_size, args.seed))
+    serialized_data_dir_train = os.path.join(serialized_dir, "train")
+    serialized_data_dir_test = os.path.join(serialized_dir, "test")
 
-    # convert to uint8
-    original_image_preprocessed *= 255
-    original_image_preprocessed = original_image_preprocessed.astype(np.uint8)
+    if os.path.exists(serialized_data_dir_train):
+        n_train = len(os.listdir(serialized_data_dir_train))
 
-    np.save(npy_filepath, original_image_preprocessed)
+        if n_train > 0:
+            print(f'dir {serialized_data_dir_train} already exists! found {n_train} files.')
+            return
 
-    data = {'figure_id': figure.figure_id, 'filepath_image': figure.filepath, 'filepath_npy': npy_filepath,
-            'label': label, 'augmented': False}
+        shutil.rmtree(serialized_dir)
+        print(f'no files in {serialized_dir}! removed {serialized_dir}')
 
-    q.put(data)
+    test_labels, train_labels = create_label_files(data_dir=data_root, test_fraction=TEST_FRACTION)
 
+    os.makedirs(serialized_data_dir_test)
+    os.makedirs(serialized_data_dir_train)
 
-def listener(columns, save_as, q):
-    df = pd.DataFrame(columns=columns)
-
-    while 1:
-        data = q.get()
-
-        if data == "kill":
-            df.set_index('figure_id', inplace=True)
-            df.to_csv(save_as)
-            break
-
-        figure_id = data.get('figure_id')
-        filepath_image = data.get('filepath_image')
-        fp_npy = data.get('filepath_npy')
-        label = data.get('label')
-        augmented = data.get('augmented')
-
-        # add to df
-        df.loc[-1] = [figure_id, filepath_image, fp_npy, augmented] + label
-        df.index += 1
-        df.sort_index()
-
-
-def preprocess_data(data_root, dataset_name, image_size, preprocessing_version):
-    serialized_dir = os.path.join(data_root, 'serialized-data',
-                                  f'{dataset_name}-{image_size[0]}x{image_size[1]}-pp{preprocessing_version}')
-    data_dirs = datasets[dataset_name]
-
-    for data_dir in data_dirs:
-        if data_dir in data_2018:
-            os.makedirs(os.path.join(serialized_dir, 'data2018', data_dir))
-
-        if data_dir in data_2021_scans or data_dir in data_2021_fotos:
-            os.makedirs(os.path.join(serialized_dir, 'data2021', data_dir))
-
-    # map filenames to paths (assumption: filenames are unique)
-    figure_names_and_paths = []
+    # get list of filepaths
+    figures_filepaths = {}
     for (dirpath, dirname, filenames) in os.walk(os.path.join(data_root, 'ReyFigures')):
-        rel_dirpath = './' + dirpath.split(os.path.normpath(data_root) + '/')[-1]
-        dirpath_serialized = serialized_dir + '/' + rel_dirpath.split('./ReyFigures/')[-1]
-
-        if os.path.split(dirpath)[-1] not in data_dirs:
-            continue
-
         for fn in filenames:
             if fn.startswith('.'):  # exclude files like .DS_Store
                 continue
 
-            figure_id = os.path.splitext(fn)[0]
-            figure_names_and_paths += [(figure_id,
-                                        os.path.join(dirpath, fn),
-                                        os.path.join(dirpath_serialized, str(figure_id) + '.npy'))]
+            figures_filepaths[fn] = os.path.join(dirpath, fn)
 
-    figure_ids = np.array(figure_names_and_paths)[:, 0].tolist()
-    df_figure_paths = pd.DataFrame(data=figure_names_and_paths,
-                                   columns=['figure_id', 'filepath_image', 'filepath_npy'])
-    df_figure_paths = df_figure_paths.drop_duplicates(subset='figure_id')
-    df_figure_paths = df_figure_paths.set_index('figure_id')
-    figures_paths_fp = os.path.join(serialized_dir, 'figures_paths.csv')
-    df_figure_paths.to_csv(figures_paths_fp)
+    print(f'found {len(figures_filepaths)} files in {os.path.join(data_root, "ReyFigures")}')
+    print(f'# test images: {len(test_labels)}')
+    print(f'# train images: {len(train_labels)}')
 
-    print(tabulate(df_figure_paths.head(10), headers='keys', tablefmt='psql'))
-    print(f'number of unique figures: {len(df_figure_paths)}\n')
+    # process test data
+    test_labels_fp = os.path.join(serialized_dir, 'test_labels.csv')
+    _process_images(test_labels, figures_filepaths, test_labels_fp, serialized_data_dir_test)
+    train_labels_fp = os.path.join(serialized_dir, 'train_labels.csv')
+    _process_images(train_labels, figures_filepaths, train_labels_fp, serialized_data_dir_train)
 
-    # merge all user rating data files and save as csv
-    df_user_ratings = join_ground_truth_files(labels_root=os.path.join(data_root, 'UserRatingData/'))
-    df_user_ratings = df_user_ratings[df_user_ratings['figure_id'].isin(figure_ids)]
-    df_user_ratings = df_user_ratings[df_user_ratings['FILE'].notna()]  # drop nan files
-    user_rating_data_fp = os.path.join(serialized_dir, 'user_rating_data_merged.csv')
-    df_user_ratings.to_csv(user_rating_data_fp)
 
-    print(tabulate(df_user_ratings.head(10), headers='keys', tablefmt='psql'))
-    print(f'\ntotal user rating rows without duplicates: {len(df_user_ratings)}')
-    print(f'saved merged user rating data as {user_rating_data_fp}')
-
-    # loop through all images and create figure objects
-    print('\n* processing user rating data...')
-    figures = {}
-    for _, rating in tqdm(df_user_ratings.iterrows(), total=len(df_user_ratings)):
-        figure_id = os.path.splitext(str(rating['FILE']))[0]
-        relative_filepath = df_figure_paths.loc[figure_id]['filepath_image']
-
-        try:
-            abs_path_to_image = os.path.join(data_root, relative_filepath)
-        except Exception as e:
-            print(f'failed to load figure {figure_id}; err:\n\t{e}')
-            continue
-
-        if not os.path.exists(abs_path_to_image):
-            print(f'file not found: {abs_path_to_image}')
-            continue
-
-        if figure_id not in figures:
-            figures[figure_id] = ReyFigure(figure_id=figure_id, filepath=abs_path_to_image)
-
-        assessment_id = rating['assessment_id']
-        assessment = figures[figure_id].get_assessment(assessment_id)
-        assessment.add_item(item_id=rating['part_id'],
-                            score=rating['part_points'],
-                            visible=rating['visible'],
-                            right_place=rating['right_place'],
-                            drawn_correct=rating['drawn_correct'])
-
-    # convert to list
-    figures = [figures[fig] for fig in figures if figures[fig].has_valid_assessment()]
-    print(f'total number of figures with valid assessment:\t{len(figures)}')
-
-    # extract labels with one-per-item scores; each label has shape (18 + 1,) one for each item + overall score
-    labels = [fig.get_median_score_per_item() + [fig.get_median_score(), fig.get_sum_of_median_item_scores()]
-              for fig in figures]
-
-    # extract filepaths
-    npy_filepaths = [df_figure_paths.loc[fig.figure_id]['filepath_npy'] for fig in figures]
-
-    # prepocess figures and create label file
-    label_cols = ['figure_id', 'image_filepath', 'serialized_filepath', 'augmented']
-    label_cols += [f'score_item_{i + 1}' for i in range(18)]
-    label_cols += ['median_score', 'summed_score']
-
-    num_processes = mp.cpu_count() + 2
-
+def _process_images(labels: pd.DataFrame, figures_filepaths: Dict, labels_save_as: str, images_data_dir: str,
+                    num_processes: int = 8):
     manager = mp.Manager()
-    q = manager.Queue()
+    queue = manager.Queue()
     pool = mp.Pool(num_processes)
 
-    # put listener to work first
-    labels_csv = os.path.join(serialized_dir, 'labels.csv')
-    _ = pool.apply_async(listener, (label_cols, labels_csv, q))
-
-    start_time = time.time()
-    print(f'\n* start preprocessing @ {timestamp_human()} ...')
+    # put listener to work
+    _ = pool.apply_async(_listener, (labels, labels_save_as, queue))
 
     # fire off workers
-    jobs = []
-    for figure, label, npy_fp in zip(figures, labels, npy_filepaths):
-        job = pool.apply_async(worker, (figure, npy_fp, label, args.image_size, preprocessing_version, q))
-        jobs.append(job)
+    worker_args = [(row, figures_filepaths, images_data_dir, queue) for _, row in labels.iterrows()]
+    for _ in tqdm(pool.imap_unordered(_worker, worker_args), total=len(worker_args)):
+        pass
 
-    # collect results
-    for i, job in enumerate(jobs):
-        job.get()
-
-    q.put('kill')
+    queue.put('kill')
     pool.close()
     pool.join()
 
-    end_time = time.time()
-    print(f'\n* end preprocessing @ {timestamp_human()} ...')
-    print(f'* total time for preprocessing:\t{end_time - start_time:.2f}s')
 
-    df_labels = pd.read_csv(labels_csv)
-    print(tabulate(df_labels.head(50), headers='keys', tablefmt='psql'))
+def _worker(data):
+    row = data[0]
+    figures_filepaths = data[1]
+    data_dir = data[2]
+    queue = data[3]
 
-    make_train_test_split(serialized_dir)
-    compute_mean_and_std(serialized_dir, image_size)
+    image_fp = figures_filepaths[row['FILE']]
 
+    # load image and resize
+    image_numpy = cv2.imread(image_fp, flags=cv2.IMREAD_GRAYSCALE)
 
-def make_train_test_split(data_root):
-    print('\n* generating train / test split...')
+    if image_numpy is None:
+        return
 
-    labels_csv_fp = os.path.join(data_root, 'labels.csv')
+    image_numpy = image_numpy / 255.0
+    image_numpy = resize_padded(image_numpy, new_shape=args.image_size)
 
-    if not os.path.isfile(labels_csv_fp):
-        raise FileNotFoundError(f'could not find labels csv in {labels_csv_fp}')
+    # convert to uint8
+    image_numpy *= 255
+    image_numpy = image_numpy.astype(np.uint8)
 
-    labels_df = pd.read_csv(labels_csv_fp)
-    labels_df_original = labels_df[labels_df.augmented == False]  # noqa
-    labels_df_augmented = labels_df[labels_df.augmented == True]  # noqa
-    num_original_datapoints = len(labels_df_original)
+    # save resized image
+    serialized_image_fn = os.path.splitext(os.path.split(image_fp)[-1])[0] + '.npy'
+    serialized_fp = os.path.join(data_dir, serialized_image_fn)
+    np.save(serialized_fp, image_numpy)
 
-    train_indices = random.sample(list(range(num_original_datapoints)), k=int(num_original_datapoints * 0.8))
-    test_indices = [i for i in range(num_original_datapoints) if i not in train_indices]
-    assert set(train_indices).isdisjoint(test_indices)
-
-    print(f'number of original datapoints:\t{num_original_datapoints}')
-    print(f'number of original training datapoints:\t{len(train_indices)}')
-    print(f'number of original testing datapoints:\t{len(test_indices)}')
-
-    train_df_original = labels_df_original.iloc[train_indices]
-    train_figure_ids = []
-    for fid in train_df_original.figure_id.to_list():
-        train_figure_ids.append(fid)
-        for i in range(AugmentParameters.num_augment):
-            train_figure_ids.append(fid + f'_augm{i + 1}')
-
-    train_df = labels_df[labels_df.figure_id.isin(train_figure_ids)]
-    test_df = labels_df_original.iloc[test_indices]
-
-    assert len(test_df[test_df.figure_id.isin(train_figure_ids)]) == 0
-
-    print(f'total number of original and augmented training datapoints:\t{len(train_df)}')
-
-    train_df.to_csv(os.path.join(data_root, 'train_labels.csv'))
-    test_df.to_csv(os.path.join(data_root, 'test_labels.csv'))
+    data = {'FILE': row['FILE'], 'image_filepath': image_fp, 'serialized_filepath': serialized_fp}
+    queue.put(data)
 
 
-def compute_mean_and_std(data_root, image_size):
-    train_labels = pd.read_csv(os.path.join(data_root, 'train_labels.csv'))
+def _listener(dataframe: pd.DataFrame, save_as, queue):
+    dataframe['image_filepath'] = np.nan
+    dataframe['serialized_filepath'] = np.nan
+    dataframe = dataframe.set_index('FILE')
 
-    filepaths = train_labels['serialized_filepath'].values.tolist()
-    partial_sum = 0.0
-    partial_sum_of_squares = 0.0
-    num_images = 0
+    while 1:
+        data = queue.get()
 
-    print('\n* computing train set mean and std...')
+        if data == 'kill':
+            dataframe.reset_index(drop=False)
+            dataframe.to_csv(save_as)
+            break
 
-    for fp in tqdm(filepaths):
-        img = np.load(fp)
-        image_shape = np.shape(img)
-
-        if tuple(image_shape) != tuple(image_size):
-            raise ValueError(f'image {fp} with inconsistent image size; expected {image_size}, got {image_shape}')
-
-        partial_sum += np.sum(img)
-        partial_sum_of_squares += np.sum(img ** 2)
-        num_images += 1
-
-    count = num_images * image_size[0] * image_size[1]
-    total_mean = partial_sum / count
-    total_std = np.sqrt((partial_sum_of_squares / count) - (total_mean ** 2))
-
-    with open(os.path.join(data_root, 'trainset-stats.json'), 'w') as f:
-        json.dump({'mean': total_mean, 'std': total_std}, f)
-        print('saved mean and std in', os.path.join(data_root, 'trainset-stats.json'))
-
-    print(f'training set mean:\t{total_mean}')
-    print(f'training set std:\t{total_std}')
+        image_fn = data['FILE']
+        dataframe.loc[image_fn, 'image_filepath'] = data['image_filepath']
+        dataframe.loc[image_fn, 'serialized_filepath'] = data['serialized_filepath']
 
 
 if __name__ == '__main__':
-    preprocess_data(data_root=args.data_root,
-                    dataset_name=args.dataset,
-                    image_size=args.image_size,
-                    preprocessing_version=args.preprocessing)
+    main(data_root=args.data_root, image_size=args.image_size)

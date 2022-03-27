@@ -67,7 +67,7 @@ def main():
     labels_df = pd.read_csv(labels_csv)
 
     # split df into validation and train parts
-    train_labels, val_labels = train_val_split(labels_df, fraction=_VAL_FRACTION)
+    train_labels, val_labels = train_val_split(labels_df, val_fraction=_VAL_FRACTION)
 
     # include simulated data
     if args.simulated_data is not None:

@@ -16,9 +16,9 @@ RESULTS_DIR = os.path.join(RESULTS_DIR, 'scans-2018-116x150-augmented/id-1/')
 CLASSIFIERS_DIR = os.path.join(RESULTS_DIR, 'item-classifier')
 REGRESSOR_DIR = os.path.join(RESULTS_DIR, 'rey-regressor')
 
-# data_preprocessing
+# preprocessing
 ID_TO_PATH = '/Users/maurice/phd/src/rey-figure/data/serialized-data/scans-2018-116x150/figures_paths.csv'
-DEFAULT_IMG = '/Users/maurice/phd/src/rey-figure/data_preprocessing/serialized-data_preprocessing/scans-2018-116x150/data2018/'
+DEFAULT_IMG = '/Users/maurice/phd/src/rey-figure/preprocessing/serialized-preprocessing/scans-2018-116x150/data2018/'
 DEFAULT_IMG += 'uploadFinal/Colombia092_f2_NaN.npy'
 IMAGE_SIZE = 116, 150
 NORM_LAYER = 'batch_norm'

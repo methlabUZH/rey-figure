@@ -3,6 +3,9 @@ from typing import Optional, Callable, Tuple, List
 from torch import Tensor
 import torch.nn as nn
 
+from torchvision.models.vgg import VGG
+from torchvision.models.resnet import ResNet
+
 from constants import N_ITEMS
 
 __all__ = ['rey_multiclassifier']

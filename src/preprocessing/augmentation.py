@@ -6,7 +6,7 @@ from skimage import transform
 from scipy.ndimage.interpolation import map_coordinates
 from scipy.ndimage.filters import gaussian_filter
 
-from src.data_preprocessing.helpers import cutdown, resize_padded
+from src.preprocessing.helpers import cutdown, resize_padded
 
 
 @dataclass

@@ -7,6 +7,6 @@ setuptools.setup(
     version=__version__,
     python_requires=">=3.6",
     packages=setuptools.find_packages(
-        exclude=["data_preprocessing", "scripts"]
+        exclude=["preprocessing", "scripts"]
     ),
 )

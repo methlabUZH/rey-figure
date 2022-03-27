@@ -14,7 +14,7 @@ from torch import optim
 from torch.utils.tensorboard import SummaryWriter
 
 from constants import RESULTS_DIR, BIN_LOCATIONS1, BIN_LOCATIONS2
-from src.data_preprocessing.augmentation import AugmentParameters
+from src.preprocessing.augmentation import AugmentParameters
 from old_code.dataloaders import get_regression_dataloader_train
 from src.training.train_utils import directory_setup, plot_scores_preds, count_parameters, AverageMeter, Logger
 from src.utils import timestamp_human

@@ -14,7 +14,7 @@ RESULTS_DIR = os.path.join(RESULTS_DIR, 'scans-2018-116x150-augmented/id-1/')
 CLASSIFIERS_DIR = os.path.join(RESULTS_DIR, 'item-classifier')
 REGRESSOR_DIR = os.path.join(RESULTS_DIR, 'rey-regressor')
 
-# data_preprocessing
+# preprocessing
 DEFAULT_IMG = './sample_data/B9483_02C_NaN_img421.npy'
 NORM_LAYER = 'batch_norm'
 

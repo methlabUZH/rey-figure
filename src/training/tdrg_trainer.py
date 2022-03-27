@@ -8,17 +8,21 @@ import torch
 import torch.backends.cudnn as cudnn
 from torch.autograd import Variable
 
-from util import AverageMeter, AveragePrecisionMeter
+from src.training.tdrg_utils import AverageMeter, AveragePrecisionMeter
 
 
 class Trainer(object):
-    def __init__(self, model, criterion, train_loader, val_loader, args):
+    def __init__(self, model, criterion, train_loader, val_loader, args, save_dir):
         self.model = model
         self.criterion = criterion
         self.train_loader = train_loader
         self.val_loader = val_loader
         self.args = args
-        # pprint (self.args)
+
+        self.save_dir = save_dir
+
+        self.use_cuda = torch.cuda.is_available()
+
         print('--------Args Items----------')
         for k, v in vars(self.args).items():
             print('{}: {}'.format(k, v))
@@ -59,7 +63,7 @@ class Trainer(object):
         if os.path.isfile(self.args.resume) and self.args.resume.endswith('pth'):
             self.load_checkpoint()
 
-        if torch.cuda.is_available():
+        if self.use_cuda:
             cudnn.benchmark = True
             self.model = torch.nn.DataParallel(self.model).cuda()
             self.criterion = self.criterion.cuda()
@@ -110,6 +114,7 @@ class Trainer(object):
                 out_trans, out_gcn, out_sac = self.model(inputs)
         else:
             out_trans, out_gcn, out_sac = self.model(inputs)
+
         outputs = (0.7 * out_trans + 0.3 * out_gcn)
 
         loss = self.criterion(outputs, targets) + \
@@ -159,10 +164,9 @@ class Trainer(object):
                 'state_dict': self.model.module.state_dict() if torch.cuda.is_available() else self.model.state_dict(),
                 'best_score': self.best_score
             }
-            model_dir = self.args.save_dir
-            # assert os.path.exists(model_dir) == True
-            self.save_checkpoint(checkpoint, model_dir, is_best)
-            self.save_result(model_dir, is_best)
+
+            self.save_checkpoint(checkpoint, is_best)
+            self.save_result(self.save_dir, is_best)
 
             print(' * best mAP={best:.4f}'.format(best=self.best_score))
 
@@ -192,7 +196,7 @@ class Trainer(object):
             targets[targets == 0] = 1
             targets[targets == -1] = 0
 
-            if torch.cuda.is_available():
+            if self.use_cuda:
                 inputs = inputs.cuda()
                 targets = targets.cuda()
 
@@ -273,19 +277,15 @@ class Trainer(object):
                 print('\tMismatched layers: {}'.format(k))
         self.model.load_state_dict(model_dict)
 
-    def save_checkpoint(self, checkpoint, model_dir, is_best=False):
-        if not os.path.exists(model_dir):
-            os.makedirs(model_dir)
+    def save_checkpoint(self, checkpoint, is_best=False):
+        checkpoint_dir = os.path.join(self.save_dir, 'checkpoints/')
+        checkpoint_fp = os.path.join(checkpoint_dir, 'checkpoint.pth.tar')
 
-        # filename = 'Epoch-{}.pth'.format(self.epoch)
-        filename = 'checkpoint.pth'
-        res_path = os.path.join(model_dir, filename)
-        print('Save checkpoint to {}'.format(res_path))
-        torch.save(checkpoint, res_path)
+        print('Save checkpoint to {}'.format(checkpoint_fp))
+        torch.save(checkpoint, checkpoint_fp)
+
         if is_best:
-            filename_best = 'checkpoint_best.pth'
-            res_path_best = os.path.join(model_dir, filename_best)
-            shutil.copyfile(res_path, res_path_best)
+            shutil.copyfile(checkpoint_fp, os.path.join(checkpoint_dir, 'model_best.pth.tar'))
 
     def save_result(self, model_dir, is_best=False):
         if not os.path.exists(model_dir):

@@ -9,7 +9,7 @@ def join_ground_truth_files(labels_root: str) -> pd.DataFrame:
     """
     find all csv files in labels_root and join them into one pandas dataframe
     returns:
-        pd.DataFrame with merged user rating data_preprocessing without duplicates
+        pd.DataFrame with merged user rating preprocessing without duplicates
     """
     all_label_files = os.listdir(labels_root)
 

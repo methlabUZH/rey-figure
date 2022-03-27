@@ -10,7 +10,7 @@ def predict_mc_dropout(test_data, model, passes):
 
 
 if __name__=="__main__: ":
-    # load test data_preprocessing
+    # load test preprocessing
 
 
     # load pretrained model

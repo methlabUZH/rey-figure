@@ -10,12 +10,12 @@ import time
 from tqdm import tqdm
 
 from src.utils import timestamp_human
-from src.data_preprocessing.preprocess import preprocess_image, simulate_augment_image
+from src.preprocessing.preprocess import preprocess_image, simulate_augment_image
 
-from src.data_preprocessing.reyfigure import ReyFigure
-from src.data_preprocessing.loading import join_ground_truth_files
-from src.data_preprocessing.helpers import normalize
-from src.data_preprocessing.augmentation import augment_image, AugmentParameters
+from src.preprocessing.reyfigure import ReyFigure
+from src.preprocessing.loading import join_ground_truth_files
+from src.preprocessing.helpers import normalize
+from src.preprocessing.augmentation import augment_image, AugmentParameters
 from constants import DEFAULT_CANVAS_SIZE, AUGM_CANVAS_SIZE
 
 """

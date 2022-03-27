@@ -1,10 +1,6 @@
-import os
-
-os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
 import argparse
 import numpy as np
+import os
 import pandas as pd
 import sys
 
@@ -13,7 +9,7 @@ from tabulate import tabulate
 from constants import *
 from src.training.train_utils import Logger
 from src.models import get_classifier
-from src.dataloaders.semantic_transforms_dataset import TF_BIRGHTNESS, TF_PERSPECTIVE, TF_CONTRAST, TF_ROTATION
+from src.dataloaders.semantic_transforms_dataset import TF_BRIGHTNESS, TF_PERSPECTIVE, TF_CONTRAST, TF_ROTATION
 from src.evaluate import SemanticMultilabelEvaluator
 from src.evaluate.utils import *
 
@@ -29,7 +25,7 @@ parser.add_argument('--workers', default=8, type=int)
 
 # transformations
 parser.add_argument('--transform', type=str, default=TF_ROTATION,
-                    choices=[TF_BIRGHTNESS, TF_PERSPECTIVE, TF_CONTRAST, TF_ROTATION])
+                    choices=[TF_BRIGHTNESS, TF_PERSPECTIVE, TF_CONTRAST, TF_ROTATION])
 parser.add_argument('--angles', nargs='+', type=float, default=[0, 5], help='absolute value (min, max) rotation angles')
 parser.add_argument('--distortion', type=float, help='amount of distortion; ranges from 0 to 1')
 parser.add_argument('--brightness', type=float, help='0 = black image, 1 = original image, 2 increases the brightness')
@@ -52,7 +48,7 @@ def main():
         prefix = f'rotation_{args.angles}'
     elif args.transform == TF_CONTRAST:
         prefix = f'contrast_{args.contrast}'
-    elif args.transform == TF_BIRGHTNESS:
+    elif args.transform == TF_BRIGHTNESS:
         prefix = f'brightness_{args.brightness}'
     elif args.transform == TF_PERSPECTIVE:
         prefix = f'perspective_{args.distortion}'

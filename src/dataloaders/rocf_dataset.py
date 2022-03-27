@@ -8,7 +8,7 @@ from torchvision import transforms
 
 from constants import *
 from src.utils import map_to_score_grid, score_to_class
-from src.dataloaders.transforms import NormalizeImage
+from src.dataloaders.transforms import NormalizeImage, ColorJitter
 
 _SCORE_COLS = [f'score_item_{i + 1}' for i in range(N_ITEMS)]
 
@@ -43,19 +43,20 @@ class ROCFDataset(Dataset):
         # data augmentation
         self._do_augment = data_augmentation
         self._augment = transforms.RandomApply(transforms=[
-            transforms.GaussianBlur(kernel_size=(3, 3), sigma=(0.01, 1.0)),
+            # transforms.GaussianBlur(kernel_size=(3, 3), sigma=(0.01, 1.0)),
+            ColorJitter(brightness=[0.6, 1.1], contrast=0.5),
             transforms.RandomPerspective(distortion_scale=0.4, p=0.5, fill=255.0),
             transforms.Compose([transforms.RandomRotation(degrees=(-10, 10), expand=True, fill=255.0),
                                 transforms.Resize(size=image_size)])],
-            p=0.5)
+            p=1.0)
 
         # normalizer (image-wise)
         self._normalize = NormalizeImage()
 
         # get filepaths and ids
-        self._image_files = [os.path.join(data_root, f) for f in self._labels_df["image_filepath"].tolist()]
-        self._images_npy = [os.path.join(data_root, f) for f in self._labels_df["serialized_filepath"].tolist()]
-        self._image_ids = self._labels_df["figure_id"]
+        self._image_files = self._labels_df["image_filepath"].tolist()
+        self._images_npy = self._labels_df["serialized_filepath"].tolist()
+        self._image_ids = self._labels_df["FILE"]
 
         # get variances
         self._human_variances = None
@@ -119,7 +120,7 @@ if __name__ == '__main__':
     labels_df = pd.read_csv(labels_csv)
     ds = ROCFDataset(data_root=DEBUG_DATADIR_BIG, labels=labels_df, label_type=CLASSIFICATION_LABELS,
                      data_augmentation=True, image_size=(232, 300))
-    image, label = ds[1]
+    image, label = ds[-1]
     image = np.squeeze(image.numpy())
     plt.imshow(image, cmap='gray')
     plt.show()

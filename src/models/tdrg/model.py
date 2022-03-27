@@ -1,8 +1,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from .utils.position_encoding import build_position_encoding
-from .utils.transformer import build_transformer
+import torchvision
+from src.models.tdrg.utils.position_encoding import build_position_encoding
+from src.models.tdrg.utils.transformer import build_transformer
 
 
 class TopKMaxPooling(nn.Module):
@@ -41,7 +42,7 @@ class GraphConvolution(nn.Module):
     def __init__(self, in_dim, out_dim):
         super(GraphConvolution, self).__init__()
         self.relu = nn.LeakyReLU(0.2)
-        self.weight = nn.Conv1d(in_dim, out_dim, (1, 1))
+        self.weight = nn.Conv1d(in_dim, out_dim, 1)
 
     def forward(self, adj, nodes):
         nodes = torch.matmul(nodes, adj)
@@ -54,6 +55,8 @@ class GraphConvolution(nn.Module):
 class TDRG(nn.Module):
     def __init__(self, model, num_classes):
         super(TDRG, self).__init__()
+        self.use_cuda = torch.cuda.is_available()
+
         # backbone
         self.layer1 = nn.Sequential(
             model.conv1,
@@ -101,7 +104,7 @@ class TDRG(nn.Module):
         # GCN
         self.constraint_classifier = nn.Conv2d(self.in_planes, num_classes, (1, 1), bias=False)
 
-        self.guidance_transform = nn.Conv1d(self.transformer_dim, self.transformer_dim, (1, 1))
+        self.guidance_transform = nn.Conv1d(self.transformer_dim, self.transformer_dim, 1)
         self.guidance_conv = nn.Conv1d(self.transformer_dim * 3, self.transformer_dim * 3, (1, 1))
         self.guidance_bn = nn.BatchNorm1d(self.transformer_dim * 3)
         self.relu = nn.LeakyReLU(0.2)
@@ -112,7 +115,7 @@ class TDRG(nn.Module):
         self.forward_gcn = GraphConvolution(self.transformer_dim + self.gcn_dim, self.transformer_dim + self.gcn_dim)
 
         self.mask_mat = nn.Parameter(torch.eye(self.num_classes).float())
-        self.gcn_classifier = nn.Conv1d(self.transformer_dim + self.gcn_dim, self.num_classes, (1, 1))
+        self.gcn_classifier = nn.Conv1d(self.transformer_dim + self.gcn_dim, self.num_classes, 1)
 
     def forward_backbone(self, x):
         x1 = self.layer1(x)
@@ -139,18 +142,23 @@ class TDRG(nn.Module):
         x5 = F.interpolate(x5, size=(h5, h5), mode='bilinear', align_corners=True)
         return x3, x4, x5
 
-    def forward_transformer(self, x3, x4):
+    def forward_transformer(self, x3, x4, x5):
         # cross scale attention
-        x5 = self.transform_7(x4)
-        x4 = self.transform_14(x4)
         x3 = self.transform_28(x3)
+        x4 = self.transform_14(x4)
+        x5 = self.transform_7(x5)
 
         x3, x4, x5 = self.cross_scale_attention(x3, x4, x5)
 
         # transformer encoder
-        mask3 = torch.zeros_like(x3[:, 0, :, :], dtype=torch.bool).cuda()
-        mask4 = torch.zeros_like(x4[:, 0, :, :], dtype=torch.bool).cuda()
-        mask5 = torch.zeros_like(x5[:, 0, :, :], dtype=torch.bool).cuda()
+        mask3 = torch.zeros_like(x3[:, 0, :, :], dtype=torch.bool)
+        mask4 = torch.zeros_like(x4[:, 0, :, :], dtype=torch.bool)
+        mask5 = torch.zeros_like(x5[:, 0, :, :], dtype=torch.bool)
+
+        if self.use_cuda:
+            mask3 = mask3.cuda()
+            mask4 = mask4.cuda()
+            mask5 = mask4.cuda()
 
         pos3 = self.positional_embedding(x3)
         pos4 = self.positional_embedding(x4)
@@ -201,32 +209,40 @@ class TDRG(nn.Module):
         f5 = self.GAP1d(f5)
         trans_guid = torch.cat((f3, f4, f5), dim=1)
 
-        trans_guid = self.guidance_conv(trans_guid)
+        trans_guid = self.guidance_conv(torch.unsqueeze(trans_guid, dim=-1))
+        trans_guid = torch.squeeze(trans_guid, dim=-1)
         trans_guid = self.guidance_bn(trans_guid)
         trans_guid = self.relu(trans_guid)
         trans_guid = trans_guid.expand(trans_guid.size(0), trans_guid.size(1), x.size(2))
 
         x = torch.cat((trans_guid, x), dim=1)
+        x = torch.unsqueeze(x, dim=-1)
         joint_correlation = self.matrix_transform(x)
+        joint_correlation = torch.squeeze(joint_correlation, dim=-1)
         joint_correlation = torch.sigmoid(joint_correlation)
+
         return joint_correlation
 
     def forward(self, x):
         x2, x3, x4 = self.forward_backbone(x)
 
         # structural relation
-        f3, f4, f5, out_trans = self.forward_transformer(x3, x4)
+        f3, f4, f5, out_trans = self.forward_transformer(x3, x4, x4)
 
-        # semantic relation
+        # # semantic relation
+
         # semantic-aware constraints
         out_sac = self.forward_constraint(x4)
+
         # graph nodes
         v = self.build_nodes(x4, f4)
-        # print('V', V.shape)
+
         # joint correlation
         a_s = self.build_joint_correlation_matrix(f3, f4, f5, v)
+
         g = self.forward_gcn(a_s, v) + v
         out_gcn = self.gcn_classifier(g)
+
         mask_mat = self.mask_mat.detach()
         out_gcn = (out_gcn * mask_mat).sum(-1)
 
@@ -239,3 +255,19 @@ class TDRG(nn.Module):
             {'params': self.backbone.parameters(), 'lr': lr * lrp},
             {'params': large_lr_layers, 'lr': lr},
         ]
+
+
+def get_model(num_classes):
+    res101 = torchvision.models.resnet101(pretrained=True)
+    return TDRG(res101, num_classes)
+
+
+if __name__ == '__main__':
+    import numpy as np
+
+    img = np.random.normal(size=(7, 3, 300, 300)).astype(float)
+    img = torch.from_numpy(img).type('torch.FloatTensor')
+    m = get_model(4 * 18)
+    out = m(img)
+    for t in out:
+        print(t.size())

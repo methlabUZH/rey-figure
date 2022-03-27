@@ -5,7 +5,7 @@ from skimage.color import rgb2gray as skimage_rgb2gray
 from skimage.morphology import erosion as skimage_erosion
 from skimage.exposure import adjust_gamma as skimage_adjust_gamma
 
-from src.data_preprocessing.helpers import cutdown, resize_padded
+from src.preprocessing.helpers import cutdown, resize_padded
 
 
 def preprocess_image(image, target_size, version=1):

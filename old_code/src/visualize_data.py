@@ -16,7 +16,7 @@ def visualize_labels(dataset):
     n, bins, patches = plt.hist(x=dataset.labels, rwidth=0.85, bins=36)
     plt.xlabel('Label')
     plt.ylabel('Frequency')
-    plt.title('Histogram of labels of {} images of the data_preprocessing set {}'.format(dataset.labels.shape, dataset.name))
+    plt.title('Histogram of labels of {} images of the preprocessing set {}'.format(dataset.labels.shape, dataset.name))
     maxfreq = n.max()
     # Set a clean upper y-axis limit.
     plt.ylim(top=np.ceil(maxfreq / 10) * 10 if maxfreq % 10 else maxfreq + 10)
@@ -24,14 +24,14 @@ def visualize_labels(dataset):
 
 def visualize_mean_image(dataset):
     mean_image = np.mean(dataset.images, axis=0)
-    plt.title('Mean image of the data_preprocessing set {}'.format(dataset.name))
+    plt.title('Mean image of the preprocessing set {}'.format(dataset.name))
     plt.imshow(mean_image, cmap='gray')
     plt.show()
 
 def save_image(img, filename, border=False):
     if border:
         img = np.pad(img,((5,5),(5,5)),'constant')
-    imsave("../data_preprocessing/visualized/preprocessing/"+filename,img)
+    imsave("../preprocessing/visualized/preprocessing/"+filename,img)
 
 def visualize_preprocessing(dataset, i):
     # visualize preprocessing steps of the i-th image in the dataset
@@ -94,7 +94,7 @@ def save_pixel_intensities_to_files(dataset, n = 50, directory = DATA_DIR + "vis
             print("Failed to write to file " + dir + str(dataset.labels[ind]) + "---" + dataset.files[ind].filename)
 
 
-def compare_two_images(img1,img2, dir="../data_preprocessing/visualized/comparison/", filename="image.jpg"):
+def compare_two_images(img1,img2, dir="../preprocessing/visualized/comparison/", filename="image.jpg"):
     # write two images side by side to a file for visual comparison
     assert(img1.shape == img2.shape)
     border = np.zeros([img1.shape[0], 3])
@@ -138,12 +138,12 @@ visualize_preprocessing(DATA,5)
 
 
 # other metrics
-print("mean of train data_preprocessing")
+print("mean of train preprocessing")
 print(np.mean(DATA.labels))
 print("mse if mean taken (for train)")
 print(np.sum((DATA.labels - np.mean(DATA.labels)) ** 2) / np.shape(DATA.labels)[0])
 
-print("variance of train data_preprocessing")
+print("variance of train preprocessing")
 print(np.var(DATA.labels))
 
 

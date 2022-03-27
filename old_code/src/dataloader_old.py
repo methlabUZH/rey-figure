@@ -19,12 +19,12 @@ RAW = [
     {'name': "Brugger", 'images': DATA_DIR + "raw/Brugger_Daten/", 'labels': DATA_DIR + "raw/brugger_trainval.csv"}
 ]
 
-# load only few images per data_preprocessing set, not all (to speed up testing)
+# load only few images per preprocessing set, not all (to speed up testing)
 # LOAD_ONLY_FEW = False
 # Read in via config file
 
 # preprocessed images (incl. labels) are written to disk for faster recovery
-# if raw data_preprocessing or preprocessing changes, you have to redo it by setting this to True
+# if raw preprocessing or preprocessing changes, you have to redo it by setting this to True
 # REDO_PREPROCESSING = False
 # Read in via config file
 
@@ -34,7 +34,7 @@ RANDOM_STATE = 123
 
 
 class Dataset:
-    """A data_preprocessing set consisting of images, labels, and files"""
+    """A preprocessing set consisting of images, labels, and files"""
     def __init__(self, name, images, files, labels = None, intermediates = None):
         self.images = images
         self.labels = labels
@@ -69,7 +69,7 @@ class Dataset:
 
     def visualize_dataset(self, n = 50, directory = DATA_DIR + "visualized/"):
         """
-        Visualizes data_preprocessing set by writing original image (from path) vs image in data_preprocessing set to disk
+        Visualizes preprocessing set by writing original image (from path) vs image in preprocessing set to disk
         n is the number of items visualized, set to -1 if you want to visualize all of them
         """
 
@@ -152,7 +152,7 @@ def collect_file_info(filenames, directory, dataset_name):
 
 datasets = []
 
-# check if preprocessed data_preprocessing available -> don't redo anything
+# check if preprocessed preprocessing available -> don't redo anything
 if REDO_PREPROCESSING or not os.path.exists(DATA_DIR + "serialized/images.npy"):
 
     for set in RAW:
@@ -171,7 +171,7 @@ if REDO_PREPROCESSING or not os.path.exists(DATA_DIR + "serialized/images.npy"):
 
     # save to disk for later use
     if(DEBUG):
-        print("Writing preprocessed data_preprocessing to disk...")
+        print("Writing preprocessed preprocessing to disk...")
     create_directory(DATA_DIR + "serialized")
     np.save(DATA_DIR + 'serialized/images.npy', DATA.images)
     np.save(DATA_DIR + 'serialized/labels.npy', DATA.labels)
@@ -185,9 +185,9 @@ if REDO_PREPROCESSING or not os.path.exists(DATA_DIR + "serialized/images.npy"):
 
 
 else:
-    # reload preprocessed data_preprocessing from disk
+    # reload preprocessed preprocessing from disk
     if(DEBUG):
-        print("Reading preprocessed data_preprocessing from disk...")
+        print("Reading preprocessed preprocessing from disk...")
     images = np.load(DATA_DIR + 'serialized/images.npy')
     labels = np.load(DATA_DIR + 'serialized/labels.npy')
     files = np.load(DATA_DIR + 'serialized/files.npy')
@@ -196,7 +196,7 @@ else:
 
 
 
-print("data_preprocessing")
+print("preprocessing")
 print(DATA)
 
 if __name__ == "__main__":

@@ -5,7 +5,7 @@ import torch
 from skimage import color, filters, io
 
 from constants import DEFAULT_CANVAS_SIZE
-from src.data_preprocessing.helpers import cutdown, resize_padded
+from src.preprocessing.helpers import cutdown, resize_padded
 
 
 def preprocess_image_v0(image, simulate_augment=False):

@@ -12,7 +12,7 @@ class File:
     A image file, used to match predicted labels with original images
 
     defined here instead of in dataloader.py, otherwise there is an error in the following situation:
-    writing preprocessed serialized data_preprocessing while executing dataloader.py, later trying to read them while executing model.py
+    writing preprocessed serialized preprocessing while executing dataloader.py, later trying to read them while executing model.py
     consider for details: https://stackoverflow.com/questions/40287657/load-pickled-object-in-different-file-attribute-error
     """
 

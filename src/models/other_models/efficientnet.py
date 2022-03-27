@@ -309,7 +309,7 @@ class EfficientNet(nn.Module):
 
         Args:
             model_name (str): Name for efficientnet.
-            in_channels (int): Input data_preprocessing's channel number.
+            in_channels (int): Input preprocessing's channel number.
             override_params (other key word params):
                 Params to override model's global_params.
                 Optional key:
@@ -359,7 +359,7 @@ class EfficientNet(nn.Module):
         """Adjust model's first convolution layer to in_channels, if in_channels not equals 3.
 
         Args:
-            in_channels (int): Input data_preprocessing's channel number.
+            in_channels (int): Input preprocessing's channel number.
         """
         if in_channels != 3:
             Conv2d = get_same_padding_conv2d(image_size=self._global_params.image_size)

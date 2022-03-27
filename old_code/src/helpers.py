@@ -54,7 +54,7 @@ class File:
     A image file, used to match predicted labels with original images
 
     defined here instead of in dataloader.py, otherwise there is an error in the following situation:
-    writing preprocessed serialized data_preprocessing while executing dataloader.py, later trying to read them while executing model.py
+    writing preprocessed serialized preprocessing while executing dataloader.py, later trying to read them while executing model.py
     consider for details: https://stackoverflow.com/questions/40287657/load-pickled-object-in-different-file-attribute-error
     """
     def __init__(self, filename, directory, dataset_name = ""):
@@ -65,7 +65,7 @@ class File:
 
 
 def log_validation_predictions(labels, predictions, files, log_filename, extra_information = np.array([])):
-    """Writes the predictions of validation data_preprocessing to a csv file for inspection"""
+    """Writes the predictions of validation preprocessing to a csv file for inspection"""
     filenames = [f.filename for f in files]
     paths = [f.path for f in files]
     dataset_names = [f.dataset for f in files]
@@ -80,10 +80,10 @@ def log_validation_predictions(labels, predictions, files, log_filename, extra_i
     with open(log_filename, mode='w') as csv_file:
         writer = csv.writer(csv_file)
         if extra_information is not None:
-            writer.writerow(['label', 'prediction', 'data_preprocessing set', 'file name', 'path', 'extra_information'])
+            writer.writerow(['label', 'prediction', 'preprocessing set', 'file name', 'path', 'extra_information'])
             writer.writerows(zip(labels, predictions, dataset_names, filenames, paths, extra_information))
         else:
-            writer.writerow(['label', 'prediction', 'data_preprocessing set', 'file name', 'path'])
+            writer.writerow(['label', 'prediction', 'preprocessing set', 'file name', 'path'])
             writer.writerows(zip(labels, predictions, dataset_names, filenames, paths))
     csv_file.close()
 

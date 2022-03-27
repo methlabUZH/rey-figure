@@ -100,9 +100,11 @@ class MultilabelTrainer:
 
             # save model
             is_best = val_stats['val-total-loss'] < best_val_loss
+
             if is_best:
                 best_val_loss = val_stats['val-total-loss']
                 best_epoch = epoch + 1
+
             self.save_checkpoint(epoch, best_epoch, val_stats['val-total-loss'], best_val_loss, is_best)
 
             # print stats
@@ -254,8 +256,8 @@ class MultilabelTrainer:
                       'optimizer': copy.deepcopy(self.optimizer.state_dict())}
 
         checkpoint_dir = os.path.join(self.save_dir, 'checkpoints/')
-        checkpint_fp = os.path.join(checkpoint_dir, 'checkpoint.pth.tar')
-        torch.save(checkpoint, checkpint_fp)
+        checkpoint_fp = os.path.join(checkpoint_dir, 'checkpoint.pth.tar')
+        torch.save(checkpoint, checkpoint_fp)
 
         if is_best:
-            shutil.copyfile(checkpint_fp, os.path.join(checkpoint_dir, 'model_best.pth.tar'))
+            shutil.copyfile(checkpoint_fp, os.path.join(checkpoint_dir, 'model_best.pth.tar'))

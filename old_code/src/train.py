@@ -26,7 +26,7 @@ def train_cnn(run_name, fold, data_train, data_val):
 
     if(DEBUG):
         if TEST:
-            print("\n\nStart training model on all training data_preprocessing. Run: {}".format(run_name, fold))
+            print("\n\nStart training model on all training preprocessing. Run: {}".format(run_name, fold))
         else:
             print("\n\nStart training model. Run: {}, Fold: {}".format(run_name, fold))
             print("train")
@@ -119,7 +119,7 @@ def cross_validate(data, k=10, skip=[]):
     if not os.path.exists('results.csv'):
         with open('results.csv', 'w') as f:
             writer = csv.writer(f)
-            fields = ["Time", "Run name", "data_preprocessing augmentation", "label format", "binning", "conv layers", 'mean', 'val results']
+            fields = ["Time", "Run name", "preprocessing augmentation", "label format", "binning", "conv layers", 'mean', 'val results']
             writer.writerow(fields)
     with open('results.csv', 'a') as f:
         writer = csv.writer(f)
@@ -166,7 +166,7 @@ def test():
         'git log -1 origin/master --pretty=format:"Latest commit on remote: %h - %B" >> {}'.format(result_file_path))
     with open(result_file_path, "a") as result_file:
         result_file.write("\nRun parameters:\n {}\n".format(RUN_PARAMETERS))
-        result_file.write("\nRun: {}, train on all training data_preprocessing, test on test".format(run_name))
+        result_file.write("\nRun: {}, train on all training preprocessing, test on test".format(run_name))
         result_file.write("\nTest Results\n")
         result_file.write(str(results))
         result_file.write("\nMean: {}, Standard dev: {}".format(np.mean(results), np.std(results)))

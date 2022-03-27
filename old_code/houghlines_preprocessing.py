@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from constants import DEFAULT_CANVAS_SIZE
-from src.data_preprocessing.helpers import cutdown, resize_padded
+from src.preprocessing.helpers import cutdown, resize_padded
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--image', type=str, required=False)
@@ -83,7 +83,7 @@ def main(image_file):
 
 
 if __name__ == '__main__':
-    data_root = '/Users/maurice/phd/src/rey-figure/data_preprocessing/ReyFigures/data2021/'
+    data_root = '/Users/maurice/phd/src/rey-figure/preprocessing/ReyFigures/data2021/'
     scan = data_root + 'USZ_scans/14802C_NaN_dava_120190308092244_Seite_01.jpg'
     # photo = data_root + 'USZ_fotos/C65xx01R1_NaN_foto_20190321_114206.jpg'
     photo = data_root + 'USZ_fotos/C9_none_foto_20190307_123539.jpg'

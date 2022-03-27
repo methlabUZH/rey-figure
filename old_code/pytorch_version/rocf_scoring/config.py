@@ -55,7 +55,7 @@ if args.runname is not None:
     print("Using RUN_NAME " + RUN_NAME)
 
 
-# use new data_preprocessing (crowdsourcing)
+# use new preprocessing (crowdsourcing)
 try:
     NEW_DATA = RUN_PARAMETERS['NEW_DATA']
 except KeyError:
@@ -75,10 +75,10 @@ assert REGRESSOR_MODE in [True, False], "Invalid REGRESSOR_MODE"
 if LOCAL:
     if NEW_DATA:
         DATA_DIR = "../new_data/"
-        print("Running file locally on new data_preprocessing...")
+        print("Running file locally on new preprocessing...")
     else:
-        DATA_DIR = "../data_preprocessing/"
-        print("Running file locally on old data_preprocessing...")
+        DATA_DIR = "../preprocessing/"
+        print("Running file locally on old preprocessing...")
 
     ROOT_DIR = "/Users/felixasanger/Desktop/pytorch_rey-figure"
     TRAINING_RESULTS_DIR = os.path.join(ROOT_DIR, "rocf_scoring", "training_results")
@@ -86,16 +86,16 @@ if LOCAL:
 else:
     if NEW_DATA:
         DATA_DIR = "/mnt/ds3lab-scratch/stmuelle/data_new/"
-        print("Running on new data_preprocessing on spaceml on GPU " + str(GPU))
+        print("Running on new preprocessing on spaceml on GPU " + str(GPU))
     else:
-        DATA_DIR = "/mnt/ds3lab-scratch/stmuelle/data_preprocessing/"
-        print("Running on old data_preprocessing on spaceml on GPU "+str(GPU))
+        DATA_DIR = "/mnt/ds3lab-scratch/stmuelle/preprocessing/"
+        print("Running on old preprocessing on spaceml on GPU "+str(GPU))
 
     # set up gpu information for spaceml (see slack)
     os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"  # see issue #152
     os.environ["CUDA_VISIBLE_DEVICES"] = str(GPU)  # select ID of GPU that shall be used
 
-# do data_preprocessing augmentation
+# do preprocessing augmentation
 try:
     DATA_AUGMENTATION = RUN_PARAMETERS['DATA_AUGMENTATION']
 except KeyError:
@@ -242,7 +242,7 @@ except KeyError:
     print("DEST_PATH not provided, by default set to None...")
     DEST_PATH = None
 
-# TEST can be False (cross-validation on training data_preprocessing) or True (train on all training, test on test data_preprocessing)
+# TEST can be False (cross-validation on training preprocessing) or True (train on all training, test on test preprocessing)
 try:
     TEST = RUN_PARAMETERS['TEST']
 except KeyError:

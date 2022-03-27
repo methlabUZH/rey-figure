@@ -10,7 +10,7 @@ from matplotlib import pyplot as plt
 
 import torch
 
-from src.data_preprocessing.augmentation import AugmentParameters
+from src.preprocessing.augmentation import AugmentParameters
 
 
 def directory_setup(model_name, dataset, results_dir, train_id: int = None, resume: str = ''):
@@ -40,28 +40,12 @@ def directory_setup(model_name, dataset, results_dir, train_id: int = None, resu
     return results_dir, checkpoints_dir
 
 
-def train_val_split(labels_df, fraction) -> Tuple[pd.DataFrame, pd.DataFrame]:
+def train_val_split(labels_df, val_fraction) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """split dataframe into train and validation parts"""
-    labels_df_original = labels_df[labels_df.augmented == False]  # noqa
-    labels_df_augmented = labels_df[labels_df.augmented == True]  # noqa
-    num_original_datapoints = len(labels_df_original)
-
-    train_indices = random.sample(list(range(num_original_datapoints)), k=int(num_original_datapoints * (1 - fraction)))
-    val_indices = [i for i in range(num_original_datapoints) if i not in train_indices]
-    assert set(train_indices).isdisjoint(val_indices)
-
-    train_df_original = labels_df_original.iloc[train_indices]
-    train_figure_ids = []
-
-    for fid in train_df_original.figure_id.to_list():
-        train_figure_ids.append(fid)
-        for i in range(AugmentParameters.num_augment):
-            train_figure_ids.append(fid + f'_augm{i + 1}')
-
-    train_df = labels_df[labels_df.figure_id.isin(train_figure_ids)]
-    val_df = labels_df_original.iloc[val_indices]
-
-    return train_df, val_df
+    val_labels = labels_df.sample(frac=val_fraction, replace=False, axis=0)
+    train_labels = labels_df[~labels_df.index.isin(val_labels.index)]
+    assert set(val_labels.index).isdisjoint(train_labels.index)
+    return train_labels, val_labels
 
 
 def count_parameters(model):

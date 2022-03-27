@@ -8,10 +8,10 @@ import pandas as pd
 from tqdm import tqdm
 
 from constants import *
-from src.data_preprocessing.helpers import cutdown
+from src.preprocessing.helpers import cutdown
 
 """
-this script is used to serialize simulated data_preprocessing. It is expected that the directory with simulated data_preprocessing is in the data_preprocessing 
+this script is used to serialize simulated preprocessing. It is expected that the directory with simulated preprocessing is in the preprocessing 
 root (see structure in prepare_dat.py) and has the following contents: 
 
 ├──simulated

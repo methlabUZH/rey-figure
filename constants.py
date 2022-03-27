@@ -1,8 +1,13 @@
 import os as _os
 
+# project structure
 ROOT_DIR = _os.path.dirname(_os.path.abspath(__file__))
 RESULTS_DIR = _os.path.join(ROOT_DIR, 'results/')
+DATA_DIR = _os.path.join(ROOT_DIR, 'data/')
 RESOURCES_DIR = _os.path.join(ROOT_DIR, 'resources/')
+
+USER_RATING_DATA_DIR = 'UserRatingData'
+MAIN_LABEL_FILENAME = '{split}-labels.csv'
 
 FOTO_FOLDERS = ['Typeform', 'USZ_fotos']
 
@@ -14,13 +19,13 @@ WIDE_RESNET50_2 = 'wide-resnet50-2'
 REYREGRESSOR = 'rey-regressor'
 
 # data
+TEST_FRACTION = 0.2
 DEBUG_DATADIR_SMALL = '/Users/maurice/phd/src/rey-figure/data/serialized-data/debug-116x150-pp0'
 DEBUG_DATADIR_BIG = '/Users/maurice/phd/src/rey-figure/data/serialized-data/debug-232x300-pp0'
 N_ITEMS = 18
 DEFAULT_CANVAS_SIZE = (116, 150)
 DEFAULT_CANVAS_SIZE_BIG = (232, 300)
 AUGM_CANVAS_SIZE = (464, 600)
-DEFAULT_SEED = 762
 CLASSIFICATION_LABELS = 'classification_labels'
 REGRESSION_LABELS = 'regression_labels'
 

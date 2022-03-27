@@ -310,7 +310,7 @@ class CNN:
             curr_batch = X[curr_batch_ids]
 
             if DATA_AUGMENTATION and not TEST:
-                # use if data_preprocessing augmentation
+                # use if preprocessing augmentation
                 int_batch = np.empty([curr_batch.shape[0], 116, 150])
                 for i in range(curr_batch.shape[0]):
                     int_batch[i, :, :] = curr_batch[i, 0, :, :]
@@ -344,7 +344,7 @@ class CNN:
             curr_labels = y[curr_batch_ids]
 
             if DATA_AUGMENTATION:
-                # data_preprocessing augmentation
+                # preprocessing augmentation
                 int_batch = np.empty([curr_data.shape[0], 116, 150])
                 for i in range(curr_data.shape[0]):
                     int_batch[i, :, :] = curr_data[i, randint(0, 9), :, :]

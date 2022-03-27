@@ -18,7 +18,7 @@ def restore(pathname):
 
 def getTestImages(foldername):
     path = DATA_DIR + foldername + '/'
-    filenames = np.genfromtxt('../data_preprocessing/' + foldername + '.csv', dtype='|U64')
+    filenames = np.genfromtxt('../preprocessing/' + foldername + '.csv', dtype='|U64')
     return path, filenames
 
 
@@ -72,7 +72,7 @@ if __name__ == "__main__":
     # model path contains folder where models are stored
     model = restore(MODEL_PATH)
 
-    # images in folder ../data_preprocessing/testdata
+    # images in folder ../preprocessing/testdata
     path, filenames = getTestImages('testdata')
     images = []
     raw_images = []
