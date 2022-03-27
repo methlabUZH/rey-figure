@@ -35,7 +35,7 @@ parser.add_argument('--wd', '--weight-decay', type=float, default=0)
 parser.add_argument('--weighted-sampling', default=1, type=int, choices=[0, 1])
 parser.add_argument('--augment', default=0, type=int, choices=[0, 1])
 parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
-parser.add_argument('--seed', type=int, default=1)
+parser.add_argument('--seed', type=int, default=None)
 args = parser.parse_args()
 
 USE_CUDA = torch.cuda.is_available()
