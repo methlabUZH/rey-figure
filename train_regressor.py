@@ -1,12 +1,10 @@
 import argparse
-import random
 import sys
 import numpy as np
 import os
 import pandas as pd
 import json
 import random
-from datetime import datetime
 
 import torch
 
@@ -15,9 +13,6 @@ from src.dataloaders.rocf_dataloader import get_dataloader
 from src.training.train_utils import directory_setup, Logger, train_val_split
 from src.models import get_regressor, get_regressor_v2
 from src.training.regression_trainer import RegressionTrainer
-
-_VAL_FRACTION = 0.2
-_SEED = random.seed(datetime.now())
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR_SMALL, required=False)
@@ -37,14 +32,19 @@ parser.add_argument('--gamma', type=float, default=1.0, help='learning rate deca
 parser.add_argument('--wd', '--weight-decay', type=float, default=0)
 parser.add_argument('--weighted-sampling', default=1, type=int, choices=[0, 1])
 parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
+parser.add_argument('--seed', type=int, default=1)
 args = parser.parse_args()
 
 USE_CUDA = torch.cuda.is_available()
-np.random.seed(_SEED)
-random.seed(_SEED)
-torch.manual_seed(_SEED)
-if USE_CUDA:
-    torch.cuda.manual_seed_all(_SEED)
+VAL_FRACTION = 0.2
+
+if args.seed is not None:
+    np.random.seed(args.seed)
+    random.seed(args.seed)
+    torch.manual_seed(args.seed)
+
+    if USE_CUDA:
+        torch.cuda.manual_seed_all(args.seed)
 
 
 def main():
@@ -67,7 +67,7 @@ def main():
     labels_df = pd.read_csv(labels_csv)
 
     # split df into validation and train parts
-    train_labels, val_labels = train_val_split(labels_df, val_fraction=_VAL_FRACTION)
+    train_labels, val_labels = train_val_split(labels_df, val_fraction=VAL_FRACTION)
 
     # include simulated data
     if args.simulated_data is not None:
