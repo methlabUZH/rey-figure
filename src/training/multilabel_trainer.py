@@ -18,12 +18,12 @@ from src.utils import timestamp_human
 
 
 class MultilabelTrainer:
-    def __init__(self, model, loss_func, train_loader, val_loader, args, save_dir, is_binary):
+    def __init__(self, model, loss_func, train_loader, val_loader, params, save_dir, is_binary):
         self.model = model
         self.loss_func = loss_func
         self.train_loader = train_loader
         self.val_loader = val_loader
-        self.args = args
+        self.params = params 
         self.save_dir = save_dir
         self.is_binary = is_binary
 
@@ -31,13 +31,14 @@ class MultilabelTrainer:
         self.use_cuda = torch.cuda.is_available()
 
         if self.use_cuda:
+            print(f"Using gpu acceleration")
             self.model = torch.nn.DataParallel(self.model).cuda()
 
         # print setup
-        print('--------args----------')
-        for k, v in args.__dict__.items():
+        print('--------params----------')
+        for k, v in params.items():
             print('{0:27}: {1}'.format(k, v))
-        print('--------args----------\n')
+        print('--------params----------\n')
 
     def initialize(self, is_train):
         if is_train:
@@ -52,8 +53,8 @@ class MultilabelTrainer:
             self.loss_func = self.loss_func.cuda()
 
     def _init_optimizer_and_scheduler(self):
-        self.optimizer = optim.Adam(params=self.model.parameters(), lr=self.args.lr, weight_decay=self.args.wd)
-        self.lr_scheduler = optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=self.args.gamma)
+        self.optimizer = optim.Adam(params=self.model.parameters(), lr=self.params['lr'], weight_decay=self.params['wd'])
+        self.lr_scheduler = optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=self.params['gamma'])
 
     def _init_meters(self):
         self.total_loss_meter = AverageMeter()
@@ -90,7 +91,7 @@ class MultilabelTrainer:
 
         print(f'[{timestamp_human()}] start training')
 
-        for epoch in range(start_epoch, self.args.epochs):
+        for epoch in range(start_epoch, self.params['epochs']):
             epoch_start = time.time()
             # train for one epoch
             train_stats = self.run_epoch(self.train_loader, is_train=True)
@@ -164,7 +165,8 @@ class MultilabelTrainer:
         # print
         learning_rate = self.lr_scheduler.get_last_lr()[0]
         timestamp = timestamp_human()
-        print_str = f'\n-- [{timestamp} | {epoch + 1}/{self.args.epochs}] epoch time: {epoch_time:.2f}, '
+        max_epochs = self.params['epochs']
+        print_str = f'\n-- [{timestamp} | {epoch + 1}/{max_epochs}] epoch time: {epoch_time:.2f}, '
         print_str += f'lr: {learning_rate:.6f} --'
         print(print_str)
         print(tabulate(df, headers='keys', tablefmt='presto', floatfmt=".3f"))

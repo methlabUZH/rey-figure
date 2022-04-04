@@ -42,7 +42,7 @@ def directory_setup(model_name, dataset, results_dir, train_id: int = None, resu
 
 def train_val_split(labels_df, val_fraction) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """split dataframe into train and validation parts"""
-    val_labels = labels_df.sample(frac=val_fraction, replace=False, axis=0)
+    val_labels = labels_df.sample(frac=val_fraction, replace=False, axis=0, random_state=42)
     train_labels = labels_df[~labels_df.index.isin(val_labels.index)]
     assert set(val_labels.index).isdisjoint(train_labels.index)
     return train_labels, val_labels

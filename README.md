@@ -35,10 +35,20 @@
     python train_multilabel.py --data-root /data-root/serialized-data/data-2018-2021-116x150-pp0 --results-dir /path/to/results --eval-test --id <id> --epochs 75 --batch-size 64 --lr 0.01 --gamma 0.95 --weighted-sampling 1 --image-size 116 150
     ```
    This will create a new dir in the specified results directory and save checkpoints + print outputs there.
+   UPDATE: with hyperparameters.py and config.py one only has to run 
+   ```
+   python train_multilabel.py
+   ``` 
+
 4. To evaluate models, run the following command
    ```python
-   python eval_multilabel.py --data-root /data-root/serialized-data/data-2018-2021-116x150-pp0 --results-dir /path/to/results --image-size 116 150 --batch-size 100
+   python eval_multilabel.py --data-root /data-root/serialized-data/data-2018-2021-116x150-pp0 --results-dir /path/to/results --image-size 116 150 --batch-size 100 --tta --validation --angles -2.5 -1 0 1 2.5 
    ```
+   UPDATE: with hyperparameters.py and config.py one only has to run 
+   ```
+   python eval_multilabel.py
+   ``` 
+   
    This will compute the overall MSE (note: change this to MAE in future), and create csv files which contains the
    prediction for each figure in the test set.
 
