@@ -6,7 +6,7 @@ from typing import Tuple
 from constants import N_ITEMS, USER_RATING_DATA_DIR, MAIN_LABEL_FILENAME
 from src.utils import map_to_score_grid
 
-__all__ = ['create_label_files']
+__all__ = ['create_label_files', 'merge_rating_files']
 
 _COLUMNS = ['assessment_id', 'prolific_pid', 'drawing_id', 'FILE', 'part_id', 'part_points']
 _SCORE_COLS = [f'score_item_{i + 1}' for i in range(N_ITEMS)]
@@ -21,7 +21,7 @@ def create_label_files(data_dir: str, test_fraction: float) -> Tuple[pd.DataFram
         train_labels = pd.read_csv(train_labels_fp)
         return test_labels, train_labels
 
-    labels = _merge_rating_files(data_dir)
+    labels = merge_rating_files(data_dir)
 
     # compute median score per item
     labels = labels.groupby(['FILE', 'part_id']).agg(item_score=('part_points', 'median'))
@@ -51,16 +51,23 @@ def create_label_files(data_dir: str, test_fraction: float) -> Tuple[pd.DataFram
     train_labels = train_labels.reset_index(drop=True)
 
     # save dataframes
-
-    test_labels.to_csv(train_labels_fp)
-    train_labels.to_csv(test_labels_fp)
+    test_labels.to_csv(test_labels_fp)
+    train_labels.to_csv(train_labels_fp)
 
     print(f'--> save test and train labels to {data_dir}')
 
     return test_labels, train_labels
 
 
-def _merge_rating_files(data_dir) -> pd.DataFrame:
+def merge_rating_files(data_dir) -> pd.DataFrame:
+    feather_file = os.path.join(data_dir, 'merged_user_ratings.feather')
+
+    if os.path.isfile(feather_file):
+        print(f'--> loading merged rating data from {feather_file}')
+        ratings = pd.read_feather(feather_file)
+        ratings = ratings.drop(columns="index")
+        return ratings
+
     rating_data_dir = os.path.join(data_dir, USER_RATING_DATA_DIR)
     dataframes = []
     for f in (pbar := tqdm(os.listdir(rating_data_dir))):
@@ -84,11 +91,11 @@ def _merge_rating_files(data_dir) -> pd.DataFrame:
 
     ratings = ratings.reset_index()
 
-    save_as = os.path.join(rating_data_dir, 'merged_user_ratings.feather')
+    save_as = os.path.join(data_dir, 'merged_user_ratings.feather')
     ratings.to_feather(save_as)
 
     print('--> finished merging user rating data files')
-    print(f'--> saved data as {save_as}')
+    print(f'--> saved merged rating data as {save_as}')
 
     return ratings
 

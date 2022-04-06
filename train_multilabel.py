@@ -7,11 +7,11 @@ from tabulate import tabulate
 import json
 import random
 import hyperparameters
-from config import config 
 
 import torch
 
 from constants import *
+from config import config
 from src.dataloaders.rocf_dataloader import get_dataloader
 from src.models import get_classifier
 from src.training.train_utils import directory_setup, Logger, train_val_split
@@ -21,27 +21,28 @@ from src.training.multilabel_trainer import MultilabelTrainer
 _DEBUG_DATADIR = ''
 
 parser = argparse.ArgumentParser()
-#parser.add_argument('--data-root', type=str, default=_DEBUG_DATADIR, required=False)
-#parser.add_argument('--results-dir', type=str, default='./temp', required=False)
-#parser.add_argument('--simulated-data', type=str, default=None, required=False)
-#parser.add_argument('--max-simulated', type=int, default=-1, required=False)
-#parser.add_argument('--workers', default=8, type=int)
-#parser.add_argument('--is_binary', type=int, default=0, choices=[0, 1])
-#parser.add_argument('--eval-test', action='store_true')
-#parser.add_argument('--id', default=None, type=str)
-#parser.add_argument('--epochs', default=75, type=int, help='number of total epochs to run')
-#parser.add_argument('--batch-size', default=64, type=int, help='train batch size (default: 64)')
-#parser.add_argument('--lr', '--learning-rate', default=0.01, type=float, help='initial learning rate')
-#parser.add_argument('--gamma', type=float, default=0.95, help='learning rate decay factor')
-#parser.add_argument('--wd', '--weight-decay', type=float, default=0)
-#parser.add_argument('--weighted-sampling', default=1, type=int, choices=[0, 1])
-#parser.add_argument('--augment', default=0, type=int, choices=[0, 1])
-#parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
+# parser.add_argument('--data-root', type=str, default=_DEBUG_DATADIR, required=False)
+# parser.add_argument('--results-dir', type=str, default='./temp', required=False)
+# parser.add_argument('--simulated-data', type=str, default=None, required=False)
+# parser.add_argument('--max-simulated', type=int, default=-1, required=False)
+# parser.add_argument('--workers', default=8, type=int)
+# parser.add_argument('--is_binary', type=int, default=0, choices=[0, 1])
+# parser.add_argument('--eval-test', action='store_true')
+# parser.add_argument('--id', default=None, type=str)
+# parser.add_argument('--epochs', default=75, type=int, help='number of total epochs to run')
+# parser.add_argument('--batch-size', default=64, type=int, help='train batch size (default: 64)')
+# parser.add_argument('--lr', '--learning-rate', default=0.01, type=float, help='initial learning rate')
+# parser.add_argument('--gamma', type=float, default=0.95, help='learning rate decay factor')
+# parser.add_argument('--wd', '--weight-decay', type=float, default=0)
+# parser.add_argument('--weighted-sampling', default=1, type=int, choices=[0, 1])
+# parser.add_argument('--augment', default=0, type=int, choices=[0, 1])
+# parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
 parser.add_argument('--seed', type=int, default=None)
 args = parser.parse_args()
 
 USE_CUDA = torch.cuda.is_available()
 VAL_FRACTION = 0.2
+NUM_CLASSES_PER_ITEM = 4
 
 if args.seed is not None:
     np.random.seed(args.seed)
@@ -55,17 +56,15 @@ if args.seed is not None:
 def main():
     # Read parameters from hyperparameters.py 
     params = hyperparameters.train_params[config['image_size']][config['model']]
-    
-    num_classes = 2 if params['is_binary'] else 4
+
     # setup dirs
-    model_name = "binary-" + REYMULTICLASSIFIER if num_classes == 2 else REYMULTICLASSIFIER
     dataset_name = os.path.split(os.path.normpath(config['data_root']))[-1]
-    results_dir, checkpoints_dir = directory_setup(model_name=model_name, dataset=dataset_name,
+    results_dir, checkpoints_dir = directory_setup(model_name=REYMULTICLASSIFIER, dataset=dataset_name,
                                                    results_dir=config['results_dir'], train_id=params['id'])
 
     # dump args
     with open(os.path.join(results_dir, 'args.json'), 'w') as f:
-        json.dump(vars(args), f)
+        json.dump({**params, **vars(args)}, f)
 
     # save terminal output to file
     sys.stdout = Logger(print_fp=os.path.join(results_dir, 'out.txt'))
@@ -88,24 +87,24 @@ def main():
         train_labels = pd.concat([train_labels, sim_df], ignore_index=True)
 
     # save validation labels for future use 
-    val_labels.to_csv(os.path.join(config['data_root'], 'val_labels.csv')) 
+    val_labels.to_csv(os.path.join(config['data_root'], 'val_labels.csv'))
 
     # get train dataloader
-    train_loader = get_dataloader(data_root=config['data_root'], labels=train_labels, label_type=CLASSIFICATION_LABELS,
+    train_loader = get_dataloader(labels=train_labels, label_type=CLASSIFICATION_LABELS,
                                   batch_size=params['batch_size'], num_workers=params['workers'], shuffle=True,
                                   weighted_sampling=params['weighted_sampling'], augment=params['augment'],
                                   image_size=params['image_size'])
     # get val dataloader
-    val_loader = get_dataloader(data_root=config['data_root'], labels=val_labels, label_type=CLASSIFICATION_LABELS,
-                                batch_size=params['batch_size'], num_workers=params['workers'], shuffle=False, 
+    val_loader = get_dataloader(labels=val_labels, label_type=CLASSIFICATION_LABELS,
+                                batch_size=params['batch_size'], num_workers=params['workers'], shuffle=False,
                                 augment=False, image_size=params['image_size'])
 
     print(f'# train images:\t{len(train_labels)}')
     print(f'# val images:\t{len(val_labels)}')
 
-    model = get_classifier(REYMULTICLASSIFIER, num_classes=num_classes)
+    model = get_classifier(REYMULTICLASSIFIER, num_classes=NUM_CLASSES_PER_ITEM)
     loss_func = torch.nn.CrossEntropyLoss()
-    trainer = MultilabelTrainer(model, loss_func, train_loader, val_loader, params, results_dir, params['is_binary'])
+    trainer = MultilabelTrainer(model, loss_func, train_loader, val_loader, params, results_dir, is_binary=False)
     trainer.train()
 
     if params['eval_test']:

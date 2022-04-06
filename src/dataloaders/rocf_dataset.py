@@ -8,14 +8,14 @@ from torchvision import transforms
 
 from constants import *
 from src.utils import map_to_score_grid, score_to_class
-from src.dataloaders.transforms import NormalizeImage, ColorJitter
+from src.dataloaders.transforms import NormalizeImage
 
 _SCORE_COLS = [f'score_item_{i + 1}' for i in range(N_ITEMS)]
 
 
 class ROCFDataset(Dataset):
 
-    def __init__(self, data_root: str, labels: pd.DataFrame, label_type=CLASSIFICATION_LABELS, data_augmentation=False,
+    def __init__(self, labels: pd.DataFrame, label_type=CLASSIFICATION_LABELS, data_augmentation=False,
                  image_size=DEFAULT_CANVAS_SIZE, variance_weighting=False):
         self._variance_weighting = variance_weighting
         self._labels_df = labels
@@ -43,8 +43,8 @@ class ROCFDataset(Dataset):
         # data augmentation
         self._do_augment = data_augmentation
         self._augment = transforms.RandomApply(transforms=[
-            # transforms.GaussianBlur(kernel_size=(3, 3), sigma=(0.01, 1.0)),
-            ColorJitter(brightness=[0.6, 1.1], contrast=0.5),
+            transforms.GaussianBlur(kernel_size=(3, 3), sigma=(0.01, 1.0)),
+            # ColorJitter(brightness=[0.6, 1.1], contrast=0.5),
             transforms.RandomPerspective(distortion_scale=0.4, p=0.5, fill=255.0),
             transforms.Compose([transforms.RandomRotation(degrees=(-10, 10), expand=True, fill=255.0),
                                 transforms.Resize(size=image_size)])],
@@ -114,13 +114,15 @@ class ROCFDataset(Dataset):
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    from constants import DEBUG_DATADIR_SMALL, DEBUG_DATADIR_BIG
 
-    labels_csv = os.path.join(DEBUG_DATADIR_BIG, 'train_labels.csv')
+    DEBUG_DATADIR = '/Users/maurice/phd/src/rey-figure/code-main/data/serialized-data/data_116x150-seed_1'
+
+    labels_csv = os.path.join(DEBUG_DATADIR, 'train_labels.csv')
     labels_df = pd.read_csv(labels_csv)
-    ds = ROCFDataset(data_root=DEBUG_DATADIR_BIG, labels=labels_df, label_type=CLASSIFICATION_LABELS,
+    ds = ROCFDataset(labels=labels_df, label_type=CLASSIFICATION_LABELS,
                      data_augmentation=True, image_size=(232, 300))
     image, label = ds[-1]
-    image = np.squeeze(image.numpy())
-    plt.imshow(image, cmap='gray')
-    plt.show()
+    print(label)
+    # image = np.squeeze(image.numpy())
+    # plt.imshow(image, cmap='gray')
+    # plt.show()

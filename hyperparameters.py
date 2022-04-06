@@ -7,7 +7,7 @@ train_params = {
         'multilabel-classifier': {
             "workers": 10, "is_binary": 0, "eval_test": True, "id": "final", "epochs": 75, 
             "batch_size": 64, "lr": 0.01, "gamma": 0.95, "wd": 0, "weighted_sampling": 1, 
-            "augment": 0, "workers": 10, "image_size": [116, 150], "simulated_data": None, 
+            "augment": 0, "image_size": [116, 150], "simulated_data": None,
             "max_simulated": -1
         },
         'regressor': {

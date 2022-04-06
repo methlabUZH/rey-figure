@@ -3,7 +3,7 @@ import os
 import pandas as pd
 from tqdm import tqdm
 import torch
-import torchvision 
+import torchvision
 
 from constants import *
 from src.dataloaders.rocf_dataloader import get_dataloader
@@ -11,8 +11,8 @@ from src.utils import class_to_score
 
 
 class MultilabelEvaluator:
-    def __init__(self, model, image_size, results_dir, data_dir, batch_size=128, workers=8, 
-                    tta=False, validation=False, angles=[-2.5, -1.5, 0, 1.5, 2.5]):
+    def __init__(self, model, image_size, results_dir, data_dir, batch_size=128, workers=8,
+                 tta=False, validation=False, angles=[-2.5, -1.5, 0, 1.5, 2.5]):
         self.model = model
         self.results_dir = results_dir
         self.data_dir = data_dir
@@ -21,7 +21,7 @@ class MultilabelEvaluator:
         self.workers = workers
         self.tta = tta
         self.validation = validation
-        self.angles = angles 
+        self.angles = angles
 
         self.predictions = None
         self.ground_truths = None
@@ -34,9 +34,9 @@ class MultilabelEvaluator:
         self.checkpoints = os.path.join(results_dir, 'checkpoints/model_best.pth.tar')
 
         # init dataloader
-        if self.validation: # use validation set for evaluation
-            test_labels = pd.read_csv(os.path.join(data_dir, 'val_labels.csv'))    
-        else: # use test set for evaluation
+        if self.validation:  # use validation set for evaluation
+            test_labels = pd.read_csv(os.path.join(data_dir, 'val_labels.csv'))
+        else:  # use test set for evaluation
             test_labels = pd.read_csv(os.path.join(self.data_dir, 'test_labels.csv'))
 
         self.dataloader = get_dataloader(data_root=self.data_dir, labels=test_labels, label_type=CLASSIFICATION_LABELS,
@@ -113,24 +113,24 @@ class MultilabelEvaluator:
                 inputs = inputs.cuda()
 
             with torch.no_grad():
-                if self.tta:  
+                if self.tta:
                     # test time augmentation (TTA) with angle rotations 
-                    logits = None 
+                    logits = None
                     for angle in self.angles:
                         inputs = torchvision.transforms.functional.rotate(inputs.float(), angle)
-                        outputs = self.model(inputs) # list of 18 elements of shape (bs, 4) each 
+                        outputs = self.model(inputs)  # list of 18 elements of shape (bs, 4) each
                         # add up the logits for all 18 items 
-                        if logits is None: 
-                            logits = outputs 
+                        if logits is None:
+                            logits = outputs
                         else:
                             for i in range(len(outputs)):
-                                logits[i] += outputs[i] 
-                    # divide by angles 
+                                logits[i] += outputs[i]
+                                # divide by angles
                     for i in range(len(logits)):
-                        logits[i] /= len(self.angles)    
+                        logits[i] /= len(self.angles)
                 else:
                     # normal inference without Test-Time-Augmentation
-                    logits = self.model(inputs.float())  
+                    logits = self.model(inputs.float())
 
             if isinstance(logits, list):
                 outputs = [torch.argmax(lgts, dim=1).cpu().numpy() for lgts in logits]

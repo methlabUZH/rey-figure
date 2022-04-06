@@ -7,8 +7,7 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 from src.dataloaders.rocf_dataset import ROCFDataset
 
 
-def get_dataloader(data_root: str,
-                   labels: pd.DataFrame,
+def get_dataloader(labels: pd.DataFrame,
                    label_type: str,
                    batch_size: int,
                    image_size: Tuple[int, int],
@@ -19,7 +18,7 @@ def get_dataloader(data_root: str,
                    weighted_sampling=False,
                    variance_weighting=False,
                    augment=False):
-    multilabel_dataset = ROCFDataset(data_root, labels, label_type=label_type, data_augmentation=augment,
+    multilabel_dataset = ROCFDataset(labels=labels, label_type=label_type, data_augmentation=augment,
                                      image_size=image_size, variance_weighting=variance_weighting)
 
     if weighted_sampling:

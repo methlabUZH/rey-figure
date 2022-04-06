@@ -12,8 +12,8 @@ class Identity:
 
 class NormalizeImage:
     def __call__(self, img: _torch.Tensor) -> _torch.Tensor:
-        mean = _torch.mean(img, dim=[1, 2], keepdim=True)
-        std = _torch.std(img, dim=[1, 2], keepdim=True)
+        mean = _torch.mean(img)
+        std = _torch.std(img)
         return (img - mean) / std
 
 

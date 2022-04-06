@@ -3,7 +3,7 @@ import os as _os
 # project structure
 ROOT_DIR = _os.path.dirname(_os.path.abspath(__file__))
 RESULTS_DIR = _os.path.join(ROOT_DIR, 'results/')
-DATA_DIR = _os.path.join(ROOT_DIR, 'data/')
+DATA_DIR = _os.environ.get("REY_FIGURE_DATA")
 RESOURCES_DIR = _os.path.join(ROOT_DIR, 'resources/')
 
 USER_RATING_DATA_DIR = 'UserRatingData'

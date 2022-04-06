@@ -11,7 +11,7 @@ import sys
 from tabulate import tabulate
 
 import hyperparameters
-from config import config 
+from config import config
 
 from constants import *
 from src.training.train_utils import Logger
@@ -21,14 +21,14 @@ from src.evaluate.utils import *
 
 # setup arg parser
 parser = argparse.ArgumentParser()
-#parser.add_argument('--data-root', type=str)
-#parser.add_argument('--results-dir', type=str)
-#parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
-#parser.add_argument('--batch-size', default=100, type=int)
-#parser.add_argument('--workers', default=8, type=int)
-#parser.add_argument('--tta', action='store_true')
-#parser.add_argument('--validation', action='store_true')
-#parser.add_argument('--angles', default=[-1.5, 0, 1.5], type=int)
+# parser.add_argument('--data-root', type=str)
+# parser.add_argument('--results-dir', type=str)
+# parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
+# parser.add_argument('--batch-size', default=100, type=int)
+# parser.add_argument('--workers', default=8, type=int)
+# parser.add_argument('--tta', action='store_true')
+# parser.add_argument('--validation', action='store_true')
+# parser.add_argument('--angles', default=[-1.5, 0, 1.5], type=int)
 args = parser.parse_args()
 
 _CLASS_LABEL_COLS = [f'true_class_item_{item + 1}' for item in range(N_ITEMS)]
@@ -72,7 +72,7 @@ def main():
 
     print('---------- Item Scores ----------')
     print_df = pd.DataFrame(data=np.stack([item_accuracy_scores, item_mse_scores], axis=0),
-                            columns=[f'item-{i+1}' for i in range(N_ITEMS)],
+                            columns=[f'item-{i + 1}' for i in range(N_ITEMS)],
                             index=['Accuracy', 'MSE'])
     print(tabulate(print_df, headers='keys', tablefmt='presto', floatfmt=".3f"))
 

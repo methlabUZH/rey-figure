@@ -8,8 +8,6 @@ import shutil
 from typing import *
 from tqdm import tqdm
 
-import numpy as np
-
 from constants import *
 from src.preprocessing2 import resize_padded, create_label_files
 
@@ -115,16 +113,14 @@ def _worker(data):
     image_fp = figures_filepaths[row['FILE']]
 
     # load image and resize
-    image_numpy = cv2.imread(image_fp, flags=cv2.IMREAD_GRAYSCALE)
+    image_numpy = cv2.imread(image_fp, flags=cv2.IMREAD_GRAYSCALE).astype(float)
 
     if image_numpy is None:
         return
 
-    image_numpy = image_numpy / 255.0
     image_numpy = resize_padded(image_numpy, new_shape=args.image_size)
 
     # convert to uint8
-    image_numpy *= 255
     image_numpy = image_numpy.astype(np.uint8)
 
     # save resized image

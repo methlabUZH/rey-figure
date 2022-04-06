@@ -25,7 +25,6 @@ def main(res_dir):
     print(f'max item accuracy: {np.max(item_accuracies)}')
 
 
-
 def compute_error_rates(preds, ground_truths, quantity) -> pd.DataFrame:
     if quantity == _Q_ACCURACY:
         quantity_cols = [f'{_Q_ACCURACY}-item-{i + 1}' for i in range(N_ITEMS)]
