@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-import random
 import sys
 from typing import Tuple
 import uuid
@@ -9,8 +8,6 @@ import numpy as np
 from matplotlib import pyplot as plt
 
 import torch
-
-from src.preprocessing.augmentation import AugmentParameters
 
 
 def directory_setup(model_name, dataset, results_dir, train_id: int = None, resume: str = ''):

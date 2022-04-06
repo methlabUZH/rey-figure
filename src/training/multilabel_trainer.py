@@ -227,9 +227,9 @@ class MultilabelTrainer:
 
     def on_end_epoch(self, is_train):
         prefix = 'train' if is_train else 'val'
-        stats = {f'{prefix}-total-loss': self.total_loss_meter.average(),
-                 f'{prefix}-losses': [m.average() for m in self.loss_meters],
-                 f'{prefix}-accuracies': [m.average() for m in self.accuracy_meters]}
+        stats = {f'{prefix}-total-loss': self.total_loss_meter.average().cpu(),
+                 f'{prefix}-losses': [m.average().cpu() for m in self.loss_meters],
+                 f'{prefix}-accuracies': [m.average().cpu() for m in self.accuracy_meters]}
 
         if self.is_binary:
             sensitivities = [cm["true_positives"] / (cm["true_positives"] + cm["false_negatives"])

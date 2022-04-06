@@ -36,7 +36,7 @@ parser = argparse.ArgumentParser()
 # parser.add_argument('--wd', '--weight-decay', type=float, default=0)
 # parser.add_argument('--weighted-sampling', default=1, type=int, choices=[0, 1])
 # parser.add_argument('--augment', default=0, type=int, choices=[0, 1])
-# parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
+parser.add_argument('--image-size', type=str, help='height and width', choices=['116 150', '232 300', '348 450'])
 parser.add_argument('--seed', type=int, default=None)
 args = parser.parse_args()
 
@@ -52,62 +52,66 @@ if args.seed is not None:
     if USE_CUDA:
         torch.cuda.manual_seed_all(args.seed)
 
+# Read parameters from hyperparameters.py
+PARAMS = hyperparameters.train_params[args.image_size][config['model']]
+DATA_ROOT = os.path.join(DATA_DIR, config['data_root'][args.image_size])
+RESULTS_DIR = config['results_dir']
+
 
 def main():
-    # Read parameters from hyperparameters.py 
-    params = hyperparameters.train_params[config['image_size']][config['model']]
-
     # setup dirs
-    dataset_name = os.path.split(os.path.normpath(config['data_root']))[-1]
-    results_dir, checkpoints_dir = directory_setup(model_name=REYMULTICLASSIFIER, dataset=dataset_name,
-                                                   results_dir=config['results_dir'], train_id=params['id'])
+    dataset_name = os.path.split(os.path.normpath(DATA_ROOT))[-1]
+    results_dir, checkpoints_dir = directory_setup(
+        model_name=REYMULTICLASSIFIER, dataset=dataset_name, results_dir=RESULTS_DIR,
+        train_id=PARAMS['id'] + '-aug' if PARAMS['augment'] else PARAMS['id']
+    )
 
     # dump args
     with open(os.path.join(results_dir, 'args.json'), 'w') as f:
-        json.dump({**params, **vars(args)}, f)
+        json.dump({**PARAMS, **vars(args)}, f)
 
     # save terminal output to file
     sys.stdout = Logger(print_fp=os.path.join(results_dir, 'out.txt'))
 
     # read and split labels into train and val
-    labels_csv = os.path.join(config['data_root'], 'train_labels.csv')
+    labels_csv = os.path.join(DATA_ROOT, 'train_labels.csv')
     labels_df = pd.read_csv(labels_csv)
 
     # split df into validation and train parts
     train_labels, val_labels = train_val_split(labels_df, val_fraction=VAL_FRACTION)
 
     # include simulated data
-    if params['simulated_data'] is not None:
-        sim_df = pd.read_csv(params['simulated_data'])
+    if PARAMS['simulated_data'] is not None:
+        sim_df = pd.read_csv(PARAMS['simulated_data'])
 
         # subsamble simulated data
-        if params['max_simulated'] > 0:
-            sim_df = sim_df.sample(n=params['max_simulated'])
+        if PARAMS['max_simulated'] > 0:
+            sim_df = sim_df.sample(n=PARAMS['max_simulated'])
 
         train_labels = pd.concat([train_labels, sim_df], ignore_index=True)
 
     # save validation labels for future use 
-    val_labels.to_csv(os.path.join(config['data_root'], 'val_labels.csv'))
+    val_labels.to_csv(os.path.join(DATA_ROOT, 'val_labels.csv'))  # noqa
 
     # get train dataloader
     train_loader = get_dataloader(labels=train_labels, label_type=CLASSIFICATION_LABELS,
-                                  batch_size=params['batch_size'], num_workers=params['workers'], shuffle=True,
-                                  weighted_sampling=params['weighted_sampling'], augment=params['augment'],
-                                  image_size=params['image_size'])
+                                  batch_size=PARAMS['batch_size'], num_workers=PARAMS['workers'], shuffle=True,
+                                  weighted_sampling=PARAMS['weighted_sampling'], augment=PARAMS['augment'],
+                                  image_size=PARAMS['image_size'])
     # get val dataloader
     val_loader = get_dataloader(labels=val_labels, label_type=CLASSIFICATION_LABELS,
-                                batch_size=params['batch_size'], num_workers=params['workers'], shuffle=False,
-                                augment=False, image_size=params['image_size'])
+                                batch_size=PARAMS['batch_size'], num_workers=PARAMS['workers'], shuffle=False,
+                                augment=False, image_size=PARAMS['image_size'])
 
     print(f'# train images:\t{len(train_labels)}')
     print(f'# val images:\t{len(val_labels)}')
 
     model = get_classifier(REYMULTICLASSIFIER, num_classes=NUM_CLASSES_PER_ITEM)
     loss_func = torch.nn.CrossEntropyLoss()
-    trainer = MultilabelTrainer(model, loss_func, train_loader, val_loader, params, results_dir, is_binary=False)
+    trainer = MultilabelTrainer(model, loss_func, train_loader, val_loader, PARAMS, results_dir, is_binary=False)
     trainer.train()
 
-    if params['eval_test']:
+    if PARAMS['eval_test']:
         eval_test(trainer, results_dir)
 
 
@@ -118,10 +122,10 @@ def eval_test(trainer, results_dir):
     trainer.model.load_state_dict(ckpt['state_dict'], strict=True)
 
     # get dataloader
-    test_labels = pd.read_csv(os.path.join(config['data_root'], 'test_labels.csv'))
-    test_dataloader = get_dataloader(config['data_root'], labels=test_labels, label_type=CLASSIFICATION_LABELS,
-                                     batch_size=params['batch_size'], num_workers=params['workers'], shuffle=False,
-                                     image_size=params['image_size'])
+    test_labels = pd.read_csv(os.path.join(DATA_ROOT, 'test_labels.csv'))
+    test_dataloader = get_dataloader(labels=test_labels, label_type=CLASSIFICATION_LABELS,
+                                     batch_size=PARAMS['batch_size'], num_workers=PARAMS['workers'], shuffle=False,
+                                     image_size=PARAMS['image_size'])
     test_stats = trainer.run_epoch(test_dataloader, is_train=False)
 
     print('\n-------eval test-------')
@@ -131,7 +135,7 @@ def eval_test(trainer, results_dir):
     data = np.stack([accuracies, losses], axis=0)
     indices = ['test-acc', 'test-loss']
 
-    if params['is_binary']:
+    if PARAMS['is_binary']:
         specificities = test_stats['val-specificities']
         sensitivities = test_stats['val-sensitivities']
         gmeans = test_stats['val-gmeans']
