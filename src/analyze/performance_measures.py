@@ -21,7 +21,6 @@ __all__ = [
 
 class PerformanceMeasures:
     CONFIDENCE_LEVEL = 0.95
-    NUM_REPS = 1024
 
     def __init__(self, ground_truths: pd.DataFrame, predictions: pd.DataFrame):
         # get figure ids
@@ -46,53 +45,74 @@ class PerformanceMeasures:
     def compute_performance_measure(self, pmeasure, error_level, confidence_interval=False):
         if pmeasure == ABSOLUTE_ERROR:
             if confidence_interval:
-                # compute a confidence interval with bootstrap
-                n_samples = len(self._figure_ids)
-                subsample_indices = [np.random.choice(range(n_samples), n_samples, replace=True)
-                                     for _ in range(self.NUM_REPS)]
-                error_terms = np.array([
-                    self.mean_absolute_error(error_level=error_level, indices=s) for s in subsample_indices
-                ])
-                mean = error_terms.mean()
-                q0 = np.percentile(error_terms, q=(1 - self.CONFIDENCE_LEVEL) / 2)
-                q1 = np.percentile(error_terms, q=self.CONFIDENCE_LEVEL / 2)
-                print(q0, q1)
-                print(2 * mean - q0, mean, 2 * mean - q1)
-                # std = error_terms.std()
-                # t_val = np.abs(stats.t.ppf((1 - self.CONFIDENCE_LEVEL) / 2.0, n_subample - 1))
-                # err = std * t_val / np.sqrt(n_subample)
-                # print(mean - err, mean, mean + err)
-                return np.mean(error_terms)
+                # compute a bias-corrected accelerated bootstrap confidence interval
+                error_terms = self.absolute_error(error_level=error_level, reduce=None)
+                ci = stats.bootstrap(data=(error_terms,),
+                                     statistic=np.mean,
+                                     confidence_level=self.CONFIDENCE_LEVEL,
+                                     method='BCa', axis=0)
+                ci = ci.confidence_interval
+                mae = np.mean(error_terms, axis=0)
+                return ci.low, mae, ci.high
 
-            return self.mean_absolute_error(error_level=error_level)
+            return self.absolute_error(error_level=error_level, reduce='mean')
 
         if pmeasure == SQUARED_ERROR:
-            return self.mean_squared_error(error_level=error_level)
+            if confidence_interval:
+                # compute a bias-corrected accelerated bootstrap confidence interval
+                error_terms = self.squared_error(error_level=error_level, reduce=None)
+                ci = stats.bootstrap(data=(error_terms,),
+                                     statistic=np.mean,
+                                     confidence_level=self.CONFIDENCE_LEVEL,
+                                     method='BCa', axis=0)
+                ci = ci.confidence_interval
+                mse = np.mean(error_terms, axis=0)
+                return ci.low, mse, ci.high
+
+            return self.squared_error(error_level=error_level)
 
         if pmeasure == R_SQUARED:
             return self.r_squared(error_level=error_level)
 
         raise ValueError(f'param "pmeasure" must be one of {ABSOLUTE_ERROR}, {SQUARED_ERROR}, {R_SQUARED}')
 
-    def mean_absolute_error(self, error_level=ERR_LEVEL_TOTAL_SCORE, indices=None) -> Union[float, np.ndarray]:
+    def absolute_error(self, error_level=ERR_LEVEL_TOTAL_SCORE, reduce: Union[str, None] = 'mean') -> np.ndarray:
         if error_level == ERR_LEVEL_TOTAL_SCORE:
-            if indices is None:
-                return float(np.mean(np.abs((self._total_score_preds - self._total_score_gts))))
-            return float(np.mean(np.abs((self._total_score_preds[indices] - self._total_score_gts[indices]))))
+            error_terms = np.abs(self._total_score_preds - self._total_score_gts)
+        elif error_level == ERR_LEVEL_ITEM_SCORE:
+            error_terms = np.abs(self._item_score_preds - self._item_score_gts)
+        else:
+            raise ValueError(f'param "error_level" must be one of {ERR_LEVEL_ITEM_SCORE}, {ERR_LEVEL_TOTAL_SCORE}')
 
-        if error_level == ERR_LEVEL_ITEM_SCORE:
-            return np.mean(np.abs((self._item_score_preds - self._item_score_gts)), axis=0)
+        if reduce == 'mean':
+            return np.mean(error_terms, axis=0)
 
-        raise ValueError(f'param "error_level" must be one of {ERR_LEVEL_ITEM_SCORE}, {ERR_LEVEL_TOTAL_SCORE}')
+        if reduce == 'sum':
+            return np.sum(error_terms, axis=0)
 
-    def mean_squared_error(self, error_level=ERR_LEVEL_TOTAL_SCORE) -> Union[float, np.ndarray]:
+        if reduce is None:
+            return error_terms
+
+        raise ValueError(f'param reduce must be one of "sum", "mean", or None; got {reduce}')
+
+    def squared_error(self, error_level=ERR_LEVEL_TOTAL_SCORE, reduce: Union[str, None] = 'mean') -> np.ndarray:
         if error_level == ERR_LEVEL_TOTAL_SCORE:
-            return float(np.mean((self._total_score_preds - self._total_score_gts) ** 2, axis=0))
+            error_terms = (self._total_score_preds - self._total_score_gts) ** 2
+        elif error_level == ERR_LEVEL_ITEM_SCORE:
+            error_terms = (self._item_score_preds - self._item_score_gts) ** 2
+        else:
+            raise ValueError(f'param "error_level" must be one of {ERR_LEVEL_ITEM_SCORE}, {ERR_LEVEL_TOTAL_SCORE}')
 
-        if error_level == ERR_LEVEL_ITEM_SCORE:
-            return np.mean((self._item_score_preds - self._item_score_gts) ** 2, axis=0)
+        if reduce == 'mean':
+            return np.mean(error_terms, axis=0)
 
-        raise ValueError(f'param "error_level" must be one of {ERR_LEVEL_ITEM_SCORE}, {ERR_LEVEL_TOTAL_SCORE}')
+        if reduce == 'sum':
+            return np.sum(error_terms, axis=0)
+
+        if reduce is None:
+            return error_terms
+
+        raise ValueError(f'param reduce must be one of "sum", "mean", or None; got {reduce}')
 
     def r_squared(self, error_level=ERR_LEVEL_TOTAL_SCORE) -> Union[float, np.ndarray]:
         if error_level == ERR_LEVEL_TOTAL_SCORE:
@@ -166,13 +186,13 @@ class PerformanceMeasures:
             raise NotImplementedError
 
     def _compute_regression_metrics_total_score(self):
-        return {'mae': self.mean_absolute_error(ERR_LEVEL_TOTAL_SCORE),
-                'mse': self.mean_squared_error(ERR_LEVEL_TOTAL_SCORE),
+        return {'mae': self.absolute_error(ERR_LEVEL_TOTAL_SCORE),
+                'mse': self.squared_error(ERR_LEVEL_TOTAL_SCORE),
                 'r2': self.r_squared(ERR_LEVEL_TOTAL_SCORE)}
 
     def _compute_regression_metrics_item_score(self):
-        return {'mae': self.mean_absolute_error(ERR_LEVEL_ITEM_SCORE),
-                'mse': self.mean_squared_error(ERR_LEVEL_ITEM_SCORE),
+        return {'mae': self.absolute_error(ERR_LEVEL_ITEM_SCORE),
+                'mse': self.squared_error(ERR_LEVEL_ITEM_SCORE),
                 'r2': self.r_squared(ERR_LEVEL_ITEM_SCORE)}
 
     def _compute_classification_metrics_item_score(self):
@@ -188,3 +208,9 @@ def _binarize_item_class_labels(item_classes: np.ndarray) -> np.ndarray:
         binarized_classes[i, labels[i]] = 1
 
     return binarized_classes
+
+# def _bootstrap_confidence_interval(arr: np.ndarray, conf_level: float):
+# mean = arr.mean()
+# std = arr.std()
+# t_val = np.abs(stats.t.ppf((1 - conf_level) / 2.0, n_samples - 1))
+# err = std * t_val / np.sqrt(n_samples)
