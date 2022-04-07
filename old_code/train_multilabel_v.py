@@ -21,7 +21,7 @@ _VAL_FRACTION = 0.2
 _SEED = 7
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR_SMALL, required=False)
+parser.add_argument('--data-root', type=str, default=DATADIR_SMALL, required=False)
 parser.add_argument('--results-dir', type=str, default='./temp', required=False)
 parser.add_argument('--simulated-data', type=str, default=None, required=False)
 parser.add_argument('--max-simulated', type=int, default=-1, required=False)

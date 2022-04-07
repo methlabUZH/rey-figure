@@ -5,7 +5,7 @@ import pandas as pd
 import seaborn as sns
 from typing import List, Tuple
 
-from analyze.plot_utils import init_mpl
+from src.analyze.utils import init_mpl
 
 init_mpl(sns_style='ticks', colorpalette='muted')
 

@@ -15,8 +15,8 @@ def compute_total_score_error(predictions_df: pd.DataFrame,
                               columns: List[str],
                               which='mse',
                               return_ci: bool = False,
-                              alpha_ci: float = None) -> Union[
-    List[float], Tuple[List[float], List[Tuple[float, float]]]]:
+                              alpha_ci: float = None) -> Union[List[float],
+                                                               Tuple[List[float], List[Tuple[float, float]]]]:
     """this function computes the mse for each column in columns
 
     Args:

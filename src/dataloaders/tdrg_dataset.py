@@ -90,11 +90,11 @@ class TDRGDataset(Dataset):
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    from constants import DEBUG_DATADIR_SMALL, DEBUG_DATADIR_BIG
+    from constants import DATADIR_SMALL, DATADIR_BIG
 
-    labels_csv = os.path.join(DEBUG_DATADIR_BIG, 'train_labels.csv')
+    labels_csv = os.path.join(DATADIR_BIG, 'train_labels.csv')
     labels_df = pd.read_csv(labels_csv)
-    ds = TDRGDataset(data_root=DEBUG_DATADIR_BIG, labels=labels_df, image_size=(150, 150))
+    ds = TDRGDataset(data_root=DATADIR_BIG, labels=labels_df, image_size=(150, 150))
     d = ds[0]
     image = d['image']
     print(d['target'])

@@ -25,12 +25,12 @@ train_params = {
     }
 }
 
-eval_params = {
-    '116 150': {
-        "workers": 10, "batch_size": 100, "image_size": [116, 150], 'tta': True,
-        'angles': [-2, -1, 0, 1, 2], 'validation': False},
-    '232 300': {
-        "workers": 10, "batch_size": 100, "image_size": [232, 300], 'tta': True,
-        'angles': [-2, -1, 0, 1, 2], 'validation': False
-    },
-}
+# eval_params = {
+#     '116 150': {
+#         "workers": 10, "batch_size": 100, "image_size": [116, 150], 'tta': True,
+#         'angles': [-2, -1, 0, 1, 2], 'validation': False},
+#     '232 300': {
+#         "workers": 10, "batch_size": 100, "image_size": [232, 300], 'tta': True,
+#         'angles': [-2, -1, 0, 1, 2], 'validation': False
+#     },
+# }

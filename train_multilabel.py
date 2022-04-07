@@ -11,7 +11,7 @@ import hyperparameters_multilabel
 import torch
 
 from constants import *
-from config import config
+from config_train import config
 from src.dataloaders.rocf_dataloader import get_dataloader
 from src.models import get_classifier
 from src.training.train_utils import directory_setup, Logger, train_val_split

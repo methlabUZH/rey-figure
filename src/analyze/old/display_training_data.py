@@ -7,7 +7,7 @@ import matplotlib.ticker as plticker
 
 from constants import *
 from src.utils import map_to_score_grid
-from analyze.plot_utils import init_mpl
+from src.analyze.utils import init_mpl
 
 colors = init_mpl(sns_style='ticks', colorpalette='muted')
 

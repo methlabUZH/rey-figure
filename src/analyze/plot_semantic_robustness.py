@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
+import os
 
-from analyze.plot_utils import init_mpl
-from analyze.utils import *
+from constants import ABSOLUTE_ERROR
+
+from src.analyze.utils import init_mpl
 from src.dataloaders.semantic_transforms_dataset import TF_BRIGHTNESS, TF_PERSPECTIVE, TF_CONTRAST, TF_ROTATION
 
 colors = init_mpl(sns_style='ticks', colorpalette='muted')
@@ -131,7 +133,7 @@ if __name__ == '__main__':
     brightness_decr_params = [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
     brightness_incr_params = [1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0]
 
-    save_dir = './figures/semantic-transformations/'
+    save_dir = '../../results/figures/semantic-transformations/'
 
     main(res_aug, res_non_aug, rotation_angles, transformation=TF_ROTATION, save_as=save_dir + 'rotations.pdf')
     main(res_aug, res_non_aug, perspective_params, transformation=TF_PERSPECTIVE, save_as=save_dir + 'perspective.pdf')

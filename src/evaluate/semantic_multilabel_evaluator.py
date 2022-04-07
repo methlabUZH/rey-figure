@@ -4,7 +4,7 @@ import pandas as pd
 import torch
 from tqdm import tqdm
 
-from constants import *
+from constants import CLASSIFICATION_LABELS, N_ITEMS
 from src.dataloaders.semantic_transforms_dataloader import get_dataloader
 from src.utils import class_to_score
 

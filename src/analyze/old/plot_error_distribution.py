@@ -1,21 +1,13 @@
-import cv2
 import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 import numpy as np
 import os
 import pandas as pd
-import shutil
-from skimage.color import rgb2gray as skimage_rgb2gray
-from skimage import io
-from tqdm import tqdm
-from typing import *
-
-from tabulate import tabulate
 
 import seaborn as sns
 
 from constants import *
-from analyze.plot_utils import init_mpl
+from src.analyze.utils import init_mpl
 
 colors = init_mpl(sns_style='ticks', colorpalette='muted')
 

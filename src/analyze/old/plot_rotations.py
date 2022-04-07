@@ -3,9 +3,8 @@ import numpy as np
 import os
 import pandas as pd
 import seaborn as sns
-from typing import List, Tuple
 
-from analyze.plot_utils import init_mpl
+from src.analyze.utils import init_mpl
 
 init_mpl(sns_style='ticks', colorpalette='muted')
 
@@ -43,7 +42,7 @@ def make_plot(x_values, y_values, save_as=None):
 
 
 if __name__ == '__main__':
-    res_dir = '../results/euler-results/data-2018-2021-116x150-pp0/final/rey-multilabel-classifier'
+    res_dir = '../../../results/euler-results/data-2018-2021-116x150-pp0/final/rey-multilabel-classifier'
 
     rot_angles = [0.0, 5.0, 10.0, 15.0, 20.0, 30.0, 45.0]
     rot_angles, errors = get_errors(results_dir=res_dir, rotation_angles=rot_angles)

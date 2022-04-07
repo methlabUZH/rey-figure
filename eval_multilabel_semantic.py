@@ -17,7 +17,7 @@ _RES_DIR = './results/euler-results/data-2018-2021-116x150-pp0/final/rey-multila
 
 # setup arg parser
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR_SMALL)
+parser.add_argument('--data-root', type=str, default=DATADIR_SMALL)
 parser.add_argument('--results-dir', type=str, default=_RES_DIR)
 parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
 parser.add_argument('--batch-size', default=100, type=int)

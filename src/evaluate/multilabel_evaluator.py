@@ -39,7 +39,7 @@ class MultilabelEvaluator:
         else:  # use test set for evaluation
             test_labels = pd.read_csv(os.path.join(self.data_dir, 'test_labels.csv'))
 
-        self.dataloader = get_dataloader(data_root=self.data_dir, labels=test_labels, label_type=CLASSIFICATION_LABELS,
+        self.dataloader = get_dataloader(labels=test_labels, label_type=CLASSIFICATION_LABELS,
                                          batch_size=self.batch_size, num_workers=self.workers, shuffle=False,
                                          augment=False, image_size=self.image_size)
 

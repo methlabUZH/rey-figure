@@ -9,7 +9,7 @@ sys.path.append('../src')
 
 from model import CNN
 from dataloader import DATA
-from config import DEBUG, RUN_NAME
+from config_train import DEBUG, RUN_NAME
 from helpers import create_directory
 
 EARLY_STOP_THRESHOLD = 5

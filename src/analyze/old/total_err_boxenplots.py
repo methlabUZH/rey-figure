@@ -4,7 +4,7 @@ import os
 import pandas as pd
 import seaborn as sns
 
-from analyze.plot_utils import init_mpl
+from src.analyze.utils import init_mpl
 
 colors = init_mpl(sns_style='ticks', colorpalette='muted')
 

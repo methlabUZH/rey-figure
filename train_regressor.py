@@ -15,7 +15,7 @@ from src.models import get_regressor, get_regressor_v2
 from src.training.regression_trainer import RegressionTrainer
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, default=DEBUG_DATADIR_SMALL, required=False)
+parser.add_argument('--data-root', type=str, default=DATADIR_SMALL, required=False)
 parser.add_argument('--arch', type=str, default='v2', required=False, help='v2 is better than v1')
 parser.add_argument('--results-dir', type=str, default='./temp', required=False)
 parser.add_argument('--simulated-data', type=str, default=None, required=False)

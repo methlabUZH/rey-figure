@@ -1,13 +1,10 @@
 import pandas as pd
 import os
-from tqdm import tqdm
 from tabulate import tabulate
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 import seaborn as sns
 
-from analyze.plot_utils import init_mpl
+from src.analyze.utils import init_mpl
 from src.utils import map_to_score_grid
 from constants import N_ITEMS, DATA_DIR
 from src.preprocessing2.process_ratings import merge_rating_files
