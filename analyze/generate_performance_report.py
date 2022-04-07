@@ -54,7 +54,7 @@ class PerformanceMeasures:
             index=["micro avg", "macro avg", "weighted avg", "samples avg"])
 
         print('\n' + '-' * 50)
-        print("* High Level Multilabel Classification Metrics:")
+        print("* Multilabel Classification Metrics:")
         print(tabulate(cls_table, headers=cls_table.columns, tablefmt='presto'))
 
         # regression metrics

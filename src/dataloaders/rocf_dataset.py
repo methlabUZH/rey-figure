@@ -44,7 +44,6 @@ class ROCFDataset(Dataset):
         self._do_augment = data_augmentation
         self._augment = transforms.RandomApply(transforms=[
             transforms.GaussianBlur(kernel_size=(3, 3), sigma=(0.01, 1.0)),
-            # ColorJitter(brightness=[0.6, 1.1], contrast=0.5),
             transforms.RandomPerspective(distortion_scale=0.4, p=0.5, fill=255.0),
             transforms.Compose([transforms.RandomRotation(degrees=(-10, 10), expand=True, fill=255.0),
                                 transforms.Resize(size=image_size)])],

@@ -3,6 +3,20 @@ Training and evaluation parameters
 """
 
 train_params = {
+    '78 100': {
+        'multilabel-classifier': {
+            "workers": 10, "is_binary": 0, "eval_test": True, "id": "final", "epochs": 75,
+            "batch_size": 64, "lr": 0.01, "gamma": 0.95, "wd": 0, "weighted_sampling": 1,
+            "augment": 0, "image_size": [78, 100], "simulated_data": None,
+            "max_simulated": -1
+        },
+        'regressor': {
+            "simulated_data": None, "workers": 10, "eval_test": True, "id": "final-small", "epochs": 75,
+            "batch_size": 64, "lr": 0.01, "gamma": 0.95, "wd": 0.0, "weighted_sampling": 1, "augment": 0,
+            "image_size": [116, 150], "max_simulated": -1, "arch": "v2"
+        }
+    },
+
     '116 150': {
         'multilabel-classifier': {
             "workers": 10, "is_binary": 0, "eval_test": True, "id": "final", "epochs": 75,

@@ -10,7 +10,7 @@ import sys
 
 from tabulate import tabulate
 
-import hyperparameters
+import hyperparameters_multilabel
 from config import config
 
 from constants import *
@@ -41,8 +41,8 @@ _NUM_CLASSES = 4
 
 
 def main():
-    # Read parameters from hyperparameters.py 
-    params = hyperparameters.eval_params[config['image_size']][config['model']]
+    # Read parameters from hyperparameters_multilabel.py
+    params = hyperparameters_multilabel.eval_params[config['image_size']][config['model']]
 
     # save terminal output to file
     sys.stdout = Logger(print_fp=os.path.join(config['results_dir'], 'eval_out.txt'))

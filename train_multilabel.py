@@ -6,7 +6,7 @@ import pandas as pd
 from tabulate import tabulate
 import json
 import random
-import hyperparameters
+import hyperparameters_multilabel
 
 import torch
 
@@ -17,8 +17,6 @@ from src.models import get_classifier
 from src.training.train_utils import directory_setup, Logger, train_val_split
 
 from src.training.multilabel_trainer import MultilabelTrainer
-
-_DEBUG_DATADIR = ''
 
 parser = argparse.ArgumentParser()
 # parser.add_argument('--data-root', type=str, default=_DEBUG_DATADIR, required=False)
@@ -35,8 +33,9 @@ parser = argparse.ArgumentParser()
 # parser.add_argument('--gamma', type=float, default=0.95, help='learning rate decay factor')
 # parser.add_argument('--wd', '--weight-decay', type=float, default=0)
 # parser.add_argument('--weighted-sampling', default=1, type=int, choices=[0, 1])
-# parser.add_argument('--augment', default=0, type=int, choices=[0, 1])
-parser.add_argument('--image-size', type=str, help='height and width', choices=['116 150', '232 300', '348 450'])
+parser.add_argument('--image-size', type=str, help='height and width',
+                    choices=['78 100', '116 150', '232 300', '348 450'], default='78 100')
+parser.add_argument('--augment', type=int, choices=[0, 1], default=0)
 parser.add_argument('--seed', type=int, default=None)
 args = parser.parse_args()
 
@@ -52,8 +51,8 @@ if args.seed is not None:
     if USE_CUDA:
         torch.cuda.manual_seed_all(args.seed)
 
-# Read parameters from hyperparameters.py
-PARAMS = hyperparameters.train_params[args.image_size][config['model']]
+# Read parameters from hyperparameters_multilabel.py
+PARAMS = {'seed': args.seed, 'augment': args.augment, **hyperparameters_multilabel.train_params[args.image_size]}
 DATA_ROOT = os.path.join(DATA_DIR, config['data_root'][args.image_size])
 RESULTS_DIR = config['results_dir']
 
@@ -68,7 +67,7 @@ def main():
 
     # dump args
     with open(os.path.join(results_dir, 'args.json'), 'w') as f:
-        json.dump({**PARAMS, **vars(args)}, f)
+        json.dump(PARAMS, f)
 
     # save terminal output to file
     sys.stdout = Logger(print_fp=os.path.join(results_dir, 'out.txt'))
