@@ -7,6 +7,10 @@ import sys
 from tabulate import tabulate
 
 from constants import *
+from config_eval import config as eval_config
+from config_train import config as train_config
+import hyperparameters_multilabel
+
 from src.training.train_utils import Logger
 from src.models import get_classifier
 from src.dataloaders.semantic_transforms_dataset import TF_BRIGHTNESS, TF_PERSPECTIVE, TF_CONTRAST, TF_ROTATION
@@ -17,11 +21,11 @@ _RES_DIR = './results/euler-results/data-2018-2021-116x150-pp0/final/rey-multila
 
 # setup arg parser
 parser = argparse.ArgumentParser()
-parser.add_argument('--data-root', type=str, default=DATADIR_SMALL)
-parser.add_argument('--results-dir', type=str, default=_RES_DIR)
-parser.add_argument('--image-size', nargs='+', default=DEFAULT_CANVAS_SIZE, help='height and width', type=int)
+parser.add_argument('--image-size', type=str, help='height and width', default='116 150',
+                    choices=['78 100', '116 150', '232 300', '348 450'])
 parser.add_argument('--batch-size', default=100, type=int)
 parser.add_argument('--workers', default=8, type=int)
+parser.add_argument('--augmented', default=0, type=int, choices=[0, 1])
 
 # transformations
 parser.add_argument('--transform', type=str, default=TF_ROTATION,
@@ -43,6 +47,10 @@ _NUM_CLASSES = 4
 
 
 def main():
+    results_dir = eval_config[REYMULTICLASSIFIER]['aug' if args.augmented else 'non-aug'][args.image_size]
+    data_dir = os.path.join(DATA_DIR, train_config['data_root'][args.image_size])
+    hyperparams = hyperparameters_multilabel.train_params[args.image_size]
+
     # save terminal output to file
     if args.transform == TF_ROTATION:
         prefix = f'rotation_{args.angles}'
@@ -57,14 +65,20 @@ def main():
 
     log_file = "semantic_eval_out_" + prefix + ".txt"
 
-    sys.stdout = Logger(print_fp=os.path.join(args.results_dir, log_file))
+    sys.stdout = Logger(print_fp=os.path.join(results_dir, log_file))
 
     model = get_classifier(arch=REYMULTICLASSIFIER, num_classes=_NUM_CLASSES)
-    evaluator = SemanticMultilabelEvaluator(model=model, image_size=args.image_size, results_dir=args.results_dir,
-                                            data_dir=args.data_root, batch_size=args.batch_size,
-                                            transform=args.transform, rotation_angles=args.angles,
-                                            distortion_scale=args.distortion, brightness_factor=args.brightness,
+    evaluator = SemanticMultilabelEvaluator(model=model, image_size=hyperparams['image_size'],
+                                            results_dir=results_dir,
+                                            data_dir=data_dir,
+                                            batch_size=args.batch_size,
+                                            workers=hyperparams['workers'],
+                                            transform=args.transform,
+                                            rotation_angles=args.angles,
+                                            distortion_scale=args.distortion,
+                                            brightness_factor=args.brightness,
                                             contrast_factor=args.contrast)
+
     evaluator.run_eval(save=True, prefix=prefix)
 
     predictions = evaluator.predictions

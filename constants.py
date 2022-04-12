@@ -21,6 +21,7 @@ TEST_FRACTION = 0.2
 DATADIR_SMALL = './data/serialized-data/data_116x150-seed_1'
 DATADIR_BIG = './data/serialized-data/data_232x300-seed_1'
 N_ITEMS = 18
+ITEM_SCORES = [0, 0.5, 1, 2]
 DEFAULT_CANVAS_SIZE = (116, 150)
 DEFAULT_CANVAS_SIZE_BIG = (232, 300)
 AUGM_CANVAS_SIZE = (464, 600)
@@ -42,6 +43,13 @@ NUM_MISCLASS = 'num_misclassified'
 R_SQUARED = 'r_squared'
 ERR_LEVEL_TOTAL_SCORE = 'total_score'
 ERR_LEVEL_ITEM_SCORE = 'item_score'
+
+ERROR_TO_LABEL = {
+    NUM_MISCLASS: '# Misclassified Items',
+    ABSOLUTE_ERROR: 'Mean Absolute Error (MAE)',
+    SQUARED_ERROR: 'Mean Squared Error (MSE)',
+    R_SQUARED: r'$R^2$'
+}
 
 # score bins
 BIN_LOCATIONS1_V2 = [-1, 14, 16, 18, 20, 22, 24, 26, 28, 30, 32, 34, 36]

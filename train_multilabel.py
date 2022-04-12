@@ -7,7 +7,7 @@ from tabulate import tabulate
 import json
 import random
 import hyperparameters_multilabel
-
+import uuid
 import torch
 
 from constants import *
@@ -37,6 +37,8 @@ parser.add_argument('--image-size', type=str, help='height and width',
                     choices=['78 100', '116 150', '232 300', '348 450'], default='78 100')
 parser.add_argument('--augment', type=int, choices=[0, 1], default=0)
 parser.add_argument('--seed', type=int, default=None)
+parser.add_argument('--max_n', type=int, default=-1, help='number of training data points')
+parser.add_argument('--debug', action='store_true')
 args = parser.parse_args()
 
 USE_CUDA = torch.cuda.is_available()
@@ -60,9 +62,19 @@ RESULTS_DIR = config['results_dir']
 def main():
     # setup dirs
     dataset_name = os.path.split(os.path.normpath(DATA_ROOT))[-1]
+
+    if args.max_n > 0:
+        dataset_name = str(args.max_n) + '-' + dataset_name
+
+    if args.debug:
+        train_id = "debug-" + str(uuid.uuid4())
+        PARAMS['epochs'] = 1
+        print('!! DEBUG MODE !!')
+    else:
+        train_id = PARAMS['id'] + '-aug' if PARAMS['augment'] else PARAMS['id']
+
     results_dir, checkpoints_dir = directory_setup(
-        model_name=REYMULTICLASSIFIER, dataset=dataset_name, results_dir=RESULTS_DIR,
-        train_id=PARAMS['id'] + '-aug' if PARAMS['augment'] else PARAMS['id']
+        model_name=REYMULTICLASSIFIER, dataset=dataset_name, results_dir=RESULTS_DIR, train_id=train_id
     )
 
     # dump args
@@ -75,6 +87,9 @@ def main():
     # read and split labels into train and val
     labels_csv = os.path.join(DATA_ROOT, 'train_labels.csv')
     labels_df = pd.read_csv(labels_csv)
+
+    if args.max_n > 0:
+        labels_df = labels_df.sample(n=args.max_n, replace=False)
 
     # split df into validation and train parts
     train_labels, val_labels = train_val_split(labels_df, val_fraction=VAL_FRACTION)
@@ -106,6 +121,7 @@ def main():
     print(f'# val images:\t{len(val_labels)}')
 
     model = get_classifier(REYMULTICLASSIFIER, num_classes=NUM_CLASSES_PER_ITEM)
+
     loss_func = torch.nn.CrossEntropyLoss()
     trainer = MultilabelTrainer(model, loss_func, train_loader, val_loader, PARAMS, results_dir, is_binary=False)
     trainer.train()

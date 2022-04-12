@@ -67,7 +67,7 @@ class MultilabelClassifier(PredictorBase):
         super(MultilabelClassifier, self).__init__(results_dir)
 
     def _get_model(self) -> torch.nn.Module:
-        return get_classifier(arch=REYMULTICLASSIFIER, num_classes=4, item=None)
+        return get_classifier(arch=REYMULTICLASSIFIER, num_classes=4)
 
     def _postprocess_outputs(self, outputs):
         item_classes = np.argmax(np.concatenate([lgt.cpu().numpy() for lgt in outputs]), axis=1)

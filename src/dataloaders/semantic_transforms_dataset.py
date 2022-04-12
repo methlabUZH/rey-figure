@@ -74,7 +74,7 @@ class STDataset(Dataset):
 
         # get filepaths and ids
         self._image_files = [os.path.join(data_root, f) for f in self._labels_df["image_filepath"].tolist()]
-        self._image_ids = self._labels_df["figure_id"]
+        self._image_ids = self._labels_df["FILE"]
 
     def __getitem__(self, idx):
         image = cv2.imread(self._image_files[idx], flags=cv2.IMREAD_GRAYSCALE)

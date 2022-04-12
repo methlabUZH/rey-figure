@@ -9,11 +9,12 @@ from src.utils import map_to_score_grid
 from constants import N_ITEMS, DATA_DIR
 from src.preprocessing2.process_ratings import merge_rating_files
 
-COLORS = init_mpl(sns_style="ticks", fontsize=14)
+COLORS = init_mpl()
 
 RATINGS_COLUMNS = ['assessment_id', 'prolific_pid', 'drawing_id', 'FILE', 'part_id', 'part_points']
 SCORE_COLS = [f'score_item_{i + 1}' for i in range(N_ITEMS)]
 ID_LENGTH = 24
+FIG_SIZE = (7, 4)
 
 MODE_STD = 'std'
 MODE_DISAGREE_FRACTION = 'disagree_fraction'
@@ -70,23 +71,20 @@ def main(model_predictions_csv, figure_quality_mode='disagree_fraction', save_as
     xticks = [0.5 * (bins[i] + bins[i + 1]) for i in range(len(bins) - 1)]
 
     # make plot
-    fig = plt.figure()
+    fig = plt.figure(figsize=FIG_SIZE)
     ax = plt.gca()
 
     # scatterplot with errors
-    sns.lineplot(x=xticks, y=model_lines['mean_absolute_error'], marker='p', label='CNN', ax=ax,
-                 markeredgecolor=COLORS[0])
-    sns.lineplot(x=xticks, y=clinicians_lines['mean_absolute_error'], marker='o', label='Clinicians', ax=ax,
-                 markeredgecolor=COLORS[1])
-    sns.lineplot(x=xticks, y=raters_lines['mean_absolute_error'], marker='d', label='Crowd Source', ax=ax,
-                 markeredgecolor=COLORS[2])
+    ax.plot(xticks, raters_lines['mean_absolute_error'], marker='d', label='Human Avg. Performance', ls='--')
+    ax.plot(xticks, model_lines['mean_absolute_error'], marker='p', label='CNN Performance', ls='-.')
+    # ax.plot(xticks, clinicians_lines['mean_absolute_error'], marker='o', label='Avg. Clinician Performance', ls='-.')
     ax.set_ylabel('Total Score MAE')
     ax.set_xlabel('Ratings Standard Deviation' if figure_quality_mode == MODE_STD else 'Distinct Ratings Fraction')
 
     # histogram of human rater errors
-    ax2 = plt.twinx(ax)
-    sns.histplot(x=model_errors['quality'], color='gray', alpha=0.4, bins=bins, ax=ax2)
-    ax2.set_ylabel('# Figures')
+    # ax2 = plt.twinx(ax)
+    # sns.histplot(x=model_errors['quality'], color='gray', alpha=0.4, bins=bins, ax=ax2)
+    # ax2.set_ylabel('# Figures')
 
     ax.set_xticks([max(0, b) for b in bins])
     ax.set_xticklabels([f"{max(0, b):.1f}" for b in bins])
@@ -98,6 +96,7 @@ def main(model_predictions_csv, figure_quality_mode='disagree_fraction', save_as
     handles, labels = ax.get_legend_handles_labels()
     ax.legend(handles, labels, fancybox=False, ncol=4, frameon=False, loc='lower center', bbox_to_anchor=(.5, 1.02))
 
+    plt.grid(True)
     fig.tight_layout()
 
     if save_as is not None:
@@ -178,8 +177,10 @@ if __name__ == '__main__':
 
     main(model_predictions_csv=os.path.join(
         results_root, 'data-2018-2021-232x300-pp0/final-bigsize-aug/rey-multilabel-classifier/test_predictions.csv'),
-        figure_quality_mode=MODE_STD, save_as='./figures/human_comparison_std.pdf')
+        # results_root, 'data_232x300-seed_1/final/rey-multilabel-classifier/test_predictions.csv'),
+        figure_quality_mode=MODE_STD, save_as='../../results/figures/paper/human_comparison_std.pdf')
+        # figure_quality_mode=MODE_STD, save_as=None)
 
-    main(model_predictions_csv=os.path.join(
-        results_root, 'data-2018-2021-232x300-pp0/final-bigsize-aug/rey-multilabel-classifier/test_predictions.csv'),
-        figure_quality_mode=MODE_DISAGREE_FRACTION, save_as='./figures/human_comparison_dis_frac.pdf')
+    # main(model_predictions_csv=os.path.join(
+    #     results_root, 'data-2018-2021-232x300-pp0/final-bigsize-aug/rey-multilabel-classifier/test_predictions.csv'),
+    #     figure_quality_mode=MODE_DISAGREE_FRACTION, save_as='./figures/human_comparison_dis_frac.pdf')

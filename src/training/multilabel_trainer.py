@@ -23,16 +23,22 @@ class MultilabelTrainer:
         self.loss_func = loss_func
         self.train_loader = train_loader
         self.val_loader = val_loader
-        self.params = params 
+        self.params = params
         self.save_dir = save_dir
         self.is_binary = is_binary
 
         self.summary_writer = SummaryWriter(os.path.join(save_dir, 'tensorboard'))
         self.use_cuda = torch.cuda.is_available()
+        # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
         if self.use_cuda:
-            print(f"Using gpu acceleration")
+            print("Using", torch.cuda.device_count(), "GPU(s)")
             self.model = torch.nn.DataParallel(self.model).cuda()
+            if torch.cuda.device_count() > 1:
+                raise NotImplementedError('using multiple GPUs is still kaputt.')
+            # self.model = self.model.cuda()
+
+        # model.to(self.device)
 
         # print setup
         print('--------params----------')
@@ -53,7 +59,8 @@ class MultilabelTrainer:
             self.loss_func = self.loss_func.cuda()
 
     def _init_optimizer_and_scheduler(self):
-        self.optimizer = optim.Adam(params=self.model.parameters(), lr=self.params['lr'], weight_decay=self.params['wd'])
+        self.optimizer = optim.Adam(params=self.model.parameters(), lr=self.params['lr'],
+                                    weight_decay=self.params['wd'])
         self.lr_scheduler = optim.lr_scheduler.ExponentialLR(self.optimizer, gamma=self.params['gamma'])
 
     def _init_meters(self):
@@ -185,6 +192,9 @@ class MultilabelTrainer:
                 inputs_batch = inputs_batch.cuda()
                 targets_batch = targets_batch.cuda()
 
+            # inputs_batch.to(self.device)
+            # targets_batch.to(self.device)
+
             outputs = self.forward_step(inputs_batch, targets_batch, is_train=is_train)
 
             if self.is_binary:
@@ -199,8 +209,8 @@ class MultilabelTrainer:
         return self.on_end_epoch(is_train=is_train)
 
     def forward_step(self, inputs, targets, is_train):
-        inputs = torch.autograd.Variable(inputs).float()
-        targets = torch.autograd.Variable(targets)
+        inputs = torch.autograd.Variable(inputs).float().cuda()
+        targets = torch.autograd.Variable(targets).cuda()
 
         if is_train:
             outputs = self.model(inputs)

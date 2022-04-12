@@ -24,6 +24,7 @@ parser.add_argument('--augmented', type=int, choices=[0, 1], default=0)
 parser.add_argument('--batch-size', default=100, type=int)
 parser.add_argument('--validation', action='store_true')
 parser.add_argument('--tta', action='store_true')
+parser.add_argument('--n_train', type=int, default=-1, help='number of training data points')
 args = parser.parse_args()
 
 NUM_CLASSES = 4
@@ -31,6 +32,12 @@ NUM_CLASSES = 4
 
 def main():
     results_dir = cfg_eval[REYMULTICLASSIFIER]['aug' if args.augmented else 'non-aug'][args.image_size]
+
+    if args.n_train > 0:
+        results_dir = results_dir.replace('/data_', f'/{args.n_train}-data_')
+
+    print(f'--> evaluating model from {results_dir}')
+
     data_dir = os.path.join(DATA_DIR, cfg_train['data_root'][args.image_size])
 
     # Read parameters from hyperparameters_multilabel.py
