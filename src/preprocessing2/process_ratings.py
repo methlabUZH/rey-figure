@@ -73,7 +73,8 @@ def merge_rating_files(data_dir) -> pd.DataFrame:
     for f in (pbar := tqdm(os.listdir(rating_data_dir))):
         pbar.set_description(f'processing {f}')
 
-        if str(f).startswith('.'):
+        if str(f).startswith('.') or str(f).endswith('.feather'):
+            print(f'skipping {os.path.join(rating_data_dir, f)}')
             continue
 
         df = pd.read_csv(os.path.join(rating_data_dir, f))[_COLUMNS]
