@@ -2,6 +2,7 @@ import pandas as pd
 import os
 from tabulate import tabulate
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D
 import numpy as np
 import seaborn as sns
 from typing import List, Tuple
@@ -55,19 +56,20 @@ def make_plot(resolutions_and_res_dirs: List[Tuple[str, str]], pmeasure=ABSOLUTE
         y_errs_no_augm = np.abs(
             y_values_no_augm[:, np.array([0, 2])] - np.repeat(y_values_no_augm[:, 1].reshape(-1, 1), repeats=2, axis=1))
 
-        plt.errorbar(range(len(x_labels)), y_values_no_augm[:, 1], yerr=y_errs_no_augm.T,
-                     label='without Data Augmentation', elinewidth=1.0, capsize=5, capthick=2, ls='--', marker='o')
-        plt.errorbar(range(len(x_labels)), y_values_augm[:, 1], yerr=y_errs_augm.T, label='with Data Augmentation',
-                     elinewidth=1.0, capsize=5, capthick=2, ls='-.', marker='d')
+        plt.errorbar(range(len(x_labels)), y_values_no_augm[:, 1], yerr=y_errs_no_augm.T, elinewidth=1.0, capsize=5,
+                     capthick=2, ls='--', marker='o', color=colors[0], label='without Data Augmentation')
+        plt.errorbar(range(len(x_labels)), y_values_augm[:, 1], yerr=y_errs_augm.T, elinewidth=1.0, capsize=5,
+                     capthick=2, ls='-.', marker='d', color=colors[1], label='with Data Augmentation')
+
     else:
         plt.plot(range(len(x_labels)), y_values_no_augm, label='without Data Augmentation', ls='--', marker='o')
         plt.plot(range(len(x_labels)), y_values_augm, label='with Data Augmentation', ls='--', marker='d')
 
+    plt.legend(fancybox=False, fontsize=12)
     plt.ylabel(ERROR_TO_LABEL[pmeasure])
     plt.xlabel('Image Resolution')
     plt.xticks(range(len(x_labels)), x_labels)
     plt.grid(True)
-    plt.legend(fancybox=False, fontsize=12)
     plt.tight_layout()
 
     if save_as is None:
