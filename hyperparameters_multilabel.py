@@ -15,12 +15,12 @@ train_params = {
     },
     '232 300': {
         "simulated_data": None, "max_simulated": -1, "workers": 8, "is_binary": 0, "eval_test": True, "id": "final",
-        "epochs": 75, "batch_size": 64, "lr": 0.01, "gamma": 0.95, "wd": 0, "weighted_sampling": 1,
+        "epochs": 75, "batch_size": 16, "lr": 0.01, "gamma": 0.95, "wd": 0, "weighted_sampling": 1,
         "image_size": [232, 300]
     },
     '348 450': {
         "simulated_data": None, "max_simulated": -1, "workers": 8, "is_binary": 0, "eval_test": True, "id": "final",
-        "epochs": 75, "batch_size": 64, "lr": 0.01, "gamma": 0.95, "wd": 0, "weighted_sampling": 1,
+        "epochs": 75, "batch_size": 8, "lr": 0.01, "gamma": 0.95, "wd": 0, "weighted_sampling": 1,
         "image_size": [348, 450]
     }
 }
