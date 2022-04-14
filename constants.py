@@ -44,6 +44,9 @@ R_SQUARED = 'r_squared'
 ERR_LEVEL_TOTAL_SCORE = 'total_score'
 ERR_LEVEL_ITEM_SCORE = 'item_score'
 
+# confidence for confidence intervals
+CI_CONFIDENCE = 0.95
+
 ERROR_TO_LABEL = {
     NUM_MISCLASS: '# Misclassified Items',
     ABSOLUTE_ERROR: 'Mean Absolute Error (MAE)',

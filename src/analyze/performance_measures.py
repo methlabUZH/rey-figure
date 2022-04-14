@@ -11,7 +11,8 @@ import matplotlib.pyplot as plt
 import matplotlib.ticker as plticker
 
 from src.analyze.utils import init_mpl
-from constants import (CLASS_COLUMNS,
+from constants import (CI_CONFIDENCE,
+                       CLASS_COLUMNS,
                        SCORE_COLUMNS,
                        N_ITEMS,
                        ITEM_SCORES,
@@ -29,7 +30,6 @@ PLOT_COLORS = init_mpl(sns_style='ticks', colorpalette='muted')
 
 
 class PerformanceMeasures:
-    CONFIDENCE_LEVEL = 0.95
 
     def __init__(self, ground_truths: pd.DataFrame, predictions: pd.DataFrame):
         # get figure ids
@@ -58,7 +58,7 @@ class PerformanceMeasures:
                 error_terms = self.absolute_error(error_level=error_level, reduce=None)
                 ci = stats.bootstrap(data=(error_terms,),
                                      statistic=np.mean,
-                                     confidence_level=self.CONFIDENCE_LEVEL,
+                                     confidence_level=CI_CONFIDENCE,
                                      method='BCa', axis=0)
                 ci = ci.confidence_interval
                 mae = np.mean(error_terms, axis=0)
@@ -72,7 +72,7 @@ class PerformanceMeasures:
                 error_terms = self.squared_error(error_level=error_level, reduce=None)
                 ci = stats.bootstrap(data=(error_terms,),
                                      statistic=np.mean,
-                                     confidence_level=self.CONFIDENCE_LEVEL,
+                                     confidence_level=CI_CONFIDENCE,
                                      method='BCa', axis=0)
                 ci = ci.confidence_interval
                 mse = np.mean(error_terms, axis=0)

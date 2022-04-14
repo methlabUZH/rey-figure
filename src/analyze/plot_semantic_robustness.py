@@ -11,6 +11,8 @@ from constants import (ABSOLUTE_ERROR,
                        ERROR_TO_LABEL,
                        TF_ROTATION, TF_CONTRAST, TF_PERSPECTIVE, TF_BRIGHTNESS)
 
+__all__ = ['make_plot']
+
 _FIG_SIZE = (7, 4)
 _TF_TO_LABEL = {
     TF_ROTATION: 'Rotation Angle',
