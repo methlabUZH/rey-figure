@@ -66,16 +66,17 @@ class MultilabelEvaluator:
         self.model.load_state_dict(ckpt['state_dict'], strict=True)
 
         # get predictions
-        predictions, ground_truths = self._run_inference(item=None)
+        predictions, ground_truths, prediction_logits = self._run_inference(item=None)
 
         column_names = [f'class_item_{item + 1}' for item in range(N_ITEMS)]
 
-        return self._make_dataframes(predictions, ground_truths, column_names)
+        return self._make_dataframes(predictions, ground_truths, prediction_logits, column_names)
 
-    def _make_dataframes(self, predictions, ground_truths, column_names):
+    def _make_dataframes(self, predictions, ground_truths, prediction_logits, column_names):
         # write to df
         id_columns = ['figure_id', 'image_file', 'serialized_file']
-        predictions_df = pd.DataFrame(columns=id_columns + column_names)
+        logit_column_names = [f'logit_item_{item + 1}' for item in range(N_ITEMS)]
+        predictions_df = pd.DataFrame(columns=id_columns + column_names + logit_column_names)
         ground_truths_df = pd.DataFrame(columns=id_columns + column_names)
 
         predictions_df['figure_id'] = self.dataloader.dataset.image_ids[:len(predictions)]
@@ -88,6 +89,10 @@ class MultilabelEvaluator:
 
         predictions_df[column_names] = predictions
         ground_truths_df[column_names] = ground_truths
+        # ugly hack to write the logits to the csv
+        for i, _ in predictions_df.iterrows():
+            for item in range(N_ITEMS):
+                predictions_df.at[i, f'logit_item_{item + 1}'] = prediction_logits[i, item]
 
         # turn classes into scores
         score_cols = [str(c).replace('class_', 'score_') for c in column_names]
@@ -98,15 +103,16 @@ class MultilabelEvaluator:
         predictions_df['total_score'] = predictions_df[score_cols].sum(axis=1)
         ground_truths_df['total_score'] = ground_truths_df[score_cols].sum(axis=1)
 
-        return predictions_df, ground_truths_df
+        return predictions_df, ground_truths_df #, prediction_logits_df
 
     def _run_inference(self, item=None):
         self.model.eval()
-        predictions, ground_truths = None, None
+        predictions, ground_truths, prediction_logits = None, None, None 
 
         n = len(self.dataloader)
 
         for inputs, targets in tqdm(self.dataloader, total=n):
+
             targets = targets.numpy()
 
             if self.use_cuda:
@@ -118,30 +124,37 @@ class MultilabelEvaluator:
                     logits = None
                     for angle in self.angles:
                         inputs = torchvision.transforms.functional.rotate(inputs.float(), angle)
-                        outputs = self.model(inputs)  # list of 18 elements of shape (bs, 4) each
+                        outputs = self.model(inputs.float())  # list of 18 elements of shape (bs, 4) each
                         # add up the logits for all 18 items 
                         if logits is None:
                             logits = outputs
                         else:
                             for i in range(len(outputs)):
                                 logits[i] += outputs[i]
-                                # divide by angles
+                    # divide by nb of angles to get the average prediction 
                     for i in range(len(logits)):
                         logits[i] /= len(self.angles)
                 else:
                     # normal inference without Test-Time-Augmentation
-                    logits = self.model(inputs.float())
+                    logits = self.model(inputs.float()) # list of 18 elements of shape (bs, 4) each
+                
+                # Apply softmax since no loss here 
+                logits = list(map(torch.nn.Softmax(dim=1), logits))
 
             if isinstance(logits, list):
                 outputs = [torch.argmax(lgts, dim=1).cpu().numpy() for lgts in logits]
+                output_logits = [lgts.cpu().numpy() for lgts in logits]
             else:
                 outputs = [torch.argmax(logits, dim=1).cpu().numpy()]
+                output_logits = [logits.cpu().numpy()]
                 targets = np.expand_dims(targets, -1)
 
             targets = targets[:, item - 1] if item is not None else targets
             outputs = np.concatenate([np.expand_dims(out, -1) for out in outputs], axis=1)
+            output_logits = np.array(output_logits).transpose((1, 0, 2))
 
             predictions = outputs if predictions is None else np.concatenate([predictions, outputs], axis=0)
             ground_truths = targets if ground_truths is None else np.concatenate([ground_truths, targets], axis=0)
+            prediction_logits = output_logits if prediction_logits is None else np.concatenate([prediction_logits, output_logits], axis=0)
 
-        return predictions, ground_truths
+        return predictions, ground_truths, prediction_logits

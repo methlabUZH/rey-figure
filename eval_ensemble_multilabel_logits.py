@@ -26,7 +26,7 @@ test_label_path = '/home/ubuntu/projects/rey-figure/ensembles/new_runs/final-aug
 ground_truths = pd.read_csv(test_label_path)
 result_dir = './ensembles'
 # save terminal output to file
-sys.stdout = Logger(print_fp=os.path.join(result_dir, f'{time.time()}_ensemble_class_eval_out.txt'))
+sys.stdout = Logger(print_fp=os.path.join(result_dir, f'{time.time()}_ensemble_logit_eval_out.txt'))
 print(f"Loading ensemble models from {models_root}")
 
 _CLASS_LABEL_COLS = [f'true_class_item_{item + 1}' for item in range(N_ITEMS)]
@@ -52,7 +52,7 @@ def find_files(filename, search_path):
 
 
 # create the ensemble dataframes
-filename = 'test_predictions.csv'
+filename = 'test_prediction_logits.csv'
 files = find_files(filename, models_root)
 print(f"Building an ensemble from {len(files)} models:")
 print(*files, sep='\n')
@@ -64,43 +64,32 @@ for file in files:
 ensemble_df = pd.DataFrame().reindex_like(dataframes[0]) # just for initialization 
 #ensemble_df.to_csv('ensemble_start.csv')
 
-test_df = copy.deepcopy(dataframes[1])
+test_df = copy.deepcopy(dataframes[0])
 
-# Write the ensemble classes by majority vote 
+# Add up the output logits of all single models in the ensemble
 class_names = [f'class_item_{i}' for i in range(1,19)]
 for i, class_name in enumerate(class_names):
     #if i > 3: break 
     for j in range(len(ensemble_df[class_name])):
         #if j > 5: break 
-        class_votes = []
+        logits = None 
         for dataframe in dataframes:
-            class_votes.append(dataframe[class_name][j])
-        majority_vote = Counter(class_votes).most_common(1)[0][0]
-        old = ensemble_df[class_name][j]
+            #print(dataframe[class_name][j])
+            if logits is None:
+                logits = np.array([float(item) for item in dataframe[class_name][j][1:-1].split()])
+            else:
+                logits += np.array([float(item) for item in dataframe[class_name][j][1:-1].split()])
+        #print(logits)
+        majority_vote = np.argmax(logits)
+        #print(majority_vote)
         ensemble_df[class_name][j] = majority_vote
-        if i % 100 == 0: #old != ensemble_df[class_name][j]:
-            #print(f"changed class at {class_name, j}")
-            #print("votes: ", class_votes, "majority: ", majority_vote)
-            pass 
-
         
 # Now write the item scores for the majority votes computed above 
 score_names = [f'score_item_{i}' for i in range(1,19)]
 for i, score_name in enumerate(score_names):
     for j in range(len(ensemble_df[score_name])):
-        old = ensemble_df[score_name][j]
-        # Option 1: translate majority vote to score 
+        #print(ensemble_df[class_names[i]][j])
         ensemble_df[score_name][j] = class_to_score(ensemble_df[class_names[i]][j])
-        
-        # Option 2: average the raw scores to new scores 
-        #scores = []
-        #for dataframe in dataframes:
-        #    scores.append(dataframe[score_name][j])
-        #ensemble_df[score_name][j] = np.mean(scores)
-        #if ensemble_df[score_name][j] != old:
-            #print(f"changed score at {score_name, j}")
-            #print(scores, np.mean(scores), ensemble_df[score_name][j])
-
 
 # Now compute the total score for each column 
 for j in range(len(ensemble_df['score_item_1'])): # iterate row wise 
@@ -111,14 +100,13 @@ for j in range(len(ensemble_df['score_item_1'])): # iterate row wise
     ensemble_df['total_score'][j] = total_score
     #print(ensemble_df['total_score'][j])
 
-#print(test_df == ensemble_df)
-#print(ensemble_df.compare(test_df))
-#print(f"dataframe equals original one: {ensemble_df.equals(test_df)}")
-
 #ensemble_df.to_csv('ensemble_end.csv')
 
 # Compute the metrics of the ensemble 
 predictions = ensemble_df
+
+# save the ensemble predictions to file
+#ensemble_df.to_csv(os.path.join(result_dir, f'{time.time()}_ensemble_logit_predictions.csv'))
 
 # ------- item specific scores -------
 item_accuracy_scores = compute_accuracy_scores(
