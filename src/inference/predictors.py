@@ -3,6 +3,7 @@ import numpy as np
 import os
 import pandas as pd
 import torch
+import warnings
 
 from constants import *
 from src.utils import class_to_score, map_to_score_grid
@@ -13,6 +14,7 @@ from src.models import get_classifier, get_regressor
 class PredictorBase:
 
     def __init__(self, results_dir):
+        warnings.warn('class to score mapping might not give correct results if num_classes != 4.')
         self.results_dir = results_dir
 
         # setup model

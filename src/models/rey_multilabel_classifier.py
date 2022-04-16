@@ -80,7 +80,7 @@ class ReyMultiClassifier(nn.Module):
         """
     def __init__(self,
                  dropout_rates: Tuple[float, float],
-                 num_classes: int = 2,
+                 num_classes: int = 4,
                  norm_layer_2d: Optional[Callable[..., nn.Module]] = None,
                  norm_layer_1d: Optional[Callable[..., nn.Module]] = None):
         super(ReyMultiClassifier, self).__init__()
@@ -107,7 +107,6 @@ class ReyMultiClassifier(nn.Module):
         for i in range(N_ITEMS):
             setattr(self, f"item-{i + 1}", ItemClassifier(**item_classifer_kwargs))
 
-        # self.output_layers = nn.ModuleList([ItemClassifier(**item_classifer_kwargs) for _ in range(N_ITEMS)])
         self.init_weights()
 
     def init_weights(self):
@@ -123,19 +122,6 @@ class ReyMultiClassifier(nn.Module):
         out = self.block2(out)
         shared_features = self.block3(out)
         return [getattr(self, f"item-{i + 1}")(shared_features) for i in range(N_ITEMS)]
-
-    # def forward0(self, x: Tensor) -> Tensor:
-    #     out = self.block1(x)
-    #     out = self.block2(out)
-    #     shared_features = self.block3(out)
-    #     # return [getattr(self, f"item-{i + 1}")(shared_features) for i in range(N_ITEMS)]
-    #     return self.output_layers(shared_features)
-    #
-    # def forward1(self, x: Tensor) -> Tensor:
-    #     out = self.block1(x)
-    #     out = self.block2(out)
-    #     shared_features = self.block3(out)
-    #     return getattr(self, f"item-{self.item}")(shared_features)
 
 
 def rey_multiclassifier(num_classes):

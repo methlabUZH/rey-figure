@@ -16,7 +16,7 @@ config['data_root'] = {
 """
 Results and logging 
 """
-config['results_dir'] = '../spaceml-results'  # './results' # set to model directory for evaluation  # noqa
+config['results_dir'] = '../spaceml-results/'  # './results' # set to model directory for evaluation  # noqa
 
 """
 Model related settings 

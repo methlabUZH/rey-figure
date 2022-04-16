@@ -13,13 +13,15 @@ def get_dataloader(labels: pd.DataFrame,
                    image_size: Tuple[int, int],
                    num_workers: int,
                    shuffle: bool,
+                   num_classes: int = 4,
                    prefectch_factor: int = 16,
                    pin_memory: bool = True,
                    weighted_sampling=False,
                    variance_weighting=False,
                    augment=False):
     multilabel_dataset = ROCFDataset(labels=labels, label_type=label_type, data_augmentation=augment,
-                                     image_size=image_size, variance_weighting=variance_weighting)
+                                     image_size=image_size, variance_weighting=variance_weighting,
+                                     num_scores=num_classes)
 
     if weighted_sampling:
         sample_weights = multilabel_dataset.get_sample_weights()

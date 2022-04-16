@@ -9,7 +9,7 @@ DO_PLOT = [
     ROBUSTNESS_FIG,
     HUMAN_COMP_FIG,
     DATA_PROGR_FIG,
-    # ABLATIONST_FIG TODO ...
+    # ABLATIONST_FIG
 ]
 
 MAIN_SAVE_AS = './results/figures/paper/{}.pdf'
@@ -85,31 +85,17 @@ if DATA_PROGR_FIG in DO_PLOT:
     from constants import ABSOLUTE_ERROR, SQUARED_ERROR
     from src.analyze.plot_data_progression import make_plot as data_progression_plot
 
-    ####################################################################################################################
-    # Debugging ....
-    import warnings
-
-    warnings.warn("models for data progression figures have not completed training!")
-
-    DIR_PATTERN1 = './results/spaceml-results/data-progression-116x150/{}-data_116x150-seed_1/'
-    DIR_PATTERN1 += 'final{}/rey-multilabel-classifier'
-    K_LIST = [1000, 2000, 4000, 6000, 10000, 15000]
-
-    DIR_PATTERN2 = './results/spaceml-results/data-progression-232x300/{}-data_232x300-seed_1/'
-    DIR_PATTERN2 += 'final{}/rey-multilabel-classifier'
-    ####################################################################################################################
-
-    # DIR_PATTERN1 = './results/spaceml-results/data-progression-232x300/{}-data_232x300-seed_1/'
-    # DIR_PATTERN1 += 'final{}/rey-multilabel-classifier'
-    # K_LIST = [1000] + list(range(2000, 16001, 2000))]
+    DIR_PATTERN = './results/spaceml-results/data-progression-232x300/{}-data_232x300-seed_1/'
+    DIR_PATTERN += 'final{}/rey-multilabel-classifier'
+    K_LIST = [1000] + list(range(2000, 16001, 2000))
 
     dir_configs = [
         {
             'label': 'CNN without Data Augmentation', 'ls': '--', 'marker': 'o', 'color_idx': 0,
-            'res-dirs': [(DIR_PATTERN1.format(k, ''), str(k // 1000) + 'k') for k in K_LIST]},
+            'res-dirs': [(DIR_PATTERN.format(k, ''), str(k // 1000) + 'k') for k in K_LIST]},
         {
             'label': 'CNN with Data Augmentation', 'ls': '-.', 'marker': 'd', 'color_idx': 1,
-            'res-dirs': [(DIR_PATTERN2.format(k, '-aug'), str(k // 1000) + 'k') for k in K_LIST]}
+            'res-dirs': [(DIR_PATTERN.format(k, '-aug'), str(k // 1000) + 'k') for k in K_LIST]}
     ]
 
     data_progression_plot(dir_configs=dir_configs, pmeasure=ABSOLUTE_ERROR,
@@ -130,4 +116,4 @@ if HUMAN_COMP_FIG in DO_PLOT:
     from src.analyze.plot_human_comparison2 import make_plot as human_comparison_plot
 
     human_comparison_plot('./results/spaceml-results/data_232x300-seed_1/final-aug/rey-multilabel-classifier',
-                          save_as=MAIN_SAVE_AS.format('huam_comparison'))
+                          save_as=MAIN_SAVE_AS.format('human_comparison'))

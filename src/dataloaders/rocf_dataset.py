@@ -1,5 +1,4 @@
 import numpy as np
-import os
 import pandas as pd
 
 import torch
@@ -10,23 +9,25 @@ from constants import *
 from src.utils import map_to_score_grid, score_to_class
 from src.dataloaders.transforms import NormalizeImage
 
+__all__ = ['ROCFDataset']
+
 _SCORE_COLS = [f'score_item_{i + 1}' for i in range(N_ITEMS)]
 
 
 class ROCFDataset(Dataset):
 
     def __init__(self, labels: pd.DataFrame, label_type=CLASSIFICATION_LABELS, data_augmentation=False,
-                 image_size=DEFAULT_CANVAS_SIZE, variance_weighting=False):
+                 image_size=DEFAULT_CANVAS_SIZE, variance_weighting=False, num_scores=4):
         self._variance_weighting = variance_weighting
         self._labels_df = labels
 
         # round item scores to score grid {0, 0.5, 1.0, 2.0}
         self._item_scores = np.array(self._labels_df.loc[:, _SCORE_COLS].applymap(
-            lambda x: map_to_score_grid(x)))
+            lambda x: map_to_score_grid(x, num_scores=num_scores)))
 
-        # round item scores to score grid {0, 0.5, 1.0, 2.0} and assign classes
+        # round item scores to score grid {0, 0.5, 1.0, 2.0} or {0, 1.0, 2.0} and assign classes
         self._item_classes = np.array(self._labels_df.loc[:, _SCORE_COLS].applymap(
-            lambda x: score_to_class(map_to_score_grid(x))))
+            lambda x: score_to_class(map_to_score_grid(x, num_scores=num_scores), num_classes=num_scores)))
 
         # total score = sum of item scores
         self._total_scores = np.sum(self._item_scores, axis=1)
@@ -109,19 +110,3 @@ class ROCFDataset(Dataset):
     @property
     def npy_filepaths(self):
         return self._images_npy
-
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
-
-    DEBUG_DATADIR = '/Users/maurice/phd/src/rey-figure/code-main/data/serialized-data/data_116x150-seed_1'
-
-    labels_csv = os.path.join(DEBUG_DATADIR, 'train_labels.csv')
-    labels_df = pd.read_csv(labels_csv)
-    ds = ROCFDataset(labels=labels_df, label_type=CLASSIFICATION_LABELS,
-                     data_augmentation=True, image_size=(232, 300))
-    image, label = ds[-1]
-    print(label)
-    # image = np.squeeze(image.numpy())
-    # plt.imshow(image, cmap='gray')
-    # plt.show()

@@ -15,7 +15,7 @@ from constants import (CI_CONFIDENCE,
                        CLASS_COLUMNS,
                        SCORE_COLUMNS,
                        N_ITEMS,
-                       ITEM_SCORES,
+                       ITEM_SCORES_3, ITEM_SCORES_4,
                        ERR_LEVEL_ITEM_SCORE,
                        ERR_LEVEL_TOTAL_SCORE,
                        ABSOLUTE_ERROR,
@@ -31,7 +31,7 @@ PLOT_COLORS = init_mpl(sns_style='ticks', colorpalette='muted')
 
 class PerformanceMeasures:
 
-    def __init__(self, ground_truths: pd.DataFrame, predictions: pd.DataFrame):
+    def __init__(self, ground_truths: pd.DataFrame, predictions: pd.DataFrame, num_classes):
         # get figure ids
         self._figure_ids = np.array(predictions['figure_id'])
 
@@ -48,8 +48,10 @@ class PerformanceMeasures:
         self._total_score_gts = np.array(ground_truths.loc[:, SCORE_COLUMNS].sum(axis=1))
 
         # binarized multiclass labels
-        self._binarized_classes_preds = _binarize_item_class_labels(self._item_class_preds)
-        self._binarized_classes_gts = _binarize_item_class_labels(self._item_class_gts)
+        self._binarized_classes_preds = _binarize_item_class_labels(self._item_class_preds, num_classes)
+        self._binarized_classes_gts = _binarize_item_class_labels(self._item_class_gts, num_classes)
+
+        self._item_scores = self._item_scores if num_classes == 4 else ITEM_SCORES_3
 
     def compute_performance_measure(self, pmeasure, error_level, confidence_interval=False):
         if pmeasure == ABSOLUTE_ERROR:
@@ -145,7 +147,7 @@ class PerformanceMeasures:
         if save_dir is not None:
             if not os.path.exists(save_dir):
                 os.makedirs(save_dir)
-            f = open(os.path.join(save_dir, 'performance_report.txt'), 'w')
+            f = open(os.path.join(save_dir, 'report.txt'), 'w')
             sys.stdout = f
 
         self.high_level_metrics_report()
@@ -203,7 +205,7 @@ class PerformanceMeasures:
 
         # class accuracies for each item
         cls_acc_table = pd.DataFrame(data=cls_metrics['class-acc'],
-                                     columns=[f'Acc. Item Score {s}' for s in ITEM_SCORES],
+                                     columns=[f'Acc. Item Score {s}' for s in self._item_scores],
                                      index=[f'Item {i + 1}' for i in range(N_ITEMS)])
         print('\n')
         print(tabulate(cls_acc_table, headers=cls_acc_table.columns, tablefmt='presto', showindex=True, floatfmt=".3f"))
@@ -242,8 +244,8 @@ class PerformanceMeasures:
         mat_idx = 0
         for i in range(3):
             for j in range(6):
-                xticklabels = ITEM_SCORES if i == 0 else False
-                yticklabels = ITEM_SCORES if j == 0 else False
+                xticklabels = self._item_scores if i == 0 else False
+                yticklabels = self._item_scores if j == 0 else False
                 sns.heatmap(confusion_matrices[mat_idx], annot=True, fmt='g', ax=axes[i, j], xticklabels=xticklabels,
                             yticklabels=yticklabels, cbar=False)
                 axes[i, j].tick_params(axis='both', which='major', labelbottom=False, bottom=False, top=False,
@@ -300,10 +302,11 @@ class PerformanceMeasures:
         return {'acc': items_accs, 'class-acc': items_class_accs}
 
 
-def _binarize_item_class_labels(item_classes: np.ndarray) -> np.ndarray:
+def _binarize_item_class_labels(item_classes: np.ndarray, num_classes) -> np.ndarray:
     """ function turns classes of individual items, each in {0, 1, 2, 3}, into an array of binary multilabel classes """
-    labels = np.multiply(np.ones_like(item_classes), np.arange(N_ITEMS)) * 4 + item_classes
-    binarized_classes = np.zeros(shape=(len(labels), N_ITEMS * 4))
+    labels = np.multiply(np.ones_like(item_classes), np.arange(N_ITEMS)) * num_classes + item_classes
+    labels = labels.astype(int)
+    binarized_classes = np.zeros(shape=(len(labels), N_ITEMS * num_classes))
 
     for i in range(len(labels)):
         binarized_classes[i, labels[i]] = 1

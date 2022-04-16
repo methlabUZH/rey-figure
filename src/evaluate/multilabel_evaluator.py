@@ -12,7 +12,7 @@ from src.utils import class_to_score
 
 class MultilabelEvaluator:
     def __init__(self, model, image_size, results_dir, data_dir, batch_size=128, workers=8,
-                 tta=False, validation=False, angles=[-2.5, -1.5, 0, 1.5, 2.5]):
+                 tta=False, validation=False, angles=[-2.5, -1.5, 0, 1.5, 2.5], num_classes=4):
         self.model = model
         self.results_dir = results_dir
         self.data_dir = data_dir
@@ -22,6 +22,7 @@ class MultilabelEvaluator:
         self.tta = tta
         self.validation = validation
         self.angles = angles
+        self.num_classes = num_classes
 
         self.predictions = None
         self.ground_truths = None
@@ -41,7 +42,7 @@ class MultilabelEvaluator:
 
         self.dataloader = get_dataloader(labels=test_labels, label_type=CLASSIFICATION_LABELS,
                                          batch_size=self.batch_size, num_workers=self.workers, shuffle=False,
-                                         augment=False, image_size=self.image_size)
+                                         augment=False, image_size=self.image_size, num_classes=num_classes)
 
     def run_eval(self, save=True):
         self.predictions, self.ground_truths = self._make_predictions_single_model()
@@ -96,23 +97,26 @@ class MultilabelEvaluator:
 
         # turn classes into scores
         score_cols = [str(c).replace('class_', 'score_') for c in column_names]
-        predictions_df[score_cols] = predictions_df[column_names].applymap(class_to_score)
-        ground_truths_df[score_cols] = ground_truths_df[column_names].applymap(class_to_score)
+        predictions_df[score_cols] = predictions_df[column_names].applymap(
+            lambda x: class_to_score(x, num_classes=self.num_classes)
+        )
+        ground_truths_df[score_cols] = ground_truths_df[column_names].applymap(
+            lambda x: class_to_score(x, num_classes=self.num_classes)
+        )
 
         # compute total score
         predictions_df['total_score'] = predictions_df[score_cols].sum(axis=1)
         ground_truths_df['total_score'] = ground_truths_df[score_cols].sum(axis=1)
 
-        return predictions_df, ground_truths_df #, prediction_logits_df
+        return predictions_df, ground_truths_df  # , prediction_logits_df
 
     def _run_inference(self, item=None):
         self.model.eval()
-        predictions, ground_truths, prediction_logits = None, None, None 
+        predictions, ground_truths, prediction_logits = None, None, None
 
         n = len(self.dataloader)
 
         for inputs, targets in tqdm(self.dataloader, total=n):
-
             targets = targets.numpy()
 
             if self.use_cuda:
@@ -136,8 +140,8 @@ class MultilabelEvaluator:
                         logits[i] /= len(self.angles)
                 else:
                     # normal inference without Test-Time-Augmentation
-                    logits = self.model(inputs.float()) # list of 18 elements of shape (bs, 4) each
-                
+                    logits = self.model(inputs.float())  # list of 18 elements of shape (bs, 4) each
+
                 # Apply softmax since no loss here 
                 logits = list(map(torch.nn.Softmax(dim=1), logits))
 
@@ -155,6 +159,7 @@ class MultilabelEvaluator:
 
             predictions = outputs if predictions is None else np.concatenate([predictions, outputs], axis=0)
             ground_truths = targets if ground_truths is None else np.concatenate([ground_truths, targets], axis=0)
-            prediction_logits = output_logits if prediction_logits is None else np.concatenate([prediction_logits, output_logits], axis=0)
+            prediction_logits = output_logits if prediction_logits is None else np.concatenate(
+                [prediction_logits, output_logits], axis=0)
 
         return predictions, ground_truths, prediction_logits

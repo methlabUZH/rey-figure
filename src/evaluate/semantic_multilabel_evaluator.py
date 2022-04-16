@@ -11,12 +11,14 @@ from src.utils import class_to_score
 
 class SemanticMultilabelEvaluator:
     def __init__(self, model, image_size, results_dir, data_dir, transform, batch_size=128, workers=8,
-                 rotation_angles=None, distortion_scale=None, brightness_factor=None, contrast_factor=None):
+                 rotation_angles=None, distortion_scale=None, brightness_factor=None, contrast_factor=None,
+                 num_classes=4):
         self.model = model
         self.results_dir = results_dir
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.workers = workers
+        self.num_classes = num_classes
 
         self.predictions = None
         self.ground_truths = None
@@ -89,8 +91,12 @@ class SemanticMultilabelEvaluator:
 
         # turn classes into scores
         score_cols = [str(c).replace('class_', 'score_') for c in column_names]
-        predictions_df[score_cols] = predictions_df[column_names].applymap(class_to_score)
-        ground_truths_df[score_cols] = ground_truths_df[column_names].applymap(class_to_score)
+        predictions_df[score_cols] = predictions_df[column_names].applymap(
+            lambda x: class_to_score(x, num_classes=self.num_classes)
+        )
+        ground_truths_df[score_cols] = ground_truths_df[column_names].applymap(
+            lambda x: class_to_score(x, num_classes=self.num_classes)
+        )
 
         # compute total score
         predictions_df['total_score'] = predictions_df[score_cols].sum(axis=1)

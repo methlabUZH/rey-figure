@@ -1,13 +1,13 @@
 import argparse
-import sys
+import copy
 import numpy as np
 import os
 import pandas as pd
 from tabulate import tabulate
 import json
+import sys
 import random
 import hyperparameters_multilabel
-import uuid
 import torch
 
 from constants import *
@@ -39,11 +39,11 @@ parser.add_argument('--augment', type=int, choices=[0, 1], default=0)
 parser.add_argument('--seed', type=int, default=None)
 parser.add_argument('--max_n', type=int, default=-1, help='number of training data points')
 parser.add_argument('--debug', action='store_true')
+parser.add_argument('--n_classes', type=int, default=4, help='number of scores per item', choices=[3, 4])
 args = parser.parse_args()
 
 USE_CUDA = torch.cuda.is_available()
 VAL_FRACTION = 0.2
-NUM_CLASSES_PER_ITEM = 4
 
 if args.seed is not None:
     np.random.seed(args.seed)
@@ -54,7 +54,9 @@ if args.seed is not None:
         torch.cuda.manual_seed_all(args.seed)
 
 # Read parameters from hyperparameters_multilabel.py
-PARAMS = {'seed': args.seed, 'augment': args.augment, **hyperparameters_multilabel.train_params[args.image_size]}
+PARAMS = copy.copy(hyperparameters_multilabel.train_params[args.image_size])
+PARAMS = {**{k: v for k, v in vars(args).items() if k not in PARAMS.keys()}, **PARAMS}
+# PARAMS = {'seed': args.seed, 'augment': args.augment, **hyperparameters_multilabel.train_params[args.image_size]}
 DATA_ROOT = os.path.join(DATA_DIR, config['data_root'][args.image_size])
 RESULTS_DIR = config['results_dir']
 
@@ -67,11 +69,14 @@ def main():
         dataset_name = str(args.max_n) + '-' + dataset_name
 
     if args.debug:
-        train_id = "debug-" + str(uuid.uuid4())
+        train_id = "debug-" + PARAMS['id'] + ('-aug' if PARAMS['augment'] else "")
         PARAMS['epochs'] = 1
         print('!! DEBUG MODE !!')
     else:
-        train_id = PARAMS['id'] + '-aug' if PARAMS['augment'] else PARAMS['id']
+        train_id = PARAMS['id'] + ('-aug' if PARAMS['augment'] else "")
+
+    if args.n_classes != 4:
+        train_id = train_id + f'-{args.n_classes}_scores'
 
     results_dir, checkpoints_dir = directory_setup(
         model_name=REYMULTICLASSIFIER, dataset=dataset_name, results_dir=RESULTS_DIR, train_id=train_id
@@ -111,16 +116,16 @@ def main():
     train_loader = get_dataloader(labels=train_labels, label_type=CLASSIFICATION_LABELS,
                                   batch_size=PARAMS['batch_size'], num_workers=PARAMS['workers'], shuffle=True,
                                   weighted_sampling=PARAMS['weighted_sampling'], augment=PARAMS['augment'],
-                                  image_size=PARAMS['image_size'])
+                                  image_size=PARAMS['image_size'], num_classes=args.n_classes)
     # get val dataloader
     val_loader = get_dataloader(labels=val_labels, label_type=CLASSIFICATION_LABELS,
                                 batch_size=PARAMS['batch_size'], num_workers=PARAMS['workers'], shuffle=False,
-                                augment=False, image_size=PARAMS['image_size'])
+                                augment=False, image_size=PARAMS['image_size'], num_classes=args.n_classes)
 
     print(f'# train images:\t{len(train_labels)}')
     print(f'# val images:\t{len(val_labels)}')
 
-    model = get_classifier(REYMULTICLASSIFIER, num_classes=NUM_CLASSES_PER_ITEM)
+    model = get_classifier(REYMULTICLASSIFIER, num_classes=args.n_classes)
 
     loss_func = torch.nn.CrossEntropyLoss()
     trainer = MultilabelTrainer(model, loss_func, train_loader, val_loader, PARAMS, results_dir, is_binary=False)
@@ -140,7 +145,7 @@ def eval_test(trainer, results_dir):
     test_labels = pd.read_csv(os.path.join(DATA_ROOT, 'test_labels.csv'))
     test_dataloader = get_dataloader(labels=test_labels, label_type=CLASSIFICATION_LABELS,
                                      batch_size=PARAMS['batch_size'], num_workers=PARAMS['workers'], shuffle=False,
-                                     image_size=PARAMS['image_size'])
+                                     image_size=PARAMS['image_size'], num_classes=args.n_classes)
     test_stats = trainer.run_epoch(test_dataloader, is_train=False)
 
     print('\n-------eval test-------')
