@@ -3,34 +3,51 @@ import os
 import pandas as pd
 
 import torch
+import torchvision
 
 from constants import *
 from src.utils import map_to_score_grid, score_to_class
 from src.dataloaders.rocf_dataloader import get_dataloader
+from config_eval import config as cfg_eval
 
 
 class RegressionEvaluator:
-    def __init__(self, model, image_size, results_dir, data_dir, batch_size=128, workers=8):
+    def __init__(self, model, image_size, results_dir, data_dir, batch_size=128, workers=8,
+                tta=False, validation=False, angles=[-2.5, -1.5, 0, 1.5, 2.5]):
         self.model = model
         self.results_dir = results_dir
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.image_size = image_size
         self.workers = workers
+        self.tta = tta
+        self.validation = validation
+        if self.tta: 
+            self.angles = cfg_eval[REYREGRESSOR]['angles']
 
         self.predictions = None
         self.ground_truths = None
         self.use_cuda = torch.cuda.is_available()
 
         if self.use_cuda:
+            print(f"Using gpu acceleration with {torch.cuda.device_count()} gpus")
             self.model.cuda()
+
+        print(f"Using Test-Time-Augmentation: {self.tta}")
+        print(f"Using Validation set: {self.validation}")
+
 
         # fetch checkpoint
         self.checkpoint = os.path.join(results_dir, 'checkpoints/model_best.pth.tar')
 
         # init dataloader
-        test_labels = pd.read_csv(os.path.join(self.data_dir, 'test_labels.csv'))
-        self.dataloader = get_dataloader(data_root=self.data_dir, labels=test_labels, label_type=REGRESSION_LABELS,
+        # init dataloader
+        if self.validation:  # use validation set for evaluation
+            test_labels = pd.read_csv(os.path.join(data_dir, 'val_labels.csv'))
+        else:  # use test set for evaluation
+            test_labels = pd.read_csv(os.path.join(self.data_dir, 'test_labels.csv'))
+
+        self.dataloader = get_dataloader(labels=test_labels, label_type=REGRESSION_LABELS,
                                          batch_size=self.batch_size, num_workers=self.workers, shuffle=False,
                                          augment=False, image_size=self.image_size)
 
@@ -90,8 +107,25 @@ class RegressionEvaluator:
                 inputs = inputs.cuda()
 
             with torch.no_grad():
-                outputs = self.model(inputs.float())
-                outputs = outputs.cpu().numpy()[:, :-1]
+                if self.tta:
+                    # test time augmentation (TTA) with angle rotations 
+                    tta_outputs = None
+                    for angle in self.angles:
+                        inputs = torchvision.transforms.functional.rotate(inputs.float(), angle)
+                        outputs = self.model(inputs.float())  # list of 18 elements of shape (bs, 4) each
+                        # add up the logits for all 18 items 
+                        if tta_outputs is None:
+                            tta_outputs = outputs
+                        else:
+                            for i in range(len(outputs)):
+                                tta_outputs[i] += outputs[i]
+                    # divide by nb of angles to get the average prediction 
+                    for i in range(len(tta_outputs)):
+                        tta_outputs[i] /= len(self.angles)
+                    outputs = tta_outputs.cpu().numpy()[:, :-1]
+                else:
+                    outputs = self.model(inputs.float())
+                    outputs = outputs.cpu().numpy()[:, :-1]
 
             predictions = outputs if predictions is None else np.concatenate([predictions, outputs], axis=0)
             ground_truths = targets if ground_truths is None else np.concatenate([ground_truths, targets], axis=0)
