@@ -1,7 +1,8 @@
-import pandas as pd
-import os
+import json
 import matplotlib.pyplot as plt
 import numpy as np
+import os
+import pandas as pd
 from typing import Tuple, Iterable
 
 from src.analyze.utils import init_mpl
@@ -26,9 +27,12 @@ def make_plot(dir_configs, pmeasure=ABSOLUTE_ERROR, save_as=None):
         x_labels, y_values = [], []
 
         for res_dir, num_data in cfg['res-dirs']:
+            with open(os.path.join(res_dir, 'args.json'), 'r') as f:
+                args = json.load(f)
+            num_classes = args.get('n_classes', 4)
             gts = pd.read_csv(os.path.join(res_dir, 'test_ground_truths.csv'))
             preds = pd.read_csv(os.path.join(res_dir, 'test_predictions.csv'))
-            pm = PerformanceMeasures(gts, preds)
+            pm = PerformanceMeasures(gts, preds, num_classes=num_classes)
             y_values.append(pm.compute_performance_measure(
                 pmeasure=pmeasure, error_level=ERR_LEVEL_TOTAL_SCORE, confidence_interval=True))
             x_labels.append(num_data)

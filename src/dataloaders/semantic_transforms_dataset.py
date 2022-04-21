@@ -28,16 +28,17 @@ class STDataset(Dataset):
                  rotation_angles=None,
                  distortion_scale=None,
                  brightness_factor=None,
-                 contrast_factor=None):
+                 contrast_factor=None,
+                 num_scores=4):
         self._labels_df = labels
 
-        # round item scores to score grid {0, 0.5, 1.0, 2.0}
+        # round item scores to score grid {0, 0.5, 1.0, 2.0} or {0, 1.0, 2.0}
         self._item_scores = np.array(self._labels_df.loc[:, SCORE_COLUMNS].applymap(
-            lambda x: map_to_score_grid(x)))
+            lambda x: map_to_score_grid(x, num_scores=num_scores)))
 
-        # round item scores to score grid {0, 0.5, 1.0, 2.0} and assign classes
+        # round item scores to score grid {0, 0.5, 1.0, 2.0} or {0, 1.0, 2.0} and assign classes
         self._item_classes = np.array(self._labels_df.loc[:, SCORE_COLUMNS].applymap(
-            lambda x: score_to_class(map_to_score_grid(x))))
+            lambda x: score_to_class(map_to_score_grid(x, num_scores=num_scores), num_classes=num_scores)))
 
         # total score = sum of item scores
         self._total_scores = np.sum(self._item_scores, axis=1)

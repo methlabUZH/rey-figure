@@ -1,10 +1,8 @@
 import pandas as pd
 import os
-from tabulate import tabulate
+import json
 import matplotlib.pyplot as plt
-from matplotlib.lines import Line2D
 import numpy as np
-import seaborn as sns
 from typing import List, Tuple
 
 from constants import ABSOLUTE_ERROR, ERR_LEVEL_TOTAL_SCORE, ERROR_TO_LABEL, R_SQUARED
@@ -24,23 +22,28 @@ def make_plot(resolutions_and_res_dirs: List[Tuple[str, str]], pmeasure=ABSOLUTE
 
     # compute errors
     for resolution, res_dir in resolutions_and_res_dirs:
+        with open(os.path.join(res_dir, 'args.json'), 'r') as f:
+            args = json.load(f)
+
+        num_classes = args.get('n_classes', 4)
+
         # without data augmentation
         preds = pd.read_csv(os.path.join(res_dir, 'test_predictions.csv'))
         gts = pd.read_csv(os.path.join(res_dir, 'test_ground_truths.csv'))
-        pm = PerformanceMeasures(gts, preds)
+        pm = PerformanceMeasures(gts, preds, num_classes=num_classes)
 
         # low, mean, high confidence interval
         y_values_no_augm.append(pm.compute_performance_measure(pmeasure=pmeasure, error_level=ERR_LEVEL_TOTAL_SCORE,
                                                                confidence_interval=ci))
 
         # with data augmentation
-        preds = pd.read_csv(os.path.join(res_dir.replace('/final/', '/final-aug/'), 'test_predictions.csv'))
-        gts = pd.read_csv(os.path.join(res_dir.replace('/final/', '/final-aug/'), 'test_ground_truths.csv'))
-        pm = PerformanceMeasures(gts, preds)
+        preds = pd.read_csv(os.path.join(res_dir.replace('/final', '/final-aug'), 'test_predictions.csv'))
+        gts = pd.read_csv(os.path.join(res_dir.replace('/final', '/final-aug'), 'test_ground_truths.csv'))
+        pm = PerformanceMeasures(gts, preds, num_classes=num_classes)
 
         # low, mean, high confidence interval
-        y_values_augm.append(pm.compute_performance_measure(pmeasure=pmeasure, error_level=ERR_LEVEL_TOTAL_SCORE,
-                                                            confidence_interval=ci))
+        y_values_augm.append(pm.compute_performance_measure(
+            pmeasure=pmeasure, error_level=ERR_LEVEL_TOTAL_SCORE, confidence_interval=ci))
 
         x_labels.append(resolution)
 

@@ -21,7 +21,7 @@ class ROCFDataset(Dataset):
         self._variance_weighting = variance_weighting
         self._labels_df = labels
 
-        # round item scores to score grid {0, 0.5, 1.0, 2.0}
+        # round item scores to score grid {0, 0.5, 1.0, 2.0} or {0, 1.0, 2.0}
         self._item_scores = np.array(self._labels_df.loc[:, _SCORE_COLS].applymap(
             lambda x: map_to_score_grid(x, num_scores=num_scores)))
 

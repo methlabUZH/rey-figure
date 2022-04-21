@@ -8,31 +8,22 @@ from config_train import config as cfg_train
 from config_eval import config as cfg_eval
 import hyperparameters_multilabel
 
-from constants import REYMULTICLASSIFIER, N_ITEMS, DATA_DIR, CLASS_COLUMNS, SCORE_COLUMNS
+from constants import REYMULTICLASSIFIER, DATA_DIR
 from src.analyze.performance_measures import PerformanceMeasures
 from src.training.train_utils import Logger
 from src.models import get_classifier
 from src.evaluate import MultilabelEvaluator
-from src.evaluate.utils import *
 
 # setup arg parser
 parser = argparse.ArgumentParser()
-# parser.add_argument('--image-size', type=str, help='height and width', default='116 150',
-#                     choices=['78 100', '116 150', '232 300', '348 450'])
 parser.add_argument('--results-dir', type=str, default=None)
 parser.add_argument('--batch-size', default=100, type=int)
 parser.add_argument('--validation', action='store_true')
 parser.add_argument('--tta', action='store_true')
-# parser.add_argument('--augment', default=0, choices=[0, 1])
 args = parser.parse_args()
 
 
 def main():
-    # if args.debug_dir is None:
-    #     results_dir = cfg_eval[REYMULTICLASSIFIER]['aug' if args.augment else 'non-aug'][args.image_size]
-    # else:
-    #     results_dir = args.debug_dir
-
     # load args from .json
     with open(os.path.join(args.results_dir, 'args.json'), 'r') as f:
         train_args = json.load(f)
@@ -40,9 +31,10 @@ def main():
     num_classes = train_args['n_classes']
     image_size_str = " ".join(str(s) for s in train_args['image_size'])
 
-    print(f'--> evaluating model from {args.results_dir}')
-
     data_dir = os.path.join(DATA_DIR, cfg_train['data_root'][image_size_str])
+
+    print(f'--> evaluating model from {args.results_dir}')
+    print(f'--> using data from {data_dir}')
 
     # Read parameters from hyperparameters_multilabel.py
     hyperparams = hyperparameters_multilabel.train_params[image_size_str]

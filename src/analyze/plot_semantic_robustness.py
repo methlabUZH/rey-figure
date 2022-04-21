@@ -1,3 +1,4 @@
+import json
 import pandas as pd
 import os
 import matplotlib.pyplot as plt
@@ -28,6 +29,11 @@ def make_plot(results_dir, results_dir_aug, transform, transform_params, xlabel=
     x_labels = []
     y_values_no_augm, y_values_augm = [], []
 
+    with open(os.path.join(results_dir, 'args.json'), 'r') as f:
+        args = json.load(f)
+
+    num_classes = args.get('n_classes', 4)
+
     # compute errors
     for params in transform_params:
         gts_csv, preds_csv, label = _get_predictions_filenames_and_label(transform, params)
@@ -35,7 +41,7 @@ def make_plot(results_dir, results_dir_aug, transform, transform_params, xlabel=
         # without data augmentation
         gts = pd.read_csv(os.path.join(results_dir, gts_csv))
         preds = pd.read_csv(os.path.join(results_dir, preds_csv))
-        pm = PerformanceMeasures(gts, preds)
+        pm = PerformanceMeasures(gts, preds, num_classes=num_classes)
 
         # low, mean, high confidence interval
         y_values_no_augm.append(pm.compute_performance_measure(pmeasure=pmeasure, error_level=ERR_LEVEL_TOTAL_SCORE,
@@ -44,7 +50,7 @@ def make_plot(results_dir, results_dir_aug, transform, transform_params, xlabel=
         # with data augmentation
         gts = pd.read_csv(os.path.join(results_dir_aug, gts_csv))
         preds = pd.read_csv(os.path.join(results_dir_aug, preds_csv))
-        pm = PerformanceMeasures(gts, preds)
+        pm = PerformanceMeasures(gts, preds, num_classes=num_classes)
 
         # low, mean, high confidence interval
         y_values_augm.append(pm.compute_performance_measure(pmeasure=pmeasure, error_level=ERR_LEVEL_TOTAL_SCORE,

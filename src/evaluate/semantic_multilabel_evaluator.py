@@ -36,7 +36,7 @@ class SemanticMultilabelEvaluator:
             self.data_dir, labels=test_labels, label_type=CLASSIFICATION_LABELS, batch_size=self.batch_size,
             image_size=image_size, num_workers=self.workers, shuffle=False, transform=transform,
             rotation_angles=rotation_angles, distortion_scale=distortion_scale, brightness_factor=brightness_factor,
-            contrast_factor=contrast_factor)
+            contrast_factor=contrast_factor, num_classes=num_classes)
 
     def run_eval(self, save=True, prefix=None):
         self.predictions, self.ground_truths = self._make_predictions()
