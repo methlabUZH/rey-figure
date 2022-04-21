@@ -23,7 +23,9 @@ def main(results_dir):
 
 
 if __name__ == '__main__':
-    # import glob
-    # dir0 = 'results/spaceml-results-light/**/rey-multilabel-classifier'
-    # for d in glob.glob(dir0, recursive=True):
-    main(args.results_dir)
+    import glob
+
+    dir0 = 'results/spaceml-results-light/**/rey-multilabel-classifier'
+    for d in glob.glob(dir0, recursive=True):
+        main(d)
+    # main(args.results_dir)

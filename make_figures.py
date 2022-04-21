@@ -21,7 +21,7 @@ DO_PLOT = [
     # BIN_ERRORS_FIG,
     # BIN_STDEV_FIG,
     # ITEM_ERRS_FIG,
-    # ERR_HIST_CLINICIANS
+    ERR_HIST_CLINICIANS
 ]
 
 NUM_SCORES = 4
@@ -134,7 +134,13 @@ if HUMAN_COMP_FIG in DO_PLOT:
 
     human_comparison_plot(
         f'./results/spaceml-results/data_232x300-seed_1/{RES_ID.replace("final", "final-aug")}/rey-multilabel-classifier',
-        save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'human_comparison'))
+        save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'human_comparison'),
+        include_clinicians=False)
+
+    human_comparison_plot(
+        f'./results/spaceml-results/data_232x300-seed_1/{RES_ID.replace("final", "final-aug")}/rey-multilabel-classifier',
+        save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'human_comparison'),
+        include_clinicians=True)
 
 if BIN_ERRORS_FIG in DO_PLOT:
     """
@@ -160,8 +166,8 @@ if ERR_HIST_CLINICIANS in DO_PLOT:
     """
     from src.analyze.plot_error_histogram_clinicians import make_plot as err_hist_clinicians
 
-    # err_hist_clinicians(num_scores=NUM_SCORES, save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'clinicians_error_histogram'))
-    err_hist_clinicians(num_scores=NUM_SCORES, save_as=None)
+    err_hist_clinicians(num_scores=NUM_SCORES, save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'clinicians_error_histogram'))
+    # err_hist_clinicians(num_scores=NUM_SCORES, save_as=None)
 
 if ITEM_ERRS_FIG in DO_PLOT:
     """

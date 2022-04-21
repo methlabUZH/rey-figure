@@ -3,6 +3,7 @@ import numpy as np
 import os
 import pandas as pd
 from scipy import stats
+from tabulate import tabulate
 
 from constants import DATA_DIR, SCORE_COLUMNS, CI_CONFIDENCE
 from src.analyze.utils import init_mpl
@@ -19,7 +20,7 @@ FIG_SIZE = (7, 4)
 colors = init_mpl()
 
 
-def make_plot(results_dir, save_as=None):
+def make_plot(results_dir, include_clinicians=False, save_as=None):
     # compute lines
     xticks, model_lines, raters_lines, clinicians_lines, bins = get_lines(results_dir)
 
@@ -39,11 +40,15 @@ def make_plot(results_dir, save_as=None):
     plt.errorbar(xticks, y_values[:, 1], yerr=y_errs.T, label='CNN Performance', elinewidth=1.0, capsize=5, capthick=2,
                  ls='-.', marker='d')
 
-    # # clinicians
-    # y_values = np.array([v if v is not None else (np.nan, np.nan, np.nan) for v in clinicians_lines['mean_ci']])
-    # y_errs = np.abs(y_values[:, np.array([0, 2])] - np.repeat(y_values[:, 1].reshape(-1, 1), repeats=2, axis=1))
-    # plt.errorbar(xticks, y_values[:, 1], yerr=y_errs.T, label='Avg. Clinician Performance', elinewidth=1.0, capsize=5,
-    #              capthick=2, ls='-', marker='x')
+    # clinicians
+    if include_clinicians:
+        y_values = np.array([v if v is not None else (np.nan, np.nan, np.nan) for v in clinicians_lines['mean_ci']])
+        y_errs = np.abs(y_values[:, np.array([0, 2])] - np.repeat(y_values[:, 1].reshape(-1, 1), repeats=2, axis=1))
+        plt.errorbar(xticks, y_values[:, 1], yerr=y_errs.T, label='Avg. Clinician Performance', elinewidth=1.0,
+                     capsize=5,
+                     capthick=2, ls='-', marker='x')
+        fn = os.path.splitext(os.path.split(save_as)[-1])[0]
+        save_as = save_as.replace(fn, fn + '-with_clinicians')
 
     ax.set_ylabel('Total Score MAE')
     ax.set_xlabel('Ratings Standard Deviation')
@@ -64,22 +69,23 @@ def make_plot(results_dir, save_as=None):
 
 
 def get_lines(results_dir):
-    ratings_clinicians = pd.read_csv(os.path.join(DATA_DIR, 'ratings_clinicians.csv'))
+    ratings_clinicians = pd.read_csv(os.path.join(DATA_DIR, 'raters_clinicians_merged.csv'))
+    ratings_clinicians = ratings_clinicians.loc[:, ['ID', 'Name', 'Score', 'FigureID', 'drawing_id']]
+    ratings_clinicians = ratings_clinicians.dropna(axis=0, subset=['Score'])
+    ratings_clinicians = ratings_clinicians[ratings_clinicians.Score <= 36.0]
+    ratings_clinicians = ratings_clinicians.rename(
+        columns={'ID': 'clinician_id', 'Name': 'FILE', 'Score': 'clinician_total_score'}
+    )
+
     ratings_crowd_source = merge_rating_files(DATA_DIR)
     ratings_model = pd.read_csv(os.path.join(results_dir, 'test_predictions.csv'))
 
     # get rid of weird prolific_pids
-    ratings_clinicians = ratings_clinicians[ratings_clinicians.prolific_pid.str.len() == ID_LENGTH]
     ratings_crowd_source = ratings_crowd_source[ratings_crowd_source.prolific_pid.str.len() == ID_LENGTH]
 
     # compute quality of aggregated ratings per figure
     rating_qualities = _compute_ratings_quality(ratings_crowd_source)
     ground_truth = _compute_ground_truth(ratings_crowd_source)
-
-    # remove professional raters (=clinicans) from all ratings
-    ratings_crowd_source = ratings_crowd_source[
-        ~ratings_crowd_source.prolific_pid.isin(ratings_clinicians.prolific_pid)
-    ]
 
     # compute performance of model
     model_errors = _compute_model_errors(ratings_model, ground_truth)
@@ -91,13 +97,13 @@ def get_lines(results_dir):
     raters_errors = raters_errors.sort_values(by=['FILE'])
 
     # compute average performance of clinicians
-    clinicians_errors = _compute_rater_errors(ratings_clinicians, ground_truth)
+    clinicians_errors = _compute_clinicians_errors(ratings_clinicians, ground_truth)
     clinicians_errors = pd.merge(clinicians_errors, rating_qualities, on='FILE')
     clinicians_errors = clinicians_errors.sort_values(by=['FILE'])
 
-    # only use figures from model test set
-    raters_errors = raters_errors[raters_errors['FILE'].isin(model_errors['FILE'])]
-    clinicians_errors = clinicians_errors[clinicians_errors['FILE'].isin(model_errors['FILE'])]
+    # # only use figures from model test set
+    # raters_errors = raters_errors[raters_errors['FILE'].isin(model_errors['FILE'])]
+    # clinicians_errors = clinicians_errors[clinicians_errors['FILE'].isin(model_errors['FILE'])]
 
     # assign bins and compute mean
     model_errors['binned_quality'], bins = pd.cut(model_errors['quality'], bins=BINS, retbins=True)
@@ -166,6 +172,16 @@ def _compute_rater_errors(ratings, ground_truths):
     ratings_aggregated = pd.merge(ratings_aggregated, ground_truths[['FILE', 'total_score']], on='FILE')
     ratings_aggregated['absolute_error'] = (
             ratings_aggregated['rater_total_score'] - ratings_aggregated['total_score']
+    ).abs()
+    ratings_aggregated = ratings_aggregated.groupby('FILE').agg(absolute_error=('absolute_error', 'mean'))
+    ratings_aggregated = ratings_aggregated.reset_index()
+    return ratings_aggregated
+
+
+def _compute_clinicians_errors(ratings, ground_truths):
+    ratings_aggregated = pd.merge(ratings, ground_truths[['FILE', 'total_score']], on='FILE')
+    ratings_aggregated['absolute_error'] = (
+            ratings_aggregated['clinician_total_score'] - ratings_aggregated['total_score']
     ).abs()
     ratings_aggregated = ratings_aggregated.groupby('FILE').agg(absolute_error=('absolute_error', 'mean'))
     ratings_aggregated = ratings_aggregated.reset_index()

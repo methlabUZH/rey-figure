@@ -15,7 +15,6 @@ from config_train import config
 from src.dataloaders.rocf_dataloader import get_dataloader
 from src.models import get_classifier
 from src.training.train_utils import directory_setup, Logger, train_val_split
-
 from src.training.multilabel_trainer import MultilabelTrainer
 
 parser = argparse.ArgumentParser()

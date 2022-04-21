@@ -311,12 +311,12 @@ class PerformanceMeasures:
         ax = plt.gca()
 
         # histogram
-        sns.histplot(x=errors, bins=np.arange(-20, 15), ax=ax)
+        sns.histplot(x=errors, bins=np.arange(-16, 16), ax=ax)
 
         # format axes
         ax.set_ylabel("# Samples")
         ax.set_xlabel(r"Total Score Error ($\hat{y} - y$)")
-        ax.set_xlim(-20, 15)
+        ax.set_xlim(-16, 16)
         ax.xaxis.set_major_locator(plticker.MultipleLocator(base=4))
         ax.xaxis.set_major_locator(plticker.MultipleLocator(base=4))
         sns.despine(offset=10, trim=True, ax=ax)

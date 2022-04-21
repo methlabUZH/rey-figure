@@ -16,30 +16,32 @@ colors = init_mpl()
 
 
 def make_plot(num_scores=4, save_as=None):
-    clinicians_ratings = pd.read_csv(os.path.join(DATA_DIR, 'ratings_clinicians.csv'))
-    mt_ratings = merge_rating_files(DATA_DIR)
+    # load ratings of clinicians
+    clinicians_ratings = pd.read_csv(os.path.join(DATA_DIR, 'raters_clinicians_merged.csv'))
+    clinicians_ratings = clinicians_ratings.loc[:, ['ID', 'Name', 'Score', 'FigureID', 'drawing_id']]
+    clinicians_ratings = clinicians_ratings.dropna(axis=0, subset=['Score'])
+    clinicians_ratings = clinicians_ratings[clinicians_ratings.Score <= 36.0]
+    clinicians_ratings = clinicians_ratings.rename(
+        columns={'ID': 'clinician_id', 'Name': 'FILE', 'Score': 'clinician_total_score'}
+    )
 
-    # get rid of weird prolific_pids
-    clinicians_ratings = clinicians_ratings[clinicians_ratings.prolific_pid.str.len() == ID_LENGTH]
+    # load prolific ratings
+    mt_ratings = merge_rating_files(DATA_DIR)
     mt_ratings = mt_ratings[mt_ratings.prolific_pid.str.len() == ID_LENGTH]
-    mt_ratings = mt_ratings[~mt_ratings.prolific_pid.isin(clinicians_ratings.prolific_pid)]
 
     # compute ground truth from raters
     ground_truth = compute_ground_truth(mt_ratings, num_scores=num_scores)
 
     # compute total scores by clinicians
-    clinicians_ratings = clinicians_ratings.groupby(['FILE', 'prolific_pid']).agg(
-        rater_total_score=('part_points', 'sum'))
-    clinicians_ratings = clinicians_ratings.reset_index()
     clinicians_ratings = pd.merge(clinicians_ratings, ground_truth[['FILE', 'total_score']], on='FILE')
-    clinicians_ratings['error'] = (clinicians_ratings['rater_total_score'] - clinicians_ratings['total_score'])
+    clinicians_ratings['error'] = (clinicians_ratings['clinician_total_score'] - clinicians_ratings['total_score'])
 
     # setup figure
     plt.figure()
     ax = plt.gca()
 
     # histogram
-    sns.histplot(x=clinicians_ratings['error'], bins=np.arange(-20, 15), ax=ax)
+    sns.histplot(x=clinicians_ratings['error'], bins=np.arange(-16, 16), ax=ax)
 
     # format axes
     ax.set_ylabel("# Samples")
