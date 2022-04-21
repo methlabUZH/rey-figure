@@ -557,7 +557,7 @@ def get_model_params(model_name, override_params):
     return blocks_args, global_params
 
 # # train with Standard methods
-# # check more details in paper(EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks)
+# # check more details in main-figures(EfficientNet: Rethinking Model Scaling for Convolutional Neural Networks)
 # url_map = {
 #     'efficientnet-b0': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b0-355c32eb.pth',
 #     'efficientnet-b1': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/efficientnet-b1-f1951068.pth',
@@ -570,7 +570,7 @@ def get_model_params(model_name, override_params):
 # }
 #
 # # train with Adversarial Examples(AdvProp)
-# # check more details in paper(Adversarial Examples Improve Image Recognition)
+# # check more details in main-figures(Adversarial Examples Improve Image Recognition)
 # url_map_advprop = {
 #     'efficientnet-b0': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b0-b64d5a18.pth',
 #     'efficientnet-b1': 'https://github.com/lukemelas/EfficientNet-PyTorch/releases/download/1.0/adv-efficientnet-b1-0f3ce85a.pth',

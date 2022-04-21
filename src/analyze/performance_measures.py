@@ -140,12 +140,16 @@ class PerformanceMeasures:
 
         raise ValueError(f'param "error_level" must be one of {ERR_LEVEL_ITEM_SCORE}, {ERR_LEVEL_TOTAL_SCORE}')
 
-    def item_accuracies(self):
+    def item_accuracies(self, compute_ci=False):
         correct_preds = self._item_class_preds == self._item_class_gts
-        low, mean, high = _compute_ci(correct_preds, return_mean=True)
-        return np.array(mean), np.concatenate([low.reshape(-1, 1), high.reshape(-1, 1)], axis=1)
 
-    def generate_report(self, save_dir=None):
+        if compute_ci:
+            low, mean, high = _compute_ci(correct_preds, return_mean=True)
+            return np.array(mean), np.concatenate([low.reshape(-1, 1), high.reshape(-1, 1)], axis=1)
+
+        return np.mean(correct_preds, axis=0), None
+
+    def generate_report(self, compute_ci=False, bin_granularity=3, save_dir=None):
         stdout_default = sys.stdout
         f = None
         if save_dir is not None:
@@ -155,8 +159,8 @@ class PerformanceMeasures:
             sys.stdout = f
 
         self.high_level_metrics_report()
-        self.item_level_metrics_report()
-        self.bin_level_metrics_report()
+        self.item_level_metrics_report(compute_ci=compute_ci)
+        self.bin_level_metrics_report(bin_granularity=bin_granularity, compute_ci=compute_ci)
 
         sys.stdout = stdout_default
 
@@ -191,12 +195,12 @@ class PerformanceMeasures:
         print("* Total Score Regression Metrics:")
         print(tabulate(reg_table, headers=reg_table.columns, tablefmt='presto', showindex=False, floatfmt=".3f"))
 
-    def item_level_metrics_report(self):
+    def item_level_metrics_report(self, compute_ci=False):
         # classification metrics
-        cls_metrics = self._compute_classification_metrics_item_score()
+        cls_metrics = self._compute_classification_metrics_item_score(compute_ci=compute_ci)
 
         # regression metrics
-        reg_metrics = self._compute_regression_metrics_item_score(return_ci=True)
+        reg_metrics = self._compute_regression_metrics_item_score(compute_ci=compute_ci)
 
         # table to for total item score metrics
         reg_table = pd.DataFrame(
@@ -208,12 +212,15 @@ class PerformanceMeasures:
             columns=[f'Item {i + 1}' for i in range(N_ITEMS)]
         )
 
-        ci_table = pd.DataFrame(data=np.concatenate([
-            reg_metrics['mae']['ci'].T,
-            reg_metrics['mse']['ci'].T,
-            cls_metrics['acc']['ci'].T], axis=0),
-            index=['MAE_LOW', 'MAE_HIGH', 'MSE_LOW', 'MSE_HIGH', 'Accuracy_LOW', 'Accuracy_HIGH'],
-            columns=[f'Item {i + 1}' for i in range(N_ITEMS)])
+        if compute_ci:
+            ci_table = pd.DataFrame(data=np.concatenate([
+                reg_metrics['mae']['ci'].T,
+                reg_metrics['mse']['ci'].T,
+                cls_metrics['acc']['ci'].T], axis=0),
+                index=['MAE_LOW', 'MAE_HIGH', 'MSE_LOW', 'MSE_HIGH', 'Accuracy_LOW', 'Accuracy_HIGH'],
+                columns=[f'Item {i + 1}' for i in range(N_ITEMS)])
+        else:
+            ci_table = None
 
         print('\n' + '=' * 200)
         print("* Item Specific Metrics:")
@@ -228,7 +235,7 @@ class PerformanceMeasures:
 
         return reg_table, cls_acc_table, ci_table
 
-    def bin_level_metrics_report(self, bin_granularity=3):
+    def bin_level_metrics_report(self, bin_granularity=3, compute_ci=False):
         # assign each score to a bin
         bins = np.arange(0, 36, step=bin_granularity)
         score_bins = np.digitize(self._total_score_gts, bins=bins, right=False)
@@ -240,16 +247,23 @@ class PerformanceMeasures:
              score_bins.reshape(-1, 1)], axis=1), columns=[ABSOLUTE_ERROR, SQUARED_ERROR, 'bin'])
 
         # aggregate
-        table = table.groupby('bin').agg(
-            MAE=(ABSOLUTE_ERROR, 'mean'), MAE_CI=(ABSOLUTE_ERROR, lambda arr: _compute_ci(arr, return_mean=True)),
-            MSE=(SQUARED_ERROR, 'mean'), MSE_CI=(SQUARED_ERROR, lambda arr: _compute_ci(arr, return_mean=True))
-        )
+        if compute_ci:
+            table = table.groupby('bin').agg(
+                MAE=(ABSOLUTE_ERROR, 'mean'), MAE_CI=(ABSOLUTE_ERROR, lambda arr: _compute_ci(arr, return_mean=True)),
+                MSE=(SQUARED_ERROR, 'mean'), MSE_CI=(SQUARED_ERROR, lambda arr: _compute_ci(arr, return_mean=True))
+            )
+            table_columns = ['scores', 'MAE', 'MAE_CI', 'MSE', 'MSE_CI']
+        else:
+            table = table.groupby('bin').agg(MAE=(ABSOLUTE_ERROR, 'mean'), MSE=(SQUARED_ERROR, 'mean'))
+            table_columns = ['scores', 'MAE', 'MSE']
+
         table['scores'] = [
                               r"${}-{}$".format(bins[i], bins[i + 1]) for i in range(len(bins) - 1)
                           ] + [
                               fr'${bins[-1]}-36$'
                           ]
-        table = table[['scores', 'MAE', 'MAE_CI', 'MSE', 'MSE_CI']]
+
+        table = table[table_columns]
 
         print('\n' + '=' * 200)
         print("* Bin Specific Metrics:")
@@ -316,14 +330,14 @@ class PerformanceMeasures:
                 'mse': self.squared_error(ERR_LEVEL_TOTAL_SCORE),
                 'r2': self.r_squared(ERR_LEVEL_TOTAL_SCORE)}
 
-    def _compute_regression_metrics_item_score(self, return_ci=False):
+    def _compute_regression_metrics_item_score(self, compute_ci=False):
         mae_terms = self.absolute_error(ERR_LEVEL_ITEM_SCORE, reduce=None)
         mse_terms = self.squared_error(ERR_LEVEL_ITEM_SCORE, reduce=None)
         r2 = self.r_squared(ERR_LEVEL_ITEM_SCORE)
 
-        if not return_ci:
-            return {'mae': {'mean': np.mean(mae_terms)},
-                    'mse': {'mean': np.mean(mse_terms)},
+        if not compute_ci:
+            return {'mae': {'mean': np.mean(mae_terms, axis=0)},
+                    'mse': {'mean': np.mean(mse_terms, axis=0)},
                     'r2': np.array(r2)}
 
         mae_low, mae, mae_high = _compute_ci(mae_terms, return_mean=True)
@@ -335,9 +349,9 @@ class PerformanceMeasures:
                         'ci': np.concatenate([mse_low.reshape(-1, 1), mse_high.reshape(-1, 1)], axis=1)},
                 'r2': np.array(r2)}
 
-    def _compute_classification_metrics_item_score(self):
+    def _compute_classification_metrics_item_score(self, compute_ci=False):
         # compute accuracy for each item
-        items_accs, confidence_intervals = self.item_accuracies()
+        items_accs, confidence_intervals = self.item_accuracies(compute_ci=compute_ci)
 
         # compute accuracy for each item class {0, 0.5, 1, 2} per item
         confusion_matrices = [metrics.confusion_matrix(self._item_class_gts[:, i], self._item_class_preds[:, i])

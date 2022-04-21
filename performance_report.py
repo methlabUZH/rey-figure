@@ -5,27 +5,25 @@ import pandas as pd
 
 from src.analyze.performance_measures import PerformanceMeasures
 
-# _DEBUG_RESULTS_DIR = 'results/spaceml-results/data_232x300-seed_1/final-3_scores/rey-multilabel-classifier'
-_DEBUG_RESULTS_DIR = 'results/spaceml-results/data_232x300-seed_1/final-aug-3_scores/rey-multilabel-classifier'
-# _DEBUG_RESULTS_DIR = 'results/spaceml-results/data_232x300-seed_1/final/rey-multilabel-classifier'
-# _DEBUG_RESULTS_DIR = 'results/spaceml-results/data_232x300-seed_1/final-aug/rey-multilabel-classifier'
-
 parser = argparse.ArgumentParser()
-parser.add_argument('-r', '--results-dir', type=str, default=_DEBUG_RESULTS_DIR)
+parser.add_argument('-r', '--results-dir', type=str, default=None)
 args = parser.parse_args()
 
 
-def main():
-    with open(os.path.join(args.results_dir, 'args.json'), 'r') as f:
+def main(results_dir):
+    with open(os.path.join(results_dir, 'args.json'), 'r') as f:
         num_classes = json.load(f).get('n_classes', 4)
 
-    preds = pd.read_csv(os.path.join(args.results_dir, 'test_predictions.csv'))
-    gts = pd.read_csv(os.path.join(args.results_dir, 'test_ground_truths.csv'))
+    preds = pd.read_csv(os.path.join(results_dir, 'test_predictions.csv'))
+    gts = pd.read_csv(os.path.join(results_dir, 'test_ground_truths.csv'))
 
     perf_meas = PerformanceMeasures(gts, preds, num_classes=num_classes)
-    perf_meas.generate_report(save_dir=os.path.join(args.results_dir, 'performance-report'))
-    perf_meas.create_figures(save_dir=os.path.join(args.results_dir, 'performance-report'))
+    perf_meas.generate_report(save_dir=os.path.join(results_dir, 'performance-report'))
+    perf_meas.create_figures(save_dir=os.path.join(results_dir, 'performance-report'))
 
 
 if __name__ == '__main__':
-    main()
+    # import glob
+    # dir0 = 'results/spaceml-results-light/**/rey-multilabel-classifier'
+    # for d in glob.glob(dir0, recursive=True):
+    main(args.results_dir)

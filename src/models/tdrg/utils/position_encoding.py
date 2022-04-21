@@ -10,7 +10,7 @@ from torch import nn
 class PositionEmbeddingSine(nn.Module):
     """
     This is a more standard version of the position embedding, very similar to the one
-    used by the Attention is all you need paper, generalized to work on images.
+    used by the Attention is all you need main-figures, generalized to work on images.
     """
     def __init__(self, num_pos_feats=64, temperature=10000, normalize=False, scale=None):
         super(PositionEmbeddingSine, self).__init__()

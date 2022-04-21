@@ -8,7 +8,7 @@ ITEM_ERRS_FIG = 'item-errors'
 BIN_STDEV_FIG = 'bin-stdev'
 ERR_HIST_CLINICIANS = 'err-hist-clinicians'
 
-MAIN_SAVE_AS = './results/figures/paper/{}-scores/{}.pdf'
+MAIN_SAVE_AS = './results/figures/main-figures/{}-scores/{}.pdf'
 
 ########################################################################################################################
 # plotting params

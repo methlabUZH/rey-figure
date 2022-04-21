@@ -176,7 +176,7 @@ if __name__ == '__main__':
     main(model_predictions_csv=os.path.join(
         results_root, 'data-2018-2021-232x300-pp0/final-bigsize-aug/rey-multilabel-classifier/test_predictions.csv'),
         # results_root, 'data_232x300-seed_1/final/rey-multilabel-classifier/test_predictions.csv'),
-        figure_quality_mode=MODE_STD, save_as='../../results/figures/paper/human_comparison_std.pdf')
+        figure_quality_mode=MODE_STD, save_as='../../results/figures/main-figures/human_comparison_std.pdf')
     # figure_quality_mode=MODE_STD, save_as=None)
 
     # main(model_predictions_csv=os.path.join(
