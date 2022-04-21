@@ -7,15 +7,15 @@ nohup \
 python train_regressor.py \
     --arch v2 \
     --workers 10 \
-    --id None \
-    --data-root ./data/serialized-data/data_116x150-seed_1 \
+    --id final-reg \
+    --data-root ./data/serialized-data/data_232x300-seed_1 \
     --results-dir ./results \
     --eval-test \
     --epochs 40 \
-    --batch-size 64 \
+    --batch-size 16 \
     --lr 0.01 \
     --gamma 0.95 \
     --wd 0.0 \
     --weighted-sampling 1 \
-    --image-size 116 150 \
+    --image-size 232 300 \
 > "./log/$date$_console.out" & 

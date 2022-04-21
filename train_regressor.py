@@ -80,12 +80,12 @@ def main():
         train_labels = pd.concat([train_labels, sim_df], ignore_index=True)
 
     # get train dataloader
-    train_loader = get_dataloader(data_root=args.data_root, labels=train_labels, label_type=REGRESSION_LABELS,
+    train_loader = get_dataloader(labels=train_labels, label_type=REGRESSION_LABELS,
                                   batch_size=args.batch_size, num_workers=args.workers, shuffle=True,
                                   weighted_sampling=args.weighted_sampling, augment=args.augment,
                                   image_size=args.image_size)
     # get val dataloader
-    val_loader = get_dataloader(data_root=args.data_root, labels=val_labels, label_type=REGRESSION_LABELS,
+    val_loader = get_dataloader(labels=val_labels, label_type=REGRESSION_LABELS,
                                 batch_size=args.batch_size, num_workers=args.workers, shuffle=False, augment=False,
                                 image_size=args.image_size)
 
