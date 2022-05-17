@@ -13,7 +13,7 @@ from config_eval import config as cfg_eval
 
 class RegressionEvaluator:
     def __init__(self, model, image_size, results_dir, data_dir, batch_size=128, workers=8,
-                tta=False, validation=False, angles=[-2.5, -1.5, 0, 1.5, 2.5]):
+                 tta=False, validation=False, angles=[-2.5, -1.5, 0, 1.5, 2.5]):
         self.model = model
         self.results_dir = results_dir
         self.data_dir = data_dir
@@ -22,7 +22,7 @@ class RegressionEvaluator:
         self.workers = workers
         self.tta = tta
         self.validation = validation
-        if self.tta: 
+        if self.tta:
             self.angles = cfg_eval[REYREGRESSOR]['angles']
 
         self.predictions = None
@@ -35,7 +35,6 @@ class RegressionEvaluator:
 
         print(f"Using Test-Time-Augmentation: {self.tta}")
         print(f"Using Validation set: {self.validation}")
-
 
         # fetch checkpoint
         self.checkpoint = os.path.join(results_dir, 'checkpoints/model_best.pth.tar')

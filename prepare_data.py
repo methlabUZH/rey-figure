@@ -37,7 +37,7 @@ this script expects your data to be organized like this:
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--data-root', type=str, default='./data')
-parser.add_argument('--image-size', nargs='+', default=[116, 150], help='height and width', type=int)
+parser.add_argument('--image-size', nargs='+', default=[232, 300], help='height and width', type=int)
 parser.add_argument('--seed', type=int, default=1, help='random seed used for train and test split')
 args = parser.parse_args()
 

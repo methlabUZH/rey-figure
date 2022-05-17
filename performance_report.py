@@ -11,8 +11,11 @@ args = parser.parse_args()
 
 
 def main(results_dir):
-    with open(os.path.join(results_dir, 'args.json'), 'r') as f:
-        num_classes = json.load(f).get('n_classes', 4)
+    try:
+        with open(os.path.join(results_dir, 'args.json'), 'r') as f:
+            num_classes = json.load(f).get('n_classes', 4)
+    except FileNotFoundError:
+        num_classes = 4
 
     preds = pd.read_csv(os.path.join(results_dir, 'test_predictions.csv'))
     gts = pd.read_csv(os.path.join(results_dir, 'test_ground_truths.csv'))
@@ -23,9 +26,10 @@ def main(results_dir):
 
 
 if __name__ == '__main__':
-    import glob
-
-    dir0 = 'results/spaceml-results-light/**/rey-multilabel-classifier'
-    for d in glob.glob(dir0, recursive=True):
-        main(d)
+    # import glob
+    #
+    # dir0 = 'results/spaceml-results-light/**/rey-multilabel-classifier'
+    # for d in glob.glob(dir0, recursive=True):
+    #     main(d)
+    main('results/spaceml-results/data_232x300-seed_1/reg_clf')
     # main(args.results_dir)

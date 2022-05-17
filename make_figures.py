@@ -19,9 +19,9 @@ DO_PLOT = [
     # HUMAN_COMP_FIG,
     # DATA_PROGR_FIG,
     # ABLATIONST_FIG,
-    BIN_ERRORS_FIG,
+    # BIN_ERRORS_FIG,
     # BIN_STDEV_FIG,
-    # ITEM_ERRS_FIG,
+    ITEM_ERRS_FIG,
     # ERR_HIST_CLINICIANS
 ]
 
@@ -179,25 +179,27 @@ if ITEM_ERRS_FIG in DO_PLOT:
     """
     from src.analyze.plot_item_errors import make_plot as item_error_plot
 
+    # # only multilabel classifier
     # item_error_plot(
-    #     f'./results/spaceml-results/data_232x300-seed_1/{RES_ID.replace("final", "final-aug")}/rey-multilabel-classifier',
-    #     save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'item_acc_and_mae'))
+    #     results_dir1=f'./results/spaceml-results-light/data_232x300-seed_1/final-aug/rey-multilabel-classifier',
+    #     label1='Multilabel Classifier', num_classes=NUM_SCORES, color_idx=0,
+    #     save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'item_acc_and_mae_cls'))
+    #
+    # # only regressor
+    # item_error_plot(
+    #     results_dir1=f'./results/spaceml-results-light/data_232x300-seed_1/final-aug/rey-regressor-v2',
+    #     label1='Regressor', num_classes=NUM_SCORES, color_idx=1,
+    #     save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'item_acc_and_mae_reg'))
+    #
+    # # both regressor and classifier
+    # item_error_plot(
+    #     results_dir1=f'./results/spaceml-results-light/data_232x300-seed_1/final-aug/rey-multilabel-classifier',
+    #     results_dir2=f'./results/spaceml-results-light/data_232x300-seed_1/final-aug/rey-regressor-v2',
+    #     label1='Multilabel Classifier', label2='Regressor', num_classes=NUM_SCORES,
+    #     save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'item_acc_and_mae_both'))
 
-    # only multilabel classifier
+    # Hybrid Regressor + Multilabel Classifier
     item_error_plot(
-        results_dir1=f'./results/spaceml-results-light/data_232x300-seed_1/final-aug/rey-multilabel-classifier',
-        label1='Multilabel Classifier', num_classes=NUM_SCORES, color_idx=0,
-        save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'item_acc_and_mae_cls'))
-
-    # only regressor
-    item_error_plot(
-        results_dir1=f'./results/spaceml-results-light/data_232x300-seed_1/final-aug/rey-regressor-v2',
-        label1='Regressor', num_classes=NUM_SCORES, color_idx=1,
-        save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'item_acc_and_mae_reg'))
-
-    # both regressor and classifier
-    item_error_plot(
-        results_dir1=f'./results/spaceml-results-light/data_232x300-seed_1/final-aug/rey-multilabel-classifier',
-        results_dir2=f'./results/spaceml-results-light/data_232x300-seed_1/final-aug/rey-regressor-v2',
-        label1='Multilabel Classifier', label2='Regressor', num_classes=NUM_SCORES,
-        save_as=MAIN_SAVE_AS.format(NUM_SCORES, 'item_acc_and_mae_both'))
+        results_dir1='results/spaceml-results/data_232x300-seed_1/reg_clf',
+        label1='Regressor + Multilabel Classifier', num_classes=4, color_idx=1,
+        save_as=MAIN_SAVE_AS.format('item_acc_and_mae_reg'))
