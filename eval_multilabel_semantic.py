@@ -1,13 +1,12 @@
 import argparse
 import json
 import os
-import pandas as pd
 import sys
 
 from constants import DATA_DIR, REYMULTICLASSIFIER
 from config_train import config as train_config
+from config_eval import config as cfg_eval
 import hyperparameters_multilabel
-from src.analyze.performance_measures import PerformanceMeasures
 from src.training.train_utils import Logger
 from src.models import get_classifier
 from src.dataloaders.semantic_transforms_dataset import TF_BRIGHTNESS, TF_PERSPECTIVE, TF_CONTRAST, TF_ROTATION
@@ -18,6 +17,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--results-dir', type=str, default=None)
 parser.add_argument('--batch-size', default=100, type=int)
 parser.add_argument('--workers', default=8, type=int)
+parser.add_argument('--tta', action='store_true')
 
 # transformations
 parser.add_argument('--transform', type=str, default=TF_ROTATION,
@@ -71,7 +71,9 @@ def main():
                                             distortion_scale=args.distortion,
                                             brightness_factor=args.brightness,
                                             contrast_factor=args.contrast,
-                                            num_classes=num_classes)
+                                            num_classes=num_classes,
+                                            tta=args.tta,
+                                            angles=cfg_eval[REYMULTICLASSIFIER]['angles'])
 
     evaluator.run_eval(save=True, prefix=prefix)
 
