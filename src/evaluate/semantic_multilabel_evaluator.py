@@ -2,6 +2,7 @@ import numpy as np
 import os
 import pandas as pd
 import torch
+import torchvision
 from tqdm import tqdm
 
 from constants import CLASSIFICATION_LABELS, N_ITEMS
@@ -12,13 +13,15 @@ from src.utils import class_to_score
 class SemanticMultilabelEvaluator:
     def __init__(self, model, image_size, results_dir, data_dir, transform, batch_size=128, workers=8,
                  rotation_angles=None, distortion_scale=None, brightness_factor=None, contrast_factor=None,
-                 num_classes=4):
+                 num_classes=4, tta=False, angles=[-2.0, -1.0, 0.0, 1.0, 2.0]):
         self.model = model
         self.results_dir = results_dir
         self.data_dir = data_dir
         self.batch_size = batch_size
         self.workers = workers
         self.num_classes = num_classes
+        self.tta = tta
+        self.angles = angles
 
         self.predictions = None
         self.ground_truths = None
@@ -115,7 +118,23 @@ class SemanticMultilabelEvaluator:
                 inputs = inputs.cuda()
 
             with torch.no_grad():
-                logits = self.model(inputs.float())
+                if self.tta:
+                    # test time augmentation (TTA) with angle rotations
+                    logits = None
+                    for angle in self.angles:
+                        inputs = torchvision.transforms.functional.rotate(inputs.float(), angle)
+                        outputs = self.model(inputs.float())  # list of 18 elements of shape (bs, 4) each
+                        # add up the logits for all 18 items
+                        if logits is None:
+                            logits = outputs
+                        else:
+                            for i in range(len(outputs)):
+                                logits[i] += outputs[i]
+                    # divide by nb of angles to get the average prediction
+                    for i in range(len(logits)):
+                        logits[i] /= len(self.angles)
+                else:
+                    logits = self.model(inputs.float())
 
             if isinstance(logits, list):
                 outputs = [torch.argmax(lgts, dim=1).cpu().numpy() for lgts in logits]

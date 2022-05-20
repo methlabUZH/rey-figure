@@ -29,8 +29,10 @@ class STDataset(Dataset):
                  distortion_scale=None,
                  brightness_factor=None,
                  contrast_factor=None,
-                 num_scores=4):
+                 num_scores=4,
+                 do_normalize=True):
         self._labels_df = labels
+        self._do_normalize = do_normalize
 
         # round item scores to score grid {0, 0.5, 1.0, 2.0} or {0, 1.0, 2.0}
         self._item_scores = np.array(self._labels_df.loc[:, SCORE_COLUMNS].applymap(
@@ -85,9 +87,10 @@ class STDataset(Dataset):
         image = self._transform(image)
 
         # normalize image
-        image = image.type('torch.FloatTensor')
-        image /= 255.0
-        image = self._normalize(image)
+        if self._do_normalize:
+            image = image.type('torch.FloatTensor')
+            image /= 255.0
+            image = self._normalize(image)
 
         return image, self._labels[idx]
 
